@@ -1,59 +1,941 @@
+/******/ (() => { // webpackBootstrap
+/******/ 	"use strict";
+/******/ 	var __webpack_modules__ = ({
+
+/***/ "./helpers/changeCSSpref.js":
+/*!**********************************!*\
+  !*** ./helpers/changeCSSpref.js ***!
+  \**********************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "w320": () => (/* binding */ w320)
+/* harmony export */ });
+//увеличиваем инпут
+
+//увеличиваем инпут
+
+function w320(id) {
+    document.getElementById(id).classList.add("width320")
+}
+
+/***/ }),
+
+/***/ "./helpers/displayElement.js":
+/*!***********************************!*\
+  !*** ./helpers/displayElement.js ***!
+  \***********************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "deleteActiveItem": () => (/* binding */ deleteActiveItem),
+/* harmony export */   "deleteClass": () => (/* binding */ deleteClass),
+/* harmony export */   "hide": () => (/* binding */ hide),
+/* harmony export */   "hideAll": () => (/* binding */ hideAll),
+/* harmony export */   "hideInputFinder": () => (/* binding */ hideInputFinder),
+/* harmony export */   "show": () => (/* binding */ show),
+/* harmony export */   "showAllArticle": () => (/* binding */ showAllArticle),
+/* harmony export */   "showInputFinder": () => (/* binding */ showInputFinder),
+/* harmony export */   "showResults": () => (/* binding */ showResults)
+/* harmony export */ });
+/* harmony import */ var _changeCSSpref__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./changeCSSpref */ "./helpers/changeCSSpref.js");
+/* harmony import */ var _mainData__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./mainData */ "./helpers/mainData.js");
+
+
+
+ //показать элемент
+function show(id) {
+    document.getElementById(id).classList.remove("hide")
+}
+
 function deleteActiveItem() {
     document.querySelectorAll(".active-item").forEach(el => el.classList.remove("active-item"))
 }
+
+function hideInputFinder() {
+    deleteClass("inputSearch", "width320")
+    hide("divArrovInput");
+    show("articleTitle")
+    hide("findAncor")
+}
+
+//удалить класс у элемена
+function deleteClass(id, cls) {
+    document.getElementById(id).classList.remove(cls)
+}
+
+
+function hide(id) {
+    document.getElementById(id).classList.add("hide")
+}
+
+
+
+function showResults() {
+    document.getElementById("showResTrue").textContent = _mainData__WEBPACK_IMPORTED_MODULE_1__.userAnswers.right
+    document.getElementById("finalList_right").textContent = _mainData__WEBPACK_IMPORTED_MODULE_1__.userAnswers.right
+
+    document.getElementById("showResFalse").textContent = _mainData__WEBPACK_IMPORTED_MODULE_1__.userAnswers.wrong
+    document.getElementById("finalList_wrong").textContent =  _mainData__WEBPACK_IMPORTED_MODULE_1__.userAnswers.wrong
+
+    document.getElementById("showResNoAnswer").textContent = _mainData__WEBPACK_IMPORTED_MODULE_1__.userAnswers.without
+    document.getElementById("finalList_noAnswer").textContent = _mainData__WEBPACK_IMPORTED_MODULE_1__.userAnswers.without
+}
+
+function hideAll() {
+    deleteActiveItem()
+    _mainData__WEBPACK_IMPORTED_MODULE_1__.mainImg.classList.add("hide")            //Заставка
+    document.querySelector(".test_1-main")?.classList.add("hide")       //тесты
+    document.getElementById("outTestblock").classList.add("hide")
+    document.getElementById("footerBtn").classList.add("hide")
+    document.getElementById("block_result").classList.add("hide")    //результаты теста
+    document.getElementById("test12122022").classList.add("hide")    //результаты теста
+}
+
+function showInputFinder() {
+    (0,_changeCSSpref__WEBPACK_IMPORTED_MODULE_0__.w320)("inputSearch");
+    show("divArrovInput");
+    hide("articleTitle");
+    show("findAncor")
+}
+
 
 // показать все пособие целиком
 function showAllArticle() {
     document.querySelectorAll(".headTitle").forEach(el => el.classList.remove("hide"))
     document.querySelectorAll(".sectionClass:not(#block_result)").forEach(el => el.classList.remove("hide"))
 }
+
+/***/ }),
+
+/***/ "./helpers/getHtmlElement.js":
+/*!***********************************!*\
+  !*** ./helpers/getHtmlElement.js ***!
+  \***********************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "getPureValue": () => (/* binding */ getPureValue)
+/* harmony export */ });
+function getPureValue(id) {
+    return document.getElementById(id).value.replace(/[.?,0-9/\\*-+]/g, "").replace(/c/gi, "с").toLocaleLowerCase()
+}
+
+
+/***/ }),
+
+/***/ "./helpers/mainData.js":
+/*!*****************************!*\
+  !*** ./helpers/mainData.js ***!
+  \*****************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "mainImg": () => (/* binding */ mainImg),
+/* harmony export */   "title": () => (/* binding */ title),
+/* harmony export */   "userAnswers": () => (/* binding */ userAnswers)
+/* harmony export */ });
+
+const userAnswers = {
+    right: 0,
+    wrong: 0,
+    without: 0
+}
+const title = document.getElementById("articleTitle") 
+const mainImg = document.querySelector(".mainImg")
+
+
+/***/ }),
+
+/***/ "./helpers/questionFromText.js":
+/*!*************************************!*\
+  !*** ./helpers/questionFromText.js ***!
+  \*************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "checkAnswer1": () => (/* binding */ checkAnswer1),
+/* harmony export */   "checkAnswer2": () => (/* binding */ checkAnswer2)
+/* harmony export */ });
+/* harmony import */ var _getHtmlElement__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./getHtmlElement */ "./helpers/getHtmlElement.js");
+
+
+function checkAnswer1() {
+
+
+    if (this.previousElementSibling.previousElementSibling.id == "inputTextQuestion1_1") {
+        let value = (0,_getHtmlElement__WEBPACK_IMPORTED_MODULE_0__.getPureValue)("inputTextQuestion1_1")
+        let totalValueLen = value.split(" ").length
+        if (
+            value.includes("артериал") &&
+            value.includes("гипертен") &&
+            totalValueLen < 5
+
+        ) {
+            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightRed")
+            this.previousElementSibling.previousElementSibling.classList.add("bg-lightGreen")
+            this.previousElementSibling.previousElementSibling.disabled = true
+            this.previousElementSibling.textContent = "Вы дали правильный ответ на вопрос"
+            document.getElementById("btnInputTextQuestion1").removeEventListener("click", checkAnswer1)
+        } else if (value == "") {
+            this.previousElementSibling.textContent = "Вы не ответили на вопрос"
+        } else {
+            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightGreen")
+            this.previousElementSibling.previousElementSibling.classList.add("bg-lightRed")
+            this.previousElementSibling.textContent = "Вы ответили не правильно"
+        }
+    }
+
+    // ОСТРЫЙ КОРОНАРНЫЙ СИНДРОМ
+
+
+    if (this.previousElementSibling.previousElementSibling.id == "inputTextQuestion2_1") {
+        let value = (0,_getHtmlElement__WEBPACK_IMPORTED_MODULE_0__.getPureValue)("inputTextQuestion2_1")
+        if (
+            value.includes("коронарн") &&
+            value.includes("синдр")
+        ) {
+            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightRed")
+            this.previousElementSibling.previousElementSibling.classList.add("bg-lightGreen")
+            this.previousElementSibling.textContent = "Вы дали правильный ответ на вопрос"
+            this.previousElementSibling.previousElementSibling.disabled = true
+            document.getElementById("btnInputTextQuestion1").removeEventListener("click", checkAnswer1)
+        } else if (value == "") {
+            this.previousElementSibling.textContent = "Вы не ответили на вопрос"
+        } else {
+            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightGreen")
+            this.previousElementSibling.previousElementSibling.classList.add("bg-lightRed")
+            this.previousElementSibling.textContent = "Вы ответили не правильно"
+        }
+    }
+
+    // СИНДРОМ ОСТРОЙ СЕРДЕЧНОЙ НЕДОСТАТОЧНОСТИ
+
+    if (this.previousElementSibling.previousElementSibling.id == "inputTextQuestion4_1") {
+        let value = (0,_getHtmlElement__WEBPACK_IMPORTED_MODULE_0__.getPureValue)("inputTextQuestion4_1")
+        if (
+            value.includes("от") &&
+            value.includes("легк")
+        ) {
+            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightRed")
+            this.previousElementSibling.previousElementSibling.classList.add("bg-lightGreen")
+            this.previousElementSibling.textContent = "Вы дали правильный ответ на вопрос"
+            this.previousElementSibling.previousElementSibling.disabled = true
+            document.getElementById("btnInputTextQuestion1").removeEventListener("click", checkAnswer1)
+        } else if (value == "") {
+            this.previousElementSibling.textContent = "Вы не ответили на вопрос"
+        } else {
+            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightGreen")
+            this.previousElementSibling.previousElementSibling.classList.add("bg-lightRed")
+            this.previousElementSibling.textContent = "Вы ответили не правильно"
+        }
+    }
+    // СИНДРОМ ХРОНИЧЕСКОЙ СЕРДЕЧНОЙ НЕДОСТАТОЧНОСТИ
+
+    if (this.previousElementSibling.previousElementSibling.id == "inputTextQuestion5_1") {
+        let value = (0,_getHtmlElement__WEBPACK_IMPORTED_MODULE_0__.getPureValue)("inputTextQuestion5_1")
+        if (
+            value.includes("сердеч") &&
+            value.includes("недостато")
+        ) {
+            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightRed")
+            this.previousElementSibling.previousElementSibling.classList.add("bg-lightGreen")
+            this.previousElementSibling.textContent = "Вы дали правильный ответ на вопрос"
+            this.previousElementSibling.previousElementSibling.disabled = true
+            document.getElementById("btnInputTextQuestion1").removeEventListener("click", checkAnswer1)
+        } else if (value == "") {
+            this.previousElementSibling.textContent = "Вы не ответили на вопрос"
+        } else {
+            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightGreen")
+            this.previousElementSibling.previousElementSibling.classList.add("bg-lightRed")
+            this.previousElementSibling.textContent = "Вы ответили не правильно"
+        }
+    }
+    // АРИТМИЧЕСКИЙ СИНДРОМ
+    if (this.previousElementSibling.previousElementSibling.id == "inputTextQuestion6_1") {
+        let value = (0,_getHtmlElement__WEBPACK_IMPORTED_MODULE_0__.getPureValue)("inputTextQuestion6_1")
+        if (
+            value.includes("аритми")
+        ) {
+            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightRed")
+            this.previousElementSibling.previousElementSibling.classList.add("bg-lightGreen")
+            this.previousElementSibling.textContent = "Вы дали правильный ответ на вопрос"
+            this.previousElementSibling.previousElementSibling.disabled = true
+            document.getElementById("btnInputTextQuestion1").removeEventListener("click", checkAnswer1)
+        } else if (value == "") {
+            this.previousElementSibling.textContent = "Вы не ответили на вопрос"
+        } else {
+            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightGreen")
+            this.previousElementSibling.previousElementSibling.classList.add("bg-lightRed")
+            this.previousElementSibling.textContent = "Вы ответили не правильно"
+        }
+    }
+    // СИНДРОМ ЛЕГОЧНОЙ ГИПЕРТЕНЗИИ
+    if (this.previousElementSibling.previousElementSibling.id == "inputTextQuestion7_1") {
+        let value = (0,_getHtmlElement__WEBPACK_IMPORTED_MODULE_0__.getPureValue)("inputTextQuestion7_1")
+        if (
+            value.includes("легочн") &&
+            value.includes("гипертен")
+        ) {
+            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightRed")
+            this.previousElementSibling.previousElementSibling.classList.add("bg-lightGreen")
+            this.previousElementSibling.textContent = "Вы дали правильный ответ на вопрос"
+            this.previousElementSibling.previousElementSibling.disabled = true
+            document.getElementById("btnInputTextQuestion1").removeEventListener("click", checkAnswer1)
+        } else if (value == "") {
+            this.previousElementSibling.textContent = "Вы не ответили на вопрос"
+        } else {
+            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightGreen")
+            this.previousElementSibling.previousElementSibling.classList.add("bg-lightRed")
+            this.previousElementSibling.textContent = "Вы ответили не правильно"
+        }
+    }
+    // СИНДРОМ МИТРАЛЬНОГО СТЕНОЗА
+
+    if (this.previousElementSibling.previousElementSibling.id == "inputTextQuestion8_1") {
+        let value = (0,_getHtmlElement__WEBPACK_IMPORTED_MODULE_0__.getPureValue)("inputTextQuestion8_1")
+        
+        if (
+            value.includes("митрал") &&
+            value.includes("стеноз")
+        ) {
+            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightRed")
+            this.previousElementSibling.previousElementSibling.classList.add("bg-lightGreen")
+            this.previousElementSibling.textContent = "Вы дали правильный ответ на вопрос"
+            this.previousElementSibling.previousElementSibling.disabled = true
+            document.getElementById("btnInputTextQuestion1").removeEventListener("click", checkAnswer1)
+        } else if (value == "") {
+            this.previousElementSibling.textContent = "Вы не ответили на вопрос"
+        } else {
+            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightGreen")
+            this.previousElementSibling.previousElementSibling.classList.add("bg-lightRed")
+            this.previousElementSibling.textContent = "Вы ответили не правильно"
+        }
+    }
+    // СИНДРОМ МИТРАЛЬНОЙ НЕДОСТАТОЧНОСТИ
+
+
+    if (this.previousElementSibling.previousElementSibling.id == "inputTextQuestion9_1") {
+        let value = (0,_getHtmlElement__WEBPACK_IMPORTED_MODULE_0__.getPureValue)("inputTextQuestion9_1")
+        
+        if (
+            value.includes("митрал") &&
+            value.includes("стеноз")
+        ) {
+            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightRed")
+            this.previousElementSibling.previousElementSibling.classList.add("bg-lightGreen")
+            this.previousElementSibling.textContent = "Вы дали правильный ответ на вопрос"
+            this.previousElementSibling.previousElementSibling.disabled = true
+            document.getElementById("btnInputTextQuestion1").removeEventListener("click", checkAnswer1)
+        } else if (value == "") {
+            this.previousElementSibling.textContent = "Вы не ответили на вопрос"
+        } else {
+            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightGreen")
+            this.previousElementSibling.previousElementSibling.classList.add("bg-lightRed")
+            this.previousElementSibling.textContent = "Вы ответили не правильно"
+        }
+    }
+
+    // СИНДРОМ СТЕНОЗА УСТЬЯ АОРТЫ
+
+    if (this.previousElementSibling.previousElementSibling.id == "inputTextQuestion10_1") {
+        let value = (0,_getHtmlElement__WEBPACK_IMPORTED_MODULE_0__.getPureValue)("inputTextQuestion10_1")
+        
+        if (
+            value.includes("стен") &&
+            value.includes("усть") &&
+            value.includes("аорт")
+        ) {
+            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightRed")
+            this.previousElementSibling.previousElementSibling.classList.add("bg-lightGreen")
+            this.previousElementSibling.textContent = "Вы дали правильный ответ на вопрос"
+            this.previousElementSibling.previousElementSibling.disabled = true
+            document.getElementById("btnInputTextQuestion1").removeEventListener("click", checkAnswer1)
+        } else if (value == "") {
+            this.previousElementSibling.textContent = "Вы не ответили на вопрос"
+        } else {
+            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightGreen")
+            this.previousElementSibling.previousElementSibling.classList.add("bg-lightRed")
+            this.previousElementSibling.textContent = "Вы ответили не правильно"
+        }
+    }
+    // СИНДРОМ АОРТАЛЬНОЙ НЕДОСТАТОЧНОСТИ
+
+    if (this.previousElementSibling.previousElementSibling.id == "inputTextQuestion11_1") {
+        let value = (0,_getHtmlElement__WEBPACK_IMPORTED_MODULE_0__.getPureValue)("inputTextQuestion11_1")
+        
+        if (
+            value.includes("аортал") &&
+            value.includes("недостаточ")
+        ) {
+            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightRed")
+            this.previousElementSibling.previousElementSibling.classList.add("bg-lightGreen")
+            this.previousElementSibling.textContent = "Вы дали правильный ответ на вопрос"
+            this.previousElementSibling.previousElementSibling.disabled = true
+            document.getElementById("btnInputTextQuestion1").removeEventListener("click", checkAnswer1)
+        } else if (value == "") {
+            this.previousElementSibling.textContent = "Вы не ответили на вопрос"
+        } else {
+            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightGreen")
+            this.previousElementSibling.previousElementSibling.classList.add("bg-lightRed")
+            this.previousElementSibling.textContent = "Вы ответили не правильно"
+        }
+    }
+    // СИНДРОМ ТРИКУСПИДАЛЬНОЙ НЕДОСТАТОЧНОСТИ
+
+    if (this.previousElementSibling.previousElementSibling.id == "inputTextQuestion12_1") {
+        let value = (0,_getHtmlElement__WEBPACK_IMPORTED_MODULE_0__.getPureValue)("inputTextQuestion12_1")
+        
+        if (
+            value.includes("трикуспидал") &&
+            value.includes("недостаточ")
+        ) {
+            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightRed")
+            this.previousElementSibling.previousElementSibling.classList.add("bg-lightGreen")
+            this.previousElementSibling.textContent = "Вы дали правильный ответ на вопрос"
+            this.previousElementSibling.previousElementSibling.disabled = true
+            document.getElementById("btnInputTextQuestion1").removeEventListener("click", checkAnswer1)
+        } else if (value == "") {
+            this.previousElementSibling.textContent = "Вы не ответили на вопрос"
+        } else {
+            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightGreen")
+            this.previousElementSibling.previousElementSibling.classList.add("bg-lightRed")
+            this.previousElementSibling.textContent = "Вы ответили не правильно"
+        }
+    }
+}
+
+
+// Второй вопрос
+
+function checkAnswer2() {
+
+    if (this.previousElementSibling.previousElementSibling.id == "inputTextQuestion1_2") {
+        let value = (0,_getHtmlElement__WEBPACK_IMPORTED_MODULE_0__.getPureValue)("inputTextQuestion1_2")
+        if (
+            value.includes("гипертонич") &&
+            value.includes("криз")
+        ) {
+            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightRed")
+            this.previousElementSibling.previousElementSibling.classList.add("bg-lightGreen")
+            this.previousElementSibling.textContent = "Вы дали правильный ответ на вопрос"
+            this.previousElementSibling.previousElementSibling.disabled = true
+            document.getElementById("btnInputTextQuestion2").removeEventListener("click", checkAnswer2)
+        } else if (value == "") {
+            this.previousElementSibling.textContent = "Вы не ответили на вопрос"
+        } else {
+            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightGreen")
+            this.previousElementSibling.previousElementSibling.classList.add("bg-lightRed")
+            this.previousElementSibling.textContent = "Вы ответили не правильно"
+        }
+    }
+
+    // ОСТРЫЙ КОРОНАРНЫЙ СИНДРОМ
+
+    if (this.previousElementSibling.previousElementSibling.id == "inputTextQuestion2_2") {
+        let value = (0,_getHtmlElement__WEBPACK_IMPORTED_MODULE_0__.getPureValue)("inputTextQuestion2_2")
+        
+        if (
+            value.includes("кардиоген") &&
+            value.includes("шок")
+        ) {
+            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightRed")
+            this.previousElementSibling.previousElementSibling.classList.add("bg-lightGreen")
+            this.previousElementSibling.previousElementSibling.disabled = true
+            this.previousElementSibling.textContent = "Вы дали правильный ответ на вопрос"
+        } else if (value == "") {
+            this.previousElementSibling.textContent = "Вы не ответили на вопрос"
+        } else {
+            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightGreen")
+            this.previousElementSibling.previousElementSibling.classList.add("bg-lightRed")
+            this.previousElementSibling.textContent = "Вы ответили не правильно"
+        }
+    }
+    // СИНДРОМ ОСТРОЙ СЕРДЕЧНОЙ НЕДОСТАТОЧНОСТИ
+
+
+    if (this.previousElementSibling.previousElementSibling.id == "inputTextQuestion4_2") {
+        let value = (0,_getHtmlElement__WEBPACK_IMPORTED_MODULE_0__.getPureValue)("inputTextQuestion4_2")
+        
+        if (
+            value.includes("трепе") &&
+            value.includes("предсерд")
+        ) {
+            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightRed")
+            this.previousElementSibling.previousElementSibling.classList.add("bg-lightGreen")
+            this.previousElementSibling.previousElementSibling.disabled = true
+            this.previousElementSibling.textContent = "Вы дали правильный ответ на вопрос"
+        } else if (value == "") {
+            this.previousElementSibling.textContent = "Вы не ответили на вопрос"
+        } else {
+            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightGreen")
+            this.previousElementSibling.previousElementSibling.classList.add("bg-lightRed")
+            this.previousElementSibling.textContent = "Вы ответили не правильно"
+        }
+    }
+
+    // СИНДРОМ ХРОНИЧЕСКОЙ СЕРДЕЧНОЙ НЕДОСТАТОЧНОСТИ
+
+
+    if (this.previousElementSibling.previousElementSibling.id == "inputTextQuestion5_2") {
+        let value = (0,_getHtmlElement__WEBPACK_IMPORTED_MODULE_0__.getPureValue)("inputTextQuestion5_2")
+        
+        if (
+            value.includes("инфаркт")
+        ) {
+            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightRed")
+            this.previousElementSibling.previousElementSibling.classList.add("bg-lightGreen")
+            this.previousElementSibling.previousElementSibling.disabled = true
+            this.previousElementSibling.textContent = "Вы дали правильный ответ на вопрос"
+        } else if (value == "") {
+            this.previousElementSibling.textContent = "Вы не ответили на вопрос"
+        } else {
+            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightGreen")
+            this.previousElementSibling.previousElementSibling.classList.add("bg-lightRed")
+            this.previousElementSibling.textContent = "Вы ответили не правильно"
+        }
+    }
+    // АРИТМИЧЕСКИЙ СИНДРОМ
+
+
+    if (this.previousElementSibling.previousElementSibling.id == "inputTextQuestion6_2") {
+        let value = (0,_getHtmlElement__WEBPACK_IMPORTED_MODULE_0__.getPureValue)("inputTextQuestion6_2")
+        
+        if (
+            value.includes("фибрилля") &&
+            value.includes("предсерд")
+        ) {
+            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightRed")
+            this.previousElementSibling.previousElementSibling.classList.add("bg-lightGreen")
+            this.previousElementSibling.previousElementSibling.disabled = true
+            this.previousElementSibling.textContent = "Вы дали правильный ответ на вопрос"
+        } else if (value == "") {
+            this.previousElementSibling.textContent = "Вы не ответили на вопрос"
+        } else {
+            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightGreen")
+            this.previousElementSibling.previousElementSibling.classList.add("bg-lightRed")
+            this.previousElementSibling.textContent = "Вы ответили не правильно"
+        }
+    }
+
+    // СИНДРОМ ЛЕГОЧНОЙ ГИПЕРТЕНЗИИ
+
+
+    if (this.previousElementSibling.previousElementSibling.id == "inputTextQuestion7_2") {
+        let value = (0,_getHtmlElement__WEBPACK_IMPORTED_MODULE_0__.getPureValue)("inputTextQuestion7_2")
+        
+        if (
+            value.includes("болезн") &&
+            value.includes("легк") || value.includes("лёго") || value.includes("лего")
+        ) {
+            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightRed")
+            this.previousElementSibling.previousElementSibling.classList.add("bg-lightGreen")
+            this.previousElementSibling.previousElementSibling.disabled = true
+            this.previousElementSibling.textContent = "Вы дали правильный ответ на вопрос"
+        } else if (value == "") {
+            this.previousElementSibling.textContent = "Вы не ответили на вопрос"
+        } else {
+            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightGreen")
+            this.previousElementSibling.previousElementSibling.classList.add("bg-lightRed")
+            this.previousElementSibling.textContent = "Вы ответили не правильно"
+        }
+    }
+
+    // СИНДРОМ МИТРАЛЬНОГО СТЕНОЗА
+
+
+    if (this.previousElementSibling.previousElementSibling.id == "inputTextQuestion8_2") {
+        let value = (0,_getHtmlElement__WEBPACK_IMPORTED_MODULE_0__.getPureValue)("inputTextQuestion8_2")
+        
+        if (
+            value.includes("болезн") &&
+            value.includes("ревмат") &&
+            value.includes("сердц")
+        ) {
+            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightRed")
+            this.previousElementSibling.previousElementSibling.classList.add("bg-lightGreen")
+            this.previousElementSibling.previousElementSibling.disabled = true
+            this.previousElementSibling.textContent = "Вы дали правильный ответ на вопрос"
+        } else if (value == "") {
+            this.previousElementSibling.textContent = "Вы не ответили на вопрос"
+        } else {
+            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightGreen")
+            this.previousElementSibling.previousElementSibling.classList.add("bg-lightRed")
+            this.previousElementSibling.textContent = "Вы ответили не правильно"
+        }
+    }
+
+    // СИНДРОМ МИТРАЛЬНОЙ НЕДОСТАТОЧНОСТИ
+
+
+    if (this.previousElementSibling.previousElementSibling.id == "inputTextQuestion9_2") {
+        let value = (0,_getHtmlElement__WEBPACK_IMPORTED_MODULE_0__.getPureValue)("inputTextQuestion9_2")
+        
+        if (
+            value.includes("недостаточн") &&
+            value.includes("митрал") &&
+            value.includes("клапан")
+
+        ) {
+            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightRed")
+            this.previousElementSibling.previousElementSibling.classList.add("bg-lightGreen")
+            this.previousElementSibling.previousElementSibling.disabled = true
+            this.previousElementSibling.textContent = "Вы дали правильный ответ на вопрос"
+        } else if (value == "") {
+            this.previousElementSibling.textContent = "Вы не ответили на вопрос"
+        } else {
+            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightGreen")
+            this.previousElementSibling.previousElementSibling.classList.add("bg-lightRed")
+            this.previousElementSibling.textContent = "Вы ответили не правильно"
+        }
+    }
+
+    // СИНДРОМ СТЕНОЗА УСТЬЯ АОРТЫ
+
+    if (this.previousElementSibling.previousElementSibling.id == "inputTextQuestion10_2") {
+        
+        let value = (0,_getHtmlElement__WEBPACK_IMPORTED_MODULE_0__.getPureValue)("inputTextQuestion10_2")
+        
+        if (
+            value.includes("кальц") &&
+            value.includes("створ")
+
+
+        ) {
+            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightRed")
+            this.previousElementSibling.previousElementSibling.classList.add("bg-lightGreen")
+            this.previousElementSibling.previousElementSibling.disabled = true
+            this.previousElementSibling.textContent = "Вы дали правильный ответ на вопрос"
+        } else if (value == "") {
+            this.previousElementSibling.textContent = "Вы не ответили на вопрос"
+        } else {
+            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightGreen")
+            this.previousElementSibling.previousElementSibling.classList.add("bg-lightRed")
+            this.previousElementSibling.textContent = "Вы ответили не правильно"
+        }
+    }
+    // СИНДРОМ АОРТАЛЬНОЙ НЕДОСТАТОЧНОСТИ
+
+
+    if (this.previousElementSibling.previousElementSibling.id == "inputTextQuestion11_2") {
+        let value = (0,_getHtmlElement__WEBPACK_IMPORTED_MODULE_0__.getPureValue)("inputTextQuestion11_2")
+        
+        if (
+            value.includes("нфекционн") &&
+            value.includes("ндокард")
+
+        ) {
+            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightRed")
+            this.previousElementSibling.previousElementSibling.classList.add("bg-lightGreen")
+            this.previousElementSibling.previousElementSibling.disabled = true
+            this.previousElementSibling.textContent = "Вы дали правильный ответ на вопрос"
+        } else if (value == "") {
+            this.previousElementSibling.textContent = "Вы не ответили на вопрос"
+        } else {
+            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightGreen")
+            this.previousElementSibling.previousElementSibling.classList.add("bg-lightRed")
+            this.previousElementSibling.textContent = "Вы ответили не правильно"
+        }
+    }
+
+    // СИНДРОМ ТРИКУСПИДАЛЬНОЙ НЕДОСТАТОЧНОСТИ
+    if (this.previousElementSibling.previousElementSibling.id == "inputTextQuestion12_2") {
+        let value = (0,_getHtmlElement__WEBPACK_IMPORTED_MODULE_0__.getPureValue)("inputTextQuestion12_2")
+        
+        if (
+            value.includes("наркома") || value.includes("наркот")
+        ) {
+            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightRed")
+            this.previousElementSibling.previousElementSibling.classList.add("bg-lightGreen")
+            this.previousElementSibling.previousElementSibling.disabled = true
+            this.previousElementSibling.textContent = "Вы дали правильный ответ на вопрос"
+        } else if (value == "") {
+            this.previousElementSibling.textContent = "Вы не ответили на вопрос"
+        } else {
+            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightGreen")
+            this.previousElementSibling.previousElementSibling.classList.add("bg-lightRed")
+            this.previousElementSibling.textContent = "Вы ответили не правильно"
+        }
+    }
+}
+
+
+/***/ }),
+
+/***/ "./helpers/randerContent.js":
+/*!**********************************!*\
+  !*** ./helpers/randerContent.js ***!
+  \**********************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "randerContent": () => (/* binding */ randerContent)
+/* harmony export */ });
+/* harmony import */ var _displayElement__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./displayElement */ "./helpers/displayElement.js");
+/* harmony import */ var _mainData__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./mainData */ "./helpers/mainData.js");
+
+
+
+function randerContent() {
+    
+    (0,_displayElement__WEBPACK_IMPORTED_MODULE_0__.deleteActiveItem)()
+    document.querySelectorAll(".headTitle").forEach(el => el.classList.add("hide"))
+    _mainData__WEBPACK_IMPORTED_MODULE_1__.mainImg.classList.add("hide")
+    document.getElementById("test12122022").classList.remove("hide")
+    document.querySelector(".content-out").scrollTop = 0
+    document.getElementById("block_result").classList.add("hide")
+    document.querySelector(".test_1-main")?.classList.add("hide")
+    document.getElementById("outTestblock").classList.add("hide")
+    document.getElementById("footerBtn").classList.remove("hide")
+
+    ;(0,_displayElement__WEBPACK_IMPORTED_MODULE_0__.show)("articleTitle")
+    ;(0,_displayElement__WEBPACK_IMPORTED_MODULE_0__.hideInputFinder)()
+    document.querySelector(".active-item")?.classList.remove("active-item")
+    this?.classList?.add("active-item")
+    if (this.id == 'id_1') {
+        _mainData__WEBPACK_IMPORTED_MODULE_1__.title.textContent = "СПИСОК СОКРАЩЕНИЙ"
+        document.querySelectorAll(".sectionClass").forEach(el => el.classList.add("hide"))
+        document.getElementById("section_1").classList.remove("hide")
+        document.getElementById("btnPriviousPage").classList.add("hide")
+    }
+    if (this.id == 'id_2') {
+        _mainData__WEBPACK_IMPORTED_MODULE_1__.title.textContent = "Введение"
+        document.querySelectorAll(".sectionClass").forEach(el => el.classList.add("hide"))
+        document.getElementById("section_2").classList.remove("hide")
+        document.getElementById("btnPriviousPage").classList.remove("hide")
+        document.getElementById("btnNextPage").classList.remove("hide")
+    }
+    if (this.id == 'id_3') {
+        _mainData__WEBPACK_IMPORTED_MODULE_1__.title.textContent = "СИНДРОМ АРТЕРИАЛЬНОЙ ГИПЕРТЕНЗИИ"
+        document.querySelectorAll(".sectionClass").forEach(el => el.classList.add("hide"))
+        document.getElementById("section_3").classList.remove("hide")
+        document.getElementById("btnPriviousPage").classList.remove("hide")
+        document.getElementById("btnNextPage").classList.remove("hide")
+        document.getElementById("paginate3").classList.add("active-item")
+    }
+    if (this.id == 'id_4') {
+        _mainData__WEBPACK_IMPORTED_MODULE_1__.title.textContent = "ОСТРЫЙ КОРОНАРНЫЙ СИНДРОМ"
+        document.querySelectorAll(".sectionClass").forEach(el => el.classList.add("hide"))
+        document.getElementById("section_4").classList.remove("hide")
+        document.getElementById("btnPriviousPage").classList.remove("hide")
+        document.getElementById("btnNextPage").classList.remove("hide")
+        document.getElementById("paginate4").classList.add("active-item")
+    }
+    if (this.id == 'id_5') {
+        _mainData__WEBPACK_IMPORTED_MODULE_1__.title.textContent = "СИНДРОМ ОСТРОЙ СЕРДЕЧНОЙ НЕДОСТАТОЧНОСТИ"
+        document.querySelectorAll(".sectionClass").forEach(el => el.classList.add("hide"))
+        document.getElementById("section_5").classList.remove("hide")
+        document.getElementById("btnPriviousPage").classList.remove("hide")
+        document.getElementById("btnNextPage").classList.remove("hide")
+        document.getElementById("paginate5").classList.add("active-item")
+    }
+    if (this.id == 'id_6') {
+        _mainData__WEBPACK_IMPORTED_MODULE_1__.title.textContent = "СИНДРОМ ХРОНИЧЕСКОЙ СЕРДЕЧНОЙ НЕДОСТАТОЧНОСТИ"
+        document.querySelectorAll(".sectionClass").forEach(el => el.classList.add("hide"))
+        document.getElementById("section_6").classList.remove("hide")
+        document.getElementById("btnPriviousPage").classList.remove("hide")
+        document.getElementById("btnNextPage").classList.remove("hide")
+        document.getElementById("paginate6").classList.add("active-item")
+    }
+    if (this.id == 'id_7') {
+        _mainData__WEBPACK_IMPORTED_MODULE_1__.title.textContent = "АРИТМИЧЕСКИЙ СИНДРОМ"
+        document.querySelectorAll(".sectionClass").forEach(el => el.classList.add("hide"))
+        document.getElementById("section_7").classList.remove("hide")
+        document.getElementById("btnPriviousPage").classList.remove("hide")
+        document.getElementById("btnNextPage").classList.remove("hide")
+        document.getElementById("paginate7").classList.add("active-item")
+    }
+    if (this.id == 'id_8') {
+        _mainData__WEBPACK_IMPORTED_MODULE_1__.title.textContent = "СИНДРОМ ЛЕГОЧНОЙ ГИПЕРТЕНЗИИ"
+        document.querySelectorAll(".sectionClass").forEach(el => el.classList.add("hide"))
+        document.getElementById("section_8").classList.remove("hide")
+        document.getElementById("btnPriviousPage").classList.remove("hide")
+        document.getElementById("btnNextPage").classList.remove("hide")
+        document.getElementById("paginate8").classList.add("active-item")
+    }
+    if (this.id == 'id_9') {
+        _mainData__WEBPACK_IMPORTED_MODULE_1__.title.textContent = "СИНДРОМ МИТРАЛЬНОГО СТЕНОЗА"
+        document.querySelectorAll(".sectionClass").forEach(el => el.classList.add("hide"))
+        document.getElementById("section_9").classList.remove("hide")
+        document.getElementById("btnPriviousPage").classList.remove("hide")
+        document.getElementById("btnNextPage").classList.remove("hide")
+        document.getElementById("paginate9").classList.add("active-item")
+    }
+    if (this.id == 'id_10') {
+        _mainData__WEBPACK_IMPORTED_MODULE_1__.title.textContent = "СИНДРОМ МИТРАЛЬНОЙ НЕДОСТАТОЧНОСТИ"
+        document.querySelectorAll(".sectionClass").forEach(el => el.classList.add("hide"))
+        document.getElementById("section_10").classList.remove("hide")
+        document.getElementById("btnPriviousPage").classList.remove("hide")
+        document.getElementById("btnNextPage").classList.remove("hide")
+        document.getElementById("paginate10").classList.add("active-item")
+    }
+    if (this.id == 'id_11') {
+        _mainData__WEBPACK_IMPORTED_MODULE_1__.title.textContent = "СИНДРОМ СТЕНОЗА УСТЬЯ АОРТЫ"
+        document.querySelectorAll(".sectionClass").forEach(el => el.classList.add("hide"))
+        document.getElementById("section_11").classList.remove("hide")
+        document.getElementById("btnPriviousPage").classList.remove("hide")
+        document.getElementById("btnNextPage").classList.remove("hide")
+        document.getElementById("paginate11").classList.add("active-item")
+    }
+    if (this.id == 'id_12') {
+        _mainData__WEBPACK_IMPORTED_MODULE_1__.title.textContent = "СИНДРОМ АОРТАЛЬНОЙ НЕДОСТАТОЧНОСТИ"
+        document.querySelectorAll(".sectionClass").forEach(el => el.classList.add("hide"))
+        document.getElementById("section_12").classList.remove("hide")
+        document.getElementById("btnPriviousPage").classList.remove("hide")
+        document.getElementById("btnNextPage").classList.remove("hide")
+        document.getElementById("paginate12").classList.add("active-item")
+    }
+    if (this.id == 'id_13') {
+        _mainData__WEBPACK_IMPORTED_MODULE_1__.title.textContent = "СИНДРОМ ТРИКУСПИДАЛЬНОЙ НЕДОСТАТОЧНОСТИ"
+        document.querySelectorAll(".sectionClass").forEach(el => el.classList.add("hide"))
+        document.getElementById("section_13").classList.remove("hide")
+        document.getElementById("btnPriviousPage").classList.remove("hide")
+        document.getElementById("btnNextPage").classList.add("hide")
+        document.getElementById("paginate13").classList.add("active-item")
+    }
+    if (this.id == 'zadaniyaEKG') {
+        _mainData__WEBPACK_IMPORTED_MODULE_1__.title.textContent = "ЗАДАНИЯ ДЛЯ САМОСТОЯТЕЛЬНОЙ РАБОТЫ (ЭКГ)"
+        document.querySelector(".active-item")?.classList.remove("active-item")
+        document.getElementById("test_list_item").classList.add("active-item")
+        document.querySelectorAll(".sectionClass").forEach(el => el.classList.add("hide"))
+        document.getElementById("section_14").classList.remove("hide")
+        document.getElementById("btnPriviousPage").classList.remove("hide")
+        document.getElementById("btnNextPage").classList.add("hide")
+        document.getElementById("footerBtn").classList.add("hide")
+    }
+    if (this.id == 'literatura') {
+        _mainData__WEBPACK_IMPORTED_MODULE_1__.title.textContent = "РЕКОМЕНДУЕМАЯ ЛИТЕРАТУРА"
+        document.querySelector(".active-item")?.classList.remove("active-item")
+        document.getElementById("test_list_item").classList.add("active-item")
+        document.querySelectorAll(".sectionClass").forEach(el => el.classList.add("hide"))
+        document.getElementById("section_15").classList.remove("hide")
+        document.getElementById("btnPriviousPage").classList.remove("hide")
+        document.getElementById("btnNextPage").classList.add("hide")
+        document.getElementById("footerBtn").classList.add("hide")
+    }
+
+
+
+}
+
+
+/***/ })
+
+/******/ 	});
+/************************************************************************/
+/******/ 	// The module cache
+/******/ 	var __webpack_module_cache__ = {};
+/******/ 	
+/******/ 	// The require function
+/******/ 	function __webpack_require__(moduleId) {
+/******/ 		// Check if module is in cache
+/******/ 		var cachedModule = __webpack_module_cache__[moduleId];
+/******/ 		if (cachedModule !== undefined) {
+/******/ 			return cachedModule.exports;
+/******/ 		}
+/******/ 		// Create a new module (and put it into the cache)
+/******/ 		var module = __webpack_module_cache__[moduleId] = {
+/******/ 			// no module.id needed
+/******/ 			// no module.loaded needed
+/******/ 			exports: {}
+/******/ 		};
+/******/ 	
+/******/ 		// Execute the module function
+/******/ 		__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+/******/ 	
+/******/ 		// Return the exports of the module
+/******/ 		return module.exports;
+/******/ 	}
+/******/ 	
+/************************************************************************/
+/******/ 	/* webpack/runtime/define property getters */
+/******/ 	(() => {
+/******/ 		// define getter functions for harmony exports
+/******/ 		__webpack_require__.d = (exports, definition) => {
+/******/ 			for(var key in definition) {
+/******/ 				if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
+/******/ 					Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
+/******/ 				}
+/******/ 			}
+/******/ 		};
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/hasOwnProperty shorthand */
+/******/ 	(() => {
+/******/ 		__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/make namespace object */
+/******/ 	(() => {
+/******/ 		// define __esModule on exports
+/******/ 		__webpack_require__.r = (exports) => {
+/******/ 			if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+/******/ 				Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+/******/ 			}
+/******/ 			Object.defineProperty(exports, '__esModule', { value: true });
+/******/ 		};
+/******/ 	})();
+/******/ 	
+/************************************************************************/
+var __webpack_exports__ = {};
+// This entry need to be wrapped in an IIFE because it need to be isolated against other modules in the chunk.
+(() => {
+/*!*****************!*\
+  !*** ./main.js ***!
+  \*****************/
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _helpers_mainData__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./helpers/mainData */ "./helpers/mainData.js");
+/* harmony import */ var _helpers_displayElement__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./helpers/displayElement */ "./helpers/displayElement.js");
+/* harmony import */ var _helpers_randerContent__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./helpers/randerContent */ "./helpers/randerContent.js");
+/* harmony import */ var _helpers_questionFromText__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./helpers/questionFromText */ "./helpers/questionFromText.js");
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 //увеличиваем инпут
 
 function w320(id) {
     document.getElementById(id).classList.add("width320")
 }
-//показать элемент
-function show(id) {
 
-    document.getElementById(id).classList.remove("hide")
-}
-function hide(id) {
-    document.getElementById(id).classList.add("hide")
-}
 //удалить класс у элемена
 function deleteClass(id, cls) {
     document.getElementById(id).classList.remove(cls)
 }
 //прячем все
 
-function hideAll() {
-    deleteActiveItem()
-    document.querySelector(".mainImg").classList.add("hide")            //Заставка
-    document.querySelector(".test_1-main")?.classList.add("hide")       //тесты
-    document.getElementById("outTestblock").classList.add("hide")
-    document.getElementById("footerBtn").classList.add("hide")
-    document.getElementById("block_result").classList.add("hide")    //результаты теста
-    document.getElementById("test12122022").classList.add("hide")    //результаты теста
 
-
-}
-const title = document.getElementById("articleTitle")
-
-document.getElementById("id_1").addEventListener("click", randerContent)
-document.getElementById("id_2").addEventListener("click", randerContent)
-document.getElementById("id_3").addEventListener("click", randerContent)
-document.getElementById("id_4").addEventListener("click", randerContent)
-document.getElementById("id_5").addEventListener("click", randerContent)
-document.getElementById("id_6").addEventListener("click", randerContent)
-document.getElementById("id_7").addEventListener("click", randerContent)
-document.getElementById("id_8").addEventListener("click", randerContent)
-document.getElementById("id_9").addEventListener("click", randerContent)
-document.getElementById("id_10").addEventListener("click", randerContent)
-document.getElementById("id_11").addEventListener("click", randerContent)
-document.getElementById("id_12").addEventListener("click", randerContent)
-document.getElementById("id_13").addEventListener("click", randerContent)
-document.getElementById("zadaniyaEKG").addEventListener("click", randerContent)
-document.getElementById("literatura").addEventListener("click", randerContent)
+document.getElementById("id_1").addEventListener("click", _helpers_randerContent__WEBPACK_IMPORTED_MODULE_2__.randerContent)
+document.getElementById("id_2").addEventListener("click", _helpers_randerContent__WEBPACK_IMPORTED_MODULE_2__.randerContent)
+document.getElementById("id_3").addEventListener("click", _helpers_randerContent__WEBPACK_IMPORTED_MODULE_2__.randerContent)
+document.getElementById("id_4").addEventListener("click", _helpers_randerContent__WEBPACK_IMPORTED_MODULE_2__.randerContent)
+document.getElementById("id_5").addEventListener("click", _helpers_randerContent__WEBPACK_IMPORTED_MODULE_2__.randerContent)
+document.getElementById("id_6").addEventListener("click", _helpers_randerContent__WEBPACK_IMPORTED_MODULE_2__.randerContent)
+document.getElementById("id_7").addEventListener("click", _helpers_randerContent__WEBPACK_IMPORTED_MODULE_2__.randerContent)
+document.getElementById("id_8").addEventListener("click", _helpers_randerContent__WEBPACK_IMPORTED_MODULE_2__.randerContent)
+document.getElementById("id_9").addEventListener("click", _helpers_randerContent__WEBPACK_IMPORTED_MODULE_2__.randerContent)
+document.getElementById("id_10").addEventListener("click", _helpers_randerContent__WEBPACK_IMPORTED_MODULE_2__.randerContent)
+document.getElementById("id_11").addEventListener("click", _helpers_randerContent__WEBPACK_IMPORTED_MODULE_2__.randerContent)
+document.getElementById("id_12").addEventListener("click", _helpers_randerContent__WEBPACK_IMPORTED_MODULE_2__.randerContent)
+document.getElementById("id_13").addEventListener("click", _helpers_randerContent__WEBPACK_IMPORTED_MODULE_2__.randerContent)
+document.getElementById("zadaniyaEKG").addEventListener("click", _helpers_randerContent__WEBPACK_IMPORTED_MODULE_2__.randerContent)
+document.getElementById("literatura").addEventListener("click", _helpers_randerContent__WEBPACK_IMPORTED_MODULE_2__.randerContent)
 
 
 
@@ -108,8 +990,6 @@ function next() {
     let nextElement = activeElement?.nextElementSibling
     nextElement?.classList.add("active-item")
     nextElement?.click()
-
-
 }
 
 document.getElementById("btnPriviousPage").addEventListener('click', previous)
@@ -125,700 +1005,50 @@ function previous() {
 }
 
 
-function randerContent() {
-    
-    deleteActiveItem()
-    document.querySelectorAll(".headTitle").forEach(el => el.classList.add("hide"))
-    document.querySelector(".mainImg").classList.add("hide")
-    document.getElementById("test12122022").classList.remove("hide")
-    document.querySelector(".content-out").scrollTop = 0
-    document.getElementById("block_result").classList.add("hide")
-    document.querySelector(".test_1-main")?.classList.add("hide")
-    document.getElementById("outTestblock").classList.add("hide")
-    document.getElementById("footerBtn").classList.remove("hide")
 
-    show("articleTitle")
-    hideInputFinder()
-    document.querySelector(".active-item")?.classList.remove("active-item")
-    this?.classList?.add("active-item")
-    if (this.id == 'id_1') {
-        title.textContent = "СПИСОК СОКРАЩЕНИЙ"
-        document.querySelectorAll(".sectionClass").forEach(el => el.classList.add("hide"))
-        document.getElementById("section_1").classList.remove("hide")
-        document.getElementById("btnPriviousPage").classList.add("hide")
-    }
-    if (this.id == 'id_2') {
-        title.textContent = "Введение"
-        document.querySelectorAll(".sectionClass").forEach(el => el.classList.add("hide"))
-        document.getElementById("section_2").classList.remove("hide")
-        document.getElementById("btnPriviousPage").classList.remove("hide")
-        document.getElementById("btnNextPage").classList.remove("hide")
-    }
-    if (this.id == 'id_3') {
-        title.textContent = "СИНДРОМ АРТЕРИАЛЬНОЙ ГИПЕРТЕНЗИИ"
-        document.querySelectorAll(".sectionClass").forEach(el => el.classList.add("hide"))
-        document.getElementById("section_3").classList.remove("hide")
-        document.getElementById("btnPriviousPage").classList.remove("hide")
-        document.getElementById("btnNextPage").classList.remove("hide")
-        document.getElementById("paginate3").classList.add("active-item")
-    }
-    if (this.id == 'id_4') {
-        title.textContent = "ОСТРЫЙ КОРОНАРНЫЙ СИНДРОМ"
-        document.querySelectorAll(".sectionClass").forEach(el => el.classList.add("hide"))
-        document.getElementById("section_4").classList.remove("hide")
-        document.getElementById("btnPriviousPage").classList.remove("hide")
-        document.getElementById("btnNextPage").classList.remove("hide")
-        document.getElementById("paginate4").classList.add("active-item")
-    }
-    if (this.id == 'id_5') {
-        title.textContent = "СИНДРОМ ОСТРОЙ СЕРДЕЧНОЙ НЕДОСТАТОЧНОСТИ"
-        document.querySelectorAll(".sectionClass").forEach(el => el.classList.add("hide"))
-        document.getElementById("section_5").classList.remove("hide")
-        document.getElementById("btnPriviousPage").classList.remove("hide")
-        document.getElementById("btnNextPage").classList.remove("hide")
-        document.getElementById("paginate5").classList.add("active-item")
-    }
-    if (this.id == 'id_6') {
-        title.textContent = "СИНДРОМ ХРОНИЧЕСКОЙ СЕРДЕЧНОЙ НЕДОСТАТОЧНОСТИ"
-        document.querySelectorAll(".sectionClass").forEach(el => el.classList.add("hide"))
-        document.getElementById("section_6").classList.remove("hide")
-        document.getElementById("btnPriviousPage").classList.remove("hide")
-        document.getElementById("btnNextPage").classList.remove("hide")
-        document.getElementById("paginate6").classList.add("active-item")
-    }
-    if (this.id == 'id_7') {
-        title.textContent = "АРИТМИЧЕСКИЙ СИНДРОМ"
-        document.querySelectorAll(".sectionClass").forEach(el => el.classList.add("hide"))
-        document.getElementById("section_7").classList.remove("hide")
-        document.getElementById("btnPriviousPage").classList.remove("hide")
-        document.getElementById("btnNextPage").classList.remove("hide")
-        document.getElementById("paginate7").classList.add("active-item")
-    }
-    if (this.id == 'id_8') {
-        title.textContent = "СИНДРОМ ЛЕГОЧНОЙ ГИПЕРТЕНЗИИ"
-        document.querySelectorAll(".sectionClass").forEach(el => el.classList.add("hide"))
-        document.getElementById("section_8").classList.remove("hide")
-        document.getElementById("btnPriviousPage").classList.remove("hide")
-        document.getElementById("btnNextPage").classList.remove("hide")
-        document.getElementById("paginate8").classList.add("active-item")
-    }
-    if (this.id == 'id_9') {
-        title.textContent = "СИНДРОМ МИТРАЛЬНОГО СТЕНОЗА"
-        document.querySelectorAll(".sectionClass").forEach(el => el.classList.add("hide"))
-        document.getElementById("section_9").classList.remove("hide")
-        document.getElementById("btnPriviousPage").classList.remove("hide")
-        document.getElementById("btnNextPage").classList.remove("hide")
-        document.getElementById("paginate9").classList.add("active-item")
-    }
-    if (this.id == 'id_10') {
-        title.textContent = "СИНДРОМ МИТРАЛЬНОЙ НЕДОСТАТОЧНОСТИ"
-        document.querySelectorAll(".sectionClass").forEach(el => el.classList.add("hide"))
-        document.getElementById("section_10").classList.remove("hide")
-        document.getElementById("btnPriviousPage").classList.remove("hide")
-        document.getElementById("btnNextPage").classList.remove("hide")
-        document.getElementById("paginate10").classList.add("active-item")
-    }
-    if (this.id == 'id_11') {
-        title.textContent = "СИНДРОМ СТЕНОЗА УСТЬЯ АОРТЫ"
-        document.querySelectorAll(".sectionClass").forEach(el => el.classList.add("hide"))
-        document.getElementById("section_11").classList.remove("hide")
-        document.getElementById("btnPriviousPage").classList.remove("hide")
-        document.getElementById("btnNextPage").classList.remove("hide")
-        document.getElementById("paginate11").classList.add("active-item")
-    }
-    if (this.id == 'id_12') {
-        title.textContent = "СИНДРОМ АОРТАЛЬНОЙ НЕДОСТАТОЧНОСТИ"
-        document.querySelectorAll(".sectionClass").forEach(el => el.classList.add("hide"))
-        document.getElementById("section_12").classList.remove("hide")
-        document.getElementById("btnPriviousPage").classList.remove("hide")
-        document.getElementById("btnNextPage").classList.remove("hide")
-        document.getElementById("paginate12").classList.add("active-item")
-    }
-    if (this.id == 'id_13') {
-        title.textContent = "СИНДРОМ ТРИКУСПИДАЛЬНОЙ НЕДОСТАТОЧНОСТИ"
-        document.querySelectorAll(".sectionClass").forEach(el => el.classList.add("hide"))
-        document.getElementById("section_13").classList.remove("hide")
-        document.getElementById("btnPriviousPage").classList.remove("hide")
-        document.getElementById("btnNextPage").classList.add("hide")
-        document.getElementById("paginate13").classList.add("active-item")
-    }
-    if (this.id == 'zadaniyaEKG') {
-        title.textContent = "ЗАДАНИЯ ДЛЯ САМОСТОЯТЕЛЬНОЙ РАБОТЫ (ЭКГ)"
-        document.querySelector(".active-item")?.classList.remove("active-item")
-        document.getElementById("test_list_item").classList.add("active-item")
-        document.querySelectorAll(".sectionClass").forEach(el => el.classList.add("hide"))
-        document.getElementById("section_14").classList.remove("hide")
-        document.getElementById("btnPriviousPage").classList.remove("hide")
-        document.getElementById("btnNextPage").classList.add("hide")
-        document.getElementById("footerBtn").classList.add("hide")
-    }
-    if (this.id == 'literatura') {
-        title.textContent = "РЕКОМЕНДУЕМАЯ ЛИТЕРАТУРА"
-        document.querySelector(".active-item")?.classList.remove("active-item")
-        document.getElementById("test_list_item").classList.add("active-item")
-        document.querySelectorAll(".sectionClass").forEach(el => el.classList.add("hide"))
-        document.getElementById("section_15").classList.remove("hide")
-        document.getElementById("btnPriviousPage").classList.remove("hide")
-        document.getElementById("btnNextPage").classList.add("hide")
-        document.getElementById("footerBtn").classList.add("hide")
-    }
-
-
-
-}
-
-
-
-
-
-function getPureValue(id) {
-    return document.getElementById(id).value.replace(/[.?,0-9/\\*-+]/g, "").replace(/c/gi, "с").toLocaleLowerCase()
-}
-
-
-document.getElementById("btnInputTextQuestion1_1").addEventListener("click", checkAnswer1)
-document.getElementById("btnInputTextQuestion2_1").addEventListener("click", checkAnswer1)
-document.getElementById("btnInputTextQuestion4_1").addEventListener("click", checkAnswer1)
-document.getElementById("btnInputTextQuestion5_1").addEventListener("click", checkAnswer1)
-document.getElementById("btnInputTextQuestion6_1").addEventListener("click", checkAnswer1)
-document.getElementById("btnInputTextQuestion7_1").addEventListener("click", checkAnswer1)
-document.getElementById("btnInputTextQuestion8_1").addEventListener("click", checkAnswer1)
-document.getElementById("btnInputTextQuestion9_1").addEventListener("click", checkAnswer1)
-document.getElementById("btnInputTextQuestion10_1").addEventListener("click", checkAnswer1)
-document.getElementById("btnInputTextQuestion11_1").addEventListener("click", checkAnswer1)
-document.getElementById("btnInputTextQuestion12_1").addEventListener("click", checkAnswer1)
+document.getElementById("btnInputTextQuestion1_1").addEventListener("click", _helpers_questionFromText__WEBPACK_IMPORTED_MODULE_3__.checkAnswer1)
+document.getElementById("btnInputTextQuestion2_1").addEventListener("click", _helpers_questionFromText__WEBPACK_IMPORTED_MODULE_3__.checkAnswer1)
+document.getElementById("btnInputTextQuestion4_1").addEventListener("click", _helpers_questionFromText__WEBPACK_IMPORTED_MODULE_3__.checkAnswer1)
+document.getElementById("btnInputTextQuestion5_1").addEventListener("click", _helpers_questionFromText__WEBPACK_IMPORTED_MODULE_3__.checkAnswer1)
+document.getElementById("btnInputTextQuestion6_1").addEventListener("click", _helpers_questionFromText__WEBPACK_IMPORTED_MODULE_3__.checkAnswer1)
+document.getElementById("btnInputTextQuestion7_1").addEventListener("click", _helpers_questionFromText__WEBPACK_IMPORTED_MODULE_3__.checkAnswer1)
+document.getElementById("btnInputTextQuestion8_1").addEventListener("click", _helpers_questionFromText__WEBPACK_IMPORTED_MODULE_3__.checkAnswer1)
+document.getElementById("btnInputTextQuestion9_1").addEventListener("click", _helpers_questionFromText__WEBPACK_IMPORTED_MODULE_3__.checkAnswer1)
+document.getElementById("btnInputTextQuestion10_1").addEventListener("click", _helpers_questionFromText__WEBPACK_IMPORTED_MODULE_3__.checkAnswer1)
+document.getElementById("btnInputTextQuestion11_1").addEventListener("click", _helpers_questionFromText__WEBPACK_IMPORTED_MODULE_3__.checkAnswer1)
+document.getElementById("btnInputTextQuestion12_1").addEventListener("click", _helpers_questionFromText__WEBPACK_IMPORTED_MODULE_3__.checkAnswer1)
 
 
 
 
 
 
-document.getElementById("btnInputTextQuestion1_2").addEventListener("click", checkAnswer2)
-document.getElementById("btnInputTextQuestion2_2").addEventListener("click", checkAnswer2)
-document.getElementById("btnInputTextQuestion4_2").addEventListener("click", checkAnswer2)
-document.getElementById("btnInputTextQuestion5_2").addEventListener("click", checkAnswer2)
-document.getElementById("btnInputTextQuestion6_2").addEventListener("click", checkAnswer2)
-document.getElementById("btnInputTextQuestion7_2").addEventListener("click", checkAnswer2)
-document.getElementById("btnInputTextQuestion8_2").addEventListener("click", checkAnswer2)
-document.getElementById("btnInputTextQuestion9_2").addEventListener("click", checkAnswer2)
-document.getElementById("btnInputTextQuestion10_2").addEventListener("click", checkAnswer2)
-document.getElementById("btnInputTextQuestion11_2").addEventListener("click", checkAnswer2)
-document.getElementById("btnInputTextQuestion12_2").addEventListener("click", checkAnswer2)
+document.getElementById("btnInputTextQuestion1_2").addEventListener("click", _helpers_questionFromText__WEBPACK_IMPORTED_MODULE_3__.checkAnswer2)
+document.getElementById("btnInputTextQuestion2_2").addEventListener("click", _helpers_questionFromText__WEBPACK_IMPORTED_MODULE_3__.checkAnswer2)
+document.getElementById("btnInputTextQuestion4_2").addEventListener("click", _helpers_questionFromText__WEBPACK_IMPORTED_MODULE_3__.checkAnswer2)
+document.getElementById("btnInputTextQuestion5_2").addEventListener("click", _helpers_questionFromText__WEBPACK_IMPORTED_MODULE_3__.checkAnswer2)
+document.getElementById("btnInputTextQuestion6_2").addEventListener("click", _helpers_questionFromText__WEBPACK_IMPORTED_MODULE_3__.checkAnswer2)
+document.getElementById("btnInputTextQuestion7_2").addEventListener("click", _helpers_questionFromText__WEBPACK_IMPORTED_MODULE_3__.checkAnswer2)
+document.getElementById("btnInputTextQuestion8_2").addEventListener("click", _helpers_questionFromText__WEBPACK_IMPORTED_MODULE_3__.checkAnswer2)
+document.getElementById("btnInputTextQuestion9_2").addEventListener("click", _helpers_questionFromText__WEBPACK_IMPORTED_MODULE_3__.checkAnswer2)
+document.getElementById("btnInputTextQuestion10_2").addEventListener("click", _helpers_questionFromText__WEBPACK_IMPORTED_MODULE_3__.checkAnswer2)
+document.getElementById("btnInputTextQuestion11_2").addEventListener("click", _helpers_questionFromText__WEBPACK_IMPORTED_MODULE_3__.checkAnswer2)
+document.getElementById("btnInputTextQuestion12_2").addEventListener("click", _helpers_questionFromText__WEBPACK_IMPORTED_MODULE_3__.checkAnswer2)
 
 function hideMainImg(){
     document.getElementById("divImageMain").classList.add("animate__bounceOutRight")
 }
 
-function checkAnswer1() {
-
-
-    if (this.previousElementSibling.previousElementSibling.id == "inputTextQuestion1_1") {
-        let value = getPureValue("inputTextQuestion1_1")
-        let totalValueLen = value.split(" ").length
-        if (
-            value.includes("артериал") &&
-            value.includes("гипертен") &&
-            totalValueLen < 5
-
-        ) {
-            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightRed")
-            this.previousElementSibling.previousElementSibling.classList.add("bg-lightGreen")
-            this.previousElementSibling.previousElementSibling.disabled = true
-            this.previousElementSibling.textContent = "Вы дали правильный ответ на вопрос"
-            document.getElementById("btnInputTextQuestion1").removeEventListener("click", checkAnswer1)
-        } else if (value == "") {
-            this.previousElementSibling.textContent = "Вы не ответили на вопрос"
-        } else {
-            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightGreen")
-            this.previousElementSibling.previousElementSibling.classList.add("bg-lightRed")
-            this.previousElementSibling.textContent = "Вы ответили не правильно"
-        }
-    }
-
-    // ОСТРЫЙ КОРОНАРНЫЙ СИНДРОМ
-
-
-    if (this.previousElementSibling.previousElementSibling.id == "inputTextQuestion2_1") {
-        let value = getPureValue("inputTextQuestion2_1")
-        if (
-            value.includes("коронарн") &&
-            value.includes("синдр")
-        ) {
-            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightRed")
-            this.previousElementSibling.previousElementSibling.classList.add("bg-lightGreen")
-            this.previousElementSibling.textContent = "Вы дали правильный ответ на вопрос"
-            this.previousElementSibling.previousElementSibling.disabled = true
-            document.getElementById("btnInputTextQuestion1").removeEventListener("click", checkAnswer1)
-        } else if (value == "") {
-            this.previousElementSibling.textContent = "Вы не ответили на вопрос"
-        } else {
-            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightGreen")
-            this.previousElementSibling.previousElementSibling.classList.add("bg-lightRed")
-            this.previousElementSibling.textContent = "Вы ответили не правильно"
-        }
-    }
-
-    // СИНДРОМ ОСТРОЙ СЕРДЕЧНОЙ НЕДОСТАТОЧНОСТИ
-
-    if (this.previousElementSibling.previousElementSibling.id == "inputTextQuestion4_1") {
-        let value = getPureValue("inputTextQuestion4_1")
-        if (
-            value.includes("от") &&
-            value.includes("легк")
-        ) {
-            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightRed")
-            this.previousElementSibling.previousElementSibling.classList.add("bg-lightGreen")
-            this.previousElementSibling.textContent = "Вы дали правильный ответ на вопрос"
-            this.previousElementSibling.previousElementSibling.disabled = true
-            document.getElementById("btnInputTextQuestion1").removeEventListener("click", checkAnswer1)
-        } else if (value == "") {
-            this.previousElementSibling.textContent = "Вы не ответили на вопрос"
-        } else {
-            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightGreen")
-            this.previousElementSibling.previousElementSibling.classList.add("bg-lightRed")
-            this.previousElementSibling.textContent = "Вы ответили не правильно"
-        }
-    }
-    // СИНДРОМ ХРОНИЧЕСКОЙ СЕРДЕЧНОЙ НЕДОСТАТОЧНОСТИ
-
-    if (this.previousElementSibling.previousElementSibling.id == "inputTextQuestion5_1") {
-        let value = getPureValue("inputTextQuestion5_1")
-        if (
-            value.includes("сердеч") &&
-            value.includes("недостато")
-        ) {
-            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightRed")
-            this.previousElementSibling.previousElementSibling.classList.add("bg-lightGreen")
-            this.previousElementSibling.textContent = "Вы дали правильный ответ на вопрос"
-            this.previousElementSibling.previousElementSibling.disabled = true
-            document.getElementById("btnInputTextQuestion1").removeEventListener("click", checkAnswer1)
-        } else if (value == "") {
-            this.previousElementSibling.textContent = "Вы не ответили на вопрос"
-        } else {
-            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightGreen")
-            this.previousElementSibling.previousElementSibling.classList.add("bg-lightRed")
-            this.previousElementSibling.textContent = "Вы ответили не правильно"
-        }
-    }
-    // АРИТМИЧЕСКИЙ СИНДРОМ
-    if (this.previousElementSibling.previousElementSibling.id == "inputTextQuestion6_1") {
-        let value = getPureValue("inputTextQuestion6_1")
-        if (
-            value.includes("аритми")
-        ) {
-            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightRed")
-            this.previousElementSibling.previousElementSibling.classList.add("bg-lightGreen")
-            this.previousElementSibling.textContent = "Вы дали правильный ответ на вопрос"
-            this.previousElementSibling.previousElementSibling.disabled = true
-            document.getElementById("btnInputTextQuestion1").removeEventListener("click", checkAnswer1)
-        } else if (value == "") {
-            this.previousElementSibling.textContent = "Вы не ответили на вопрос"
-        } else {
-            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightGreen")
-            this.previousElementSibling.previousElementSibling.classList.add("bg-lightRed")
-            this.previousElementSibling.textContent = "Вы ответили не правильно"
-        }
-    }
-    // СИНДРОМ ЛЕГОЧНОЙ ГИПЕРТЕНЗИИ
-    if (this.previousElementSibling.previousElementSibling.id == "inputTextQuestion7_1") {
-        let value = getPureValue("inputTextQuestion7_1")
-        if (
-            value.includes("легочн") &&
-            value.includes("гипертен")
-        ) {
-            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightRed")
-            this.previousElementSibling.previousElementSibling.classList.add("bg-lightGreen")
-            this.previousElementSibling.textContent = "Вы дали правильный ответ на вопрос"
-            this.previousElementSibling.previousElementSibling.disabled = true
-            document.getElementById("btnInputTextQuestion1").removeEventListener("click", checkAnswer1)
-        } else if (value == "") {
-            this.previousElementSibling.textContent = "Вы не ответили на вопрос"
-        } else {
-            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightGreen")
-            this.previousElementSibling.previousElementSibling.classList.add("bg-lightRed")
-            this.previousElementSibling.textContent = "Вы ответили не правильно"
-        }
-    }
-    // СИНДРОМ МИТРАЛЬНОГО СТЕНОЗА
-
-    if (this.previousElementSibling.previousElementSibling.id == "inputTextQuestion8_1") {
-        let value = getPureValue("inputTextQuestion8_1")
-        
-        if (
-            value.includes("митрал") &&
-            value.includes("стеноз")
-        ) {
-            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightRed")
-            this.previousElementSibling.previousElementSibling.classList.add("bg-lightGreen")
-            this.previousElementSibling.textContent = "Вы дали правильный ответ на вопрос"
-            this.previousElementSibling.previousElementSibling.disabled = true
-            document.getElementById("btnInputTextQuestion1").removeEventListener("click", checkAnswer1)
-        } else if (value == "") {
-            this.previousElementSibling.textContent = "Вы не ответили на вопрос"
-        } else {
-            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightGreen")
-            this.previousElementSibling.previousElementSibling.classList.add("bg-lightRed")
-            this.previousElementSibling.textContent = "Вы ответили не правильно"
-        }
-    }
-    // СИНДРОМ МИТРАЛЬНОЙ НЕДОСТАТОЧНОСТИ
-
-
-    if (this.previousElementSibling.previousElementSibling.id == "inputTextQuestion9_1") {
-        let value = getPureValue("inputTextQuestion9_1")
-        
-        if (
-            value.includes("митрал") &&
-            value.includes("стеноз")
-        ) {
-            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightRed")
-            this.previousElementSibling.previousElementSibling.classList.add("bg-lightGreen")
-            this.previousElementSibling.textContent = "Вы дали правильный ответ на вопрос"
-            this.previousElementSibling.previousElementSibling.disabled = true
-            document.getElementById("btnInputTextQuestion1").removeEventListener("click", checkAnswer1)
-        } else if (value == "") {
-            this.previousElementSibling.textContent = "Вы не ответили на вопрос"
-        } else {
-            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightGreen")
-            this.previousElementSibling.previousElementSibling.classList.add("bg-lightRed")
-            this.previousElementSibling.textContent = "Вы ответили не правильно"
-        }
-    }
-
-    // СИНДРОМ СТЕНОЗА УСТЬЯ АОРТЫ
-
-    if (this.previousElementSibling.previousElementSibling.id == "inputTextQuestion10_1") {
-        let value = getPureValue("inputTextQuestion10_1")
-        
-        if (
-            value.includes("стен") &&
-            value.includes("усть") &&
-            value.includes("аорт")
-        ) {
-            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightRed")
-            this.previousElementSibling.previousElementSibling.classList.add("bg-lightGreen")
-            this.previousElementSibling.textContent = "Вы дали правильный ответ на вопрос"
-            this.previousElementSibling.previousElementSibling.disabled = true
-            document.getElementById("btnInputTextQuestion1").removeEventListener("click", checkAnswer1)
-        } else if (value == "") {
-            this.previousElementSibling.textContent = "Вы не ответили на вопрос"
-        } else {
-            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightGreen")
-            this.previousElementSibling.previousElementSibling.classList.add("bg-lightRed")
-            this.previousElementSibling.textContent = "Вы ответили не правильно"
-        }
-    }
-    // СИНДРОМ АОРТАЛЬНОЙ НЕДОСТАТОЧНОСТИ
-
-    if (this.previousElementSibling.previousElementSibling.id == "inputTextQuestion11_1") {
-        let value = getPureValue("inputTextQuestion11_1")
-        
-        if (
-            value.includes("аортал") &&
-            value.includes("недостаточ")
-        ) {
-            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightRed")
-            this.previousElementSibling.previousElementSibling.classList.add("bg-lightGreen")
-            this.previousElementSibling.textContent = "Вы дали правильный ответ на вопрос"
-            this.previousElementSibling.previousElementSibling.disabled = true
-            document.getElementById("btnInputTextQuestion1").removeEventListener("click", checkAnswer1)
-        } else if (value == "") {
-            this.previousElementSibling.textContent = "Вы не ответили на вопрос"
-        } else {
-            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightGreen")
-            this.previousElementSibling.previousElementSibling.classList.add("bg-lightRed")
-            this.previousElementSibling.textContent = "Вы ответили не правильно"
-        }
-    }
-    // СИНДРОМ ТРИКУСПИДАЛЬНОЙ НЕДОСТАТОЧНОСТИ
-
-    if (this.previousElementSibling.previousElementSibling.id == "inputTextQuestion12_1") {
-        let value = getPureValue("inputTextQuestion12_1")
-        
-        if (
-            value.includes("трикуспидал") &&
-            value.includes("недостаточ")
-        ) {
-            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightRed")
-            this.previousElementSibling.previousElementSibling.classList.add("bg-lightGreen")
-            this.previousElementSibling.textContent = "Вы дали правильный ответ на вопрос"
-            this.previousElementSibling.previousElementSibling.disabled = true
-            document.getElementById("btnInputTextQuestion1").removeEventListener("click", checkAnswer1)
-        } else if (value == "") {
-            this.previousElementSibling.textContent = "Вы не ответили на вопрос"
-        } else {
-            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightGreen")
-            this.previousElementSibling.previousElementSibling.classList.add("bg-lightRed")
-            this.previousElementSibling.textContent = "Вы ответили не правильно"
-        }
-    }
-}
-
-
-// Второй вопрос
-
-function checkAnswer2() {
-
-    if (this.previousElementSibling.previousElementSibling.id == "inputTextQuestion1_2") {
-        let value = getPureValue("inputTextQuestion1_2")
-        if (
-            value.includes("гипертонич") &&
-            value.includes("криз")
-        ) {
-            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightRed")
-            this.previousElementSibling.previousElementSibling.classList.add("bg-lightGreen")
-            this.previousElementSibling.textContent = "Вы дали правильный ответ на вопрос"
-            this.previousElementSibling.previousElementSibling.disabled = true
-            document.getElementById("btnInputTextQuestion2").removeEventListener("click", checkAnswer2)
-        } else if (value == "") {
-            this.previousElementSibling.textContent = "Вы не ответили на вопрос"
-        } else {
-            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightGreen")
-            this.previousElementSibling.previousElementSibling.classList.add("bg-lightRed")
-            this.previousElementSibling.textContent = "Вы ответили не правильно"
-        }
-    }
-
-    // ОСТРЫЙ КОРОНАРНЫЙ СИНДРОМ
-
-    if (this.previousElementSibling.previousElementSibling.id == "inputTextQuestion2_2") {
-        let value = getPureValue("inputTextQuestion2_2")
-        
-        if (
-            value.includes("кардиоген") &&
-            value.includes("шок")
-        ) {
-            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightRed")
-            this.previousElementSibling.previousElementSibling.classList.add("bg-lightGreen")
-            this.previousElementSibling.previousElementSibling.disabled = true
-            this.previousElementSibling.textContent = "Вы дали правильный ответ на вопрос"
-        } else if (value == "") {
-            this.previousElementSibling.textContent = "Вы не ответили на вопрос"
-        } else {
-            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightGreen")
-            this.previousElementSibling.previousElementSibling.classList.add("bg-lightRed")
-            this.previousElementSibling.textContent = "Вы ответили не правильно"
-        }
-    }
-    // СИНДРОМ ОСТРОЙ СЕРДЕЧНОЙ НЕДОСТАТОЧНОСТИ
-
-
-    if (this.previousElementSibling.previousElementSibling.id == "inputTextQuestion4_2") {
-        let value = getPureValue("inputTextQuestion4_2")
-        
-        if (
-            value.includes("трепе") &&
-            value.includes("предсерд")
-        ) {
-            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightRed")
-            this.previousElementSibling.previousElementSibling.classList.add("bg-lightGreen")
-            this.previousElementSibling.previousElementSibling.disabled = true
-            this.previousElementSibling.textContent = "Вы дали правильный ответ на вопрос"
-        } else if (value == "") {
-            this.previousElementSibling.textContent = "Вы не ответили на вопрос"
-        } else {
-            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightGreen")
-            this.previousElementSibling.previousElementSibling.classList.add("bg-lightRed")
-            this.previousElementSibling.textContent = "Вы ответили не правильно"
-        }
-    }
-
-    // СИНДРОМ ХРОНИЧЕСКОЙ СЕРДЕЧНОЙ НЕДОСТАТОЧНОСТИ
-
-
-    if (this.previousElementSibling.previousElementSibling.id == "inputTextQuestion5_2") {
-        let value = getPureValue("inputTextQuestion5_2")
-        
-        if (
-            value.includes("инфаркт")
-        ) {
-            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightRed")
-            this.previousElementSibling.previousElementSibling.classList.add("bg-lightGreen")
-            this.previousElementSibling.previousElementSibling.disabled = true
-            this.previousElementSibling.textContent = "Вы дали правильный ответ на вопрос"
-        } else if (value == "") {
-            this.previousElementSibling.textContent = "Вы не ответили на вопрос"
-        } else {
-            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightGreen")
-            this.previousElementSibling.previousElementSibling.classList.add("bg-lightRed")
-            this.previousElementSibling.textContent = "Вы ответили не правильно"
-        }
-    }
-    // АРИТМИЧЕСКИЙ СИНДРОМ
-
-
-    if (this.previousElementSibling.previousElementSibling.id == "inputTextQuestion6_2") {
-        let value = getPureValue("inputTextQuestion6_2")
-        
-        if (
-            value.includes("фибрилля") &&
-            value.includes("предсерд")
-        ) {
-            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightRed")
-            this.previousElementSibling.previousElementSibling.classList.add("bg-lightGreen")
-            this.previousElementSibling.previousElementSibling.disabled = true
-            this.previousElementSibling.textContent = "Вы дали правильный ответ на вопрос"
-        } else if (value == "") {
-            this.previousElementSibling.textContent = "Вы не ответили на вопрос"
-        } else {
-            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightGreen")
-            this.previousElementSibling.previousElementSibling.classList.add("bg-lightRed")
-            this.previousElementSibling.textContent = "Вы ответили не правильно"
-        }
-    }
-
-    // СИНДРОМ ЛЕГОЧНОЙ ГИПЕРТЕНЗИИ
-
-
-    if (this.previousElementSibling.previousElementSibling.id == "inputTextQuestion7_2") {
-        let value = getPureValue("inputTextQuestion7_2")
-        
-        if (
-            value.includes("болезн") &&
-            value.includes("легк") || value.includes("лёго") || value.includes("лего")
-        ) {
-            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightRed")
-            this.previousElementSibling.previousElementSibling.classList.add("bg-lightGreen")
-            this.previousElementSibling.previousElementSibling.disabled = true
-            this.previousElementSibling.textContent = "Вы дали правильный ответ на вопрос"
-        } else if (value == "") {
-            this.previousElementSibling.textContent = "Вы не ответили на вопрос"
-        } else {
-            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightGreen")
-            this.previousElementSibling.previousElementSibling.classList.add("bg-lightRed")
-            this.previousElementSibling.textContent = "Вы ответили не правильно"
-        }
-    }
-
-    // СИНДРОМ МИТРАЛЬНОГО СТЕНОЗА
-
-
-    if (this.previousElementSibling.previousElementSibling.id == "inputTextQuestion8_2") {
-        let value = getPureValue("inputTextQuestion8_2")
-        
-        if (
-            value.includes("болезн") &&
-            value.includes("ревмат") &&
-            value.includes("сердц")
-        ) {
-            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightRed")
-            this.previousElementSibling.previousElementSibling.classList.add("bg-lightGreen")
-            this.previousElementSibling.previousElementSibling.disabled = true
-            this.previousElementSibling.textContent = "Вы дали правильный ответ на вопрос"
-        } else if (value == "") {
-            this.previousElementSibling.textContent = "Вы не ответили на вопрос"
-        } else {
-            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightGreen")
-            this.previousElementSibling.previousElementSibling.classList.add("bg-lightRed")
-            this.previousElementSibling.textContent = "Вы ответили не правильно"
-        }
-    }
-
-    // СИНДРОМ МИТРАЛЬНОЙ НЕДОСТАТОЧНОСТИ
-
-
-    if (this.previousElementSibling.previousElementSibling.id == "inputTextQuestion9_2") {
-        let value = getPureValue("inputTextQuestion9_2")
-        
-        if (
-            value.includes("недостаточн") &&
-            value.includes("митрал") &&
-            value.includes("клапан")
-
-        ) {
-            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightRed")
-            this.previousElementSibling.previousElementSibling.classList.add("bg-lightGreen")
-            this.previousElementSibling.previousElementSibling.disabled = true
-            this.previousElementSibling.textContent = "Вы дали правильный ответ на вопрос"
-        } else if (value == "") {
-            this.previousElementSibling.textContent = "Вы не ответили на вопрос"
-        } else {
-            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightGreen")
-            this.previousElementSibling.previousElementSibling.classList.add("bg-lightRed")
-            this.previousElementSibling.textContent = "Вы ответили не правильно"
-        }
-    }
-
-    // СИНДРОМ СТЕНОЗА УСТЬЯ АОРТЫ
-
-    if (this.previousElementSibling.previousElementSibling.id == "inputTextQuestion10_2") {
-        
-        let value = getPureValue("inputTextQuestion10_2")
-        
-        if (
-            value.includes("кальц") &&
-            value.includes("створ")
-
-
-        ) {
-            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightRed")
-            this.previousElementSibling.previousElementSibling.classList.add("bg-lightGreen")
-            this.previousElementSibling.previousElementSibling.disabled = true
-            this.previousElementSibling.textContent = "Вы дали правильный ответ на вопрос"
-        } else if (value == "") {
-            this.previousElementSibling.textContent = "Вы не ответили на вопрос"
-        } else {
-            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightGreen")
-            this.previousElementSibling.previousElementSibling.classList.add("bg-lightRed")
-            this.previousElementSibling.textContent = "Вы ответили не правильно"
-        }
-    }
-    // СИНДРОМ АОРТАЛЬНОЙ НЕДОСТАТОЧНОСТИ
-
-
-    if (this.previousElementSibling.previousElementSibling.id == "inputTextQuestion11_2") {
-        let value = getPureValue("inputTextQuestion11_2")
-        
-        if (
-            value.includes("нфекционн") &&
-            value.includes("ндокард")
-
-        ) {
-            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightRed")
-            this.previousElementSibling.previousElementSibling.classList.add("bg-lightGreen")
-            this.previousElementSibling.previousElementSibling.disabled = true
-            this.previousElementSibling.textContent = "Вы дали правильный ответ на вопрос"
-        } else if (value == "") {
-            this.previousElementSibling.textContent = "Вы не ответили на вопрос"
-        } else {
-            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightGreen")
-            this.previousElementSibling.previousElementSibling.classList.add("bg-lightRed")
-            this.previousElementSibling.textContent = "Вы ответили не правильно"
-        }
-    }
-
-    // СИНДРОМ ТРИКУСПИДАЛЬНОЙ НЕДОСТАТОЧНОСТИ
-    if (this.previousElementSibling.previousElementSibling.id == "inputTextQuestion12_2") {
-        let value = getPureValue("inputTextQuestion12_2")
-        
-        if (
-            value.includes("наркома") || value.includes("наркот")
-        ) {
-            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightRed")
-            this.previousElementSibling.previousElementSibling.classList.add("bg-lightGreen")
-            this.previousElementSibling.previousElementSibling.disabled = true
-            this.previousElementSibling.textContent = "Вы дали правильный ответ на вопрос"
-        } else if (value == "") {
-            this.previousElementSibling.textContent = "Вы не ответили на вопрос"
-        } else {
-            this.previousElementSibling.previousElementSibling.classList.remove("bg-lightGreen")
-            this.previousElementSibling.previousElementSibling.classList.add("bg-lightRed")
-            this.previousElementSibling.textContent = "Вы ответили не правильно"
-        }
-    }
-}
-
-
 
 document.getElementById("TESTOVYE_ZADANIYA").addEventListener("click", showTests)
 
 function showTests() {
-    document.querySelector(".mainImg").classList.add("hide")
+    _helpers_mainData__WEBPACK_IMPORTED_MODULE_0__.mainImg.classList.add("hide")
     document.querySelector(".active-item")?.classList.remove("active-item")
     document.getElementById("test_list_item").classList.add("active-item")
     timeStartTesting = new Date();
     
-    document.getElementById("articleTitle").textContent = "Тестовые задания"
+    _helpers_mainData__WEBPACK_IMPORTED_MODULE_0__.title.textContent = "Тестовые задания"
     document.getElementById("block_result").classList.remove("hide")
     document.getElementById("footerBtn").classList.add("hide")
 
@@ -991,40 +1221,38 @@ function getResQuest36() {
         document.getElementById("dropAns12").innerText == 'III СТАДИЯ ХСН'
 
     ) {
-        rigthAnswer++
+        _helpers_mainData__WEBPACK_IMPORTED_MODULE_0__.userAnswers.right++
 
     } else if (
-        document.getElementById("dropAns1").innerText == 'Выберете ' &&
-        document.getElementById("dropAns5").innerText == 'Выберете ' &&
-        document.getElementById("dropAns9").innerText == 'Выберете ' &&
+        document.getElementById("dropAns1").innerText == 'Выберите правильный ответ ' &&
+        document.getElementById("dropAns5").innerText == 'Выберите правильный ответ ' &&
+        document.getElementById("dropAns9").innerText == 'Выберите правильный ответ ' &&
 
-        document.getElementById("dropAns2").innerText == 'Выберете ' &&
-        document.getElementById("dropAns6").innerText == 'Выберете ' &&
-        document.getElementById("dropAns10").innerText == 'Выберете ' &&
+        document.getElementById("dropAns2").innerText == 'Выберите правильный ответ ' &&
+        document.getElementById("dropAns6").innerText == 'Выберите правильный ответ ' &&
+        document.getElementById("dropAns10").innerText == 'Выберите правильный ответ ' &&
 
-        document.getElementById("dropAns3").innerText == 'Выберете ' &&
-        document.getElementById("dropAns7").innerText == 'Выберете ' &&
-        document.getElementById("dropAns11").innerText == 'Выберете ' &&
+        document.getElementById("dropAns3").innerText == 'Выберите правильный ответ ' &&
+        document.getElementById("dropAns7").innerText == 'Выберите правильный ответ ' &&
+        document.getElementById("dropAns11").innerText == 'Выберите правильный ответ ' &&
 
-        document.getElementById("dropAns4").innerText == 'Выберете ' &&
-        document.getElementById("dropAns8").innerText == 'Выберете ' &&
-        document.getElementById("dropAns12").innerText == 'Выберете '
+        document.getElementById("dropAns4").innerText == 'Выберите правильный ответ ' &&
+        document.getElementById("dropAns8").innerText == 'Выберите правильный ответ ' &&
+        document.getElementById("dropAns12").innerText == 'Выберите правильный ответ '
     ) {
-        noAnswer++
+        _helpers_mainData__WEBPACK_IMPORTED_MODULE_0__.userAnswers.without++
     } else {
-        wrongAnswer++
+        _helpers_mainData__WEBPACK_IMPORTED_MODULE_0__.userAnswers.wrong++
     }
 
     this.disabled = true
     this.nextElementSibling.disabled = false
-    showResults()
+    ;(0,_helpers_displayElement__WEBPACK_IMPORTED_MODULE_1__.showResults)()
 
 }
 let timeStartTesting;
 let timeFinishTesting;
-let rigthAnswer = 0;
-let wrongAnswer = 0;
-let noAnswer = 0;
+
 document.querySelectorAll(".btnAnswer:not(#btnAnswerQuestion36):not(.btnInputTextQuestion)").forEach(btn => {
     btn.addEventListener("click", function (e) {
         let allinputs = this.closest(".question ")?.querySelectorAll("input")
@@ -1041,7 +1269,7 @@ document.querySelectorAll(".btnAnswer:not(#btnAnswerQuestion36):not(.btnInputTex
                     allinputs[i].parentElement.querySelector("p")?.classList?.add("right")
                     allinputs[i].classList?.add("right")
                     if (allinputs[i].checked) {
-                        rigthAnswer++
+                        _helpers_mainData__WEBPACK_IMPORTED_MODULE_0__.userAnswers.right++
                         isAnswer++
 
                     }
@@ -1049,7 +1277,7 @@ document.querySelectorAll(".btnAnswer:not(#btnAnswerQuestion36):not(.btnInputTex
                     allinputs[i].parentElement.querySelector("p")?.classList?.add("error")
                     if (allinputs[i].checked) {
                         isAnswer++
-                        wrongAnswer++
+                        _helpers_mainData__WEBPACK_IMPORTED_MODULE_0__.userAnswers.wrong++
 
                     }
                 }
@@ -1078,18 +1306,18 @@ document.querySelectorAll(".btnAnswer:not(#btnAnswerQuestion36):not(.btnInputTex
 
 
         if (!isAnswer) {
-            noAnswer++
+            _helpers_mainData__WEBPACK_IMPORTED_MODULE_0__.userAnswers.without++
         }else
         if (isWrong >= 1 && isAnswer!=0 || isRight != raghtAnswerInQuestion &&  isAnswer!=0) {
-            wrongAnswer++
+            _helpers_mainData__WEBPACK_IMPORTED_MODULE_0__.userAnswers.wrong++
         }
         if (isRight == raghtAnswerInQuestion && isWrong == 0 && !radioInp) {
-            rigthAnswer++
+            _helpers_mainData__WEBPACK_IMPORTED_MODULE_0__.userAnswers.right++
         }
         btn.disabled = true
 
         btn.nextElementSibling.disabled = false
-        showResults()
+        ;(0,_helpers_displayElement__WEBPACK_IMPORTED_MODULE_1__.showResults)()
     })
 
 
@@ -1097,16 +1325,6 @@ document.querySelectorAll(".btnAnswer:not(#btnAnswerQuestion36):not(.btnInputTex
 
 
 
-function showResults() {
-    document.getElementById("showResTrue").textContent = rigthAnswer
-    document.getElementById("finalList_right").textContent = rigthAnswer
-
-    document.getElementById("showResFalse").textContent = wrongAnswer
-    document.getElementById("finalList_wrong").textContent = wrongAnswer
-
-    document.getElementById("showResNoAnswer").textContent = noAnswer
-    document.getElementById("finalList_noAnswer").textContent = noAnswer
-}
 
 let arrAncor = []
 
@@ -1122,12 +1340,12 @@ function trimStr(s) {
     return s.replace(/\s+$/g, '');
 }
 let originalNode = [];
-export let arrID;
+let arrID;
 
 function finder() {
     arrID = []
-    hideAll()
-    showAllArticle()
+    ;(0,_helpers_displayElement__WEBPACK_IMPORTED_MODULE_1__.hideAll)()
+    ;(0,_helpers_displayElement__WEBPACK_IMPORTED_MODULE_1__.showAllArticle)()
     getOriginlNodes()
 
     document.getElementById("test12122022").classList.remove("hide")
@@ -1255,24 +1473,10 @@ function deleteAncorTegs() {
 
 
 
-document.getElementById("inputSearch").addEventListener("click", showInputFinder)
-
-function showInputFinder() {
-    w320("inputSearch");
-    show("divArrovInput");
-    hide("articleTitle");
-    show("findAncor")
-
-}
-
-function hideInputFinder() {
-    deleteClass("inputSearch", "width320")
-    hide("divArrovInput");
-    show("articleTitle")
-    hide("findAncor")
+document.getElementById("inputSearch").addEventListener("click", _helpers_displayElement__WEBPACK_IMPORTED_MODULE_1__.showInputFinder)
 
 
-}
+
 
 
 
@@ -1281,3 +1485,9 @@ function FindOnPage(inputId) {//ищет текст на странице, в п
 
 }
 
+
+})();
+
+/******/ })()
+;
+//# sourceMappingURL=main.js.map
