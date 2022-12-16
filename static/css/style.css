@@ -13,11 +13,14 @@
 
 .list-group-item:hover {
     background-color: var(--mainBlue);
-    scale: 1.2;
-    z-index: 2;
-    transition: all 0.5s;
+    
+   
 }
-
+.my-container .list-group-item:hover{
+    z-index: 2;
+    transition: all 0.7s;
+    scale: 1.1;
+}
 .list-group {
     color: white;
 }

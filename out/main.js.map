@@ -1,1 +1,0 @@
-{"version":3,"file":"main.js","mappings":";;;;;AAAA;AACA;AACA;AACA;AACA,C","sources":["webpack://app_medical/./main.js"],"sourcesContent":["\r\n\r\nconst show = () =>{\r\n    console.log()\r\n}"],"names":[],"sourceRoot":""}

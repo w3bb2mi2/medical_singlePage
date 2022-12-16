@@ -1,5 +1,5 @@
 
-import { userAnswers } from "./helpers/mainData";
+import { btnTextQuestion1, btnTextQuestion2, userAnswers } from "./helpers/mainData";
 import { hideAll } from "./helpers/displayElement";
 import { title } from "./helpers/mainData";
 import { mainImg } from "./helpers/mainData";
@@ -8,82 +8,20 @@ import { show, showResults } from "./helpers/displayElement";
 import { showAllArticle } from "./helpers/displayElement";
 import { showInputFinder } from "./helpers/displayElement";
 import { checkAnswer1, checkAnswer2 } from "./helpers/questionFromText";
+import { attachListenersOnElement } from "./helpers/hooks/listeners/attachListenerOnElement";
+import { arrMenuItems, arrArticleItems, itemsPaginate } from "./helpers/mainData";
+import { getById } from "./helpers/hooks/getNodeElement";
+import { getResQuest36 } from "./helpers/test/question36";
 
 
+arrMenuItems.forEach(el=>attachListenersOnElement(el, randerContent))
+itemsPaginate.forEach((el, index)=>attachListenersOnElement(el, ()=>getById(`id_${index+3}`).click()))
+btnTextQuestion1.forEach(el=>attachListenersOnElement(el, checkAnswer1))
+btnTextQuestion2.forEach(el=>attachListenersOnElement(el, checkAnswer2))
+attachListenersOnElement("btnAnswerQuestion36", getResQuest36)
+attachListenersOnElement("btnNextPage", next)
 
 
-//увеличиваем инпут
-
-function w320(id) {
-    document.getElementById(id).classList.add("width320")
-}
-
-//удалить класс у элемена
-function deleteClass(id, cls) {
-    document.getElementById(id).classList.remove(cls)
-}
-//прячем все
-
-
-document.getElementById("id_1").addEventListener("click", randerContent)
-document.getElementById("id_2").addEventListener("click", randerContent)
-document.getElementById("id_3").addEventListener("click", randerContent)
-document.getElementById("id_4").addEventListener("click", randerContent)
-document.getElementById("id_5").addEventListener("click", randerContent)
-document.getElementById("id_6").addEventListener("click", randerContent)
-document.getElementById("id_7").addEventListener("click", randerContent)
-document.getElementById("id_8").addEventListener("click", randerContent)
-document.getElementById("id_9").addEventListener("click", randerContent)
-document.getElementById("id_10").addEventListener("click", randerContent)
-document.getElementById("id_11").addEventListener("click", randerContent)
-document.getElementById("id_12").addEventListener("click", randerContent)
-document.getElementById("id_13").addEventListener("click", randerContent)
-document.getElementById("zadaniyaEKG").addEventListener("click", randerContent)
-document.getElementById("literatura").addEventListener("click", randerContent)
-
-
-
-document.getElementById("paginate3").addEventListener("click", function () {
-    document.getElementById("id_3").click()
-})
-document.getElementById("paginate4").addEventListener("click", function () {
-    document.getElementById("id_4").click()
-})
-document.getElementById("paginate5").addEventListener("click", function () {
-    document.getElementById("id_5").click()
-})
-document.getElementById("paginate6").addEventListener("click", function () {
-    document.getElementById("id_6").click()
-})
-document.getElementById("paginate7").addEventListener("click", function () {
-    document.getElementById("id_7").click()
-})
-document.getElementById("paginate8").addEventListener("click", function () {
-    document.getElementById("id_8").click()
-})
-document.getElementById("paginate9").addEventListener("click", function () {
-    document.getElementById("id_9").click()
-})
-document.getElementById("paginate10").addEventListener("click", function () {
-    document.getElementById("id_10").click()
-})
-document.getElementById("paginate10").addEventListener("click", function () {
-    document.getElementById("id_10").click()
-})
-document.getElementById("paginate11").addEventListener("click", function () {
-    document.getElementById("id_11").click()
-})
-document.getElementById("paginate12").addEventListener("click", function () {
-    document.getElementById("id_12").click()
-})
-document.getElementById("paginate13").addEventListener("click", function () {
-    document.getElementById("id_13").click()
-})
-
-
-
-
-document.getElementById("btnNextPage").addEventListener("click", next)
 function next() {
     let activeElement = document.querySelector(".active-item")
 
@@ -94,9 +32,10 @@ function next() {
     let nextElement = activeElement?.nextElementSibling
     nextElement?.classList.add("active-item")
     nextElement?.click()
+    
 }
 
-document.getElementById("btnPriviousPage").addEventListener('click', previous)
+ getById("btnPriviousPage").addEventListener('click', previous)
 
 
 function previous() {
@@ -109,54 +48,24 @@ function previous() {
 }
 
 
-
-document.getElementById("btnInputTextQuestion1_1").addEventListener("click", checkAnswer1)
-document.getElementById("btnInputTextQuestion2_1").addEventListener("click", checkAnswer1)
-document.getElementById("btnInputTextQuestion4_1").addEventListener("click", checkAnswer1)
-document.getElementById("btnInputTextQuestion5_1").addEventListener("click", checkAnswer1)
-document.getElementById("btnInputTextQuestion6_1").addEventListener("click", checkAnswer1)
-document.getElementById("btnInputTextQuestion7_1").addEventListener("click", checkAnswer1)
-document.getElementById("btnInputTextQuestion8_1").addEventListener("click", checkAnswer1)
-document.getElementById("btnInputTextQuestion9_1").addEventListener("click", checkAnswer1)
-document.getElementById("btnInputTextQuestion10_1").addEventListener("click", checkAnswer1)
-document.getElementById("btnInputTextQuestion11_1").addEventListener("click", checkAnswer1)
-document.getElementById("btnInputTextQuestion12_1").addEventListener("click", checkAnswer1)
-
-
-
-
-
-
-document.getElementById("btnInputTextQuestion1_2").addEventListener("click", checkAnswer2)
-document.getElementById("btnInputTextQuestion2_2").addEventListener("click", checkAnswer2)
-document.getElementById("btnInputTextQuestion4_2").addEventListener("click", checkAnswer2)
-document.getElementById("btnInputTextQuestion5_2").addEventListener("click", checkAnswer2)
-document.getElementById("btnInputTextQuestion6_2").addEventListener("click", checkAnswer2)
-document.getElementById("btnInputTextQuestion7_2").addEventListener("click", checkAnswer2)
-document.getElementById("btnInputTextQuestion8_2").addEventListener("click", checkAnswer2)
-document.getElementById("btnInputTextQuestion9_2").addEventListener("click", checkAnswer2)
-document.getElementById("btnInputTextQuestion10_2").addEventListener("click", checkAnswer2)
-document.getElementById("btnInputTextQuestion11_2").addEventListener("click", checkAnswer2)
-document.getElementById("btnInputTextQuestion12_2").addEventListener("click", checkAnswer2)
-
 function hideMainImg(){
-    document.getElementById("divImageMain").classList.add("animate__bounceOutRight")
+    getById("divImageMain").classList.add("animate__bounceOutRight")
 }
 
 
-document.getElementById("TESTOVYE_ZADANIYA").addEventListener("click", showTests)
+ getById("TESTOVYE_ZADANIYA").addEventListener("click", showTests)
 
 function showTests() {
     mainImg.classList.add("hide")
     document.querySelector(".active-item")?.classList.remove("active-item")
-    document.getElementById("test_list_item").classList.add("active-item")
+    getById("test_list_item").classList.add("active-item")
     timeStartTesting = new Date();
     
     title.textContent = "Тестовые задания"
-    document.getElementById("block_result").classList.remove("hide")
-    document.getElementById("footerBtn").classList.add("hide")
+    getById("block_result").classList.remove("hide")
+    getById("footerBtn").classList.add("hide")
 
-    document.getElementById("outTestblock").classList.remove("hide")
+    getById("outTestblock").classList.remove("hide")
     document.querySelector("#test12122022")?.classList.add("hide")
 
 }
@@ -176,13 +85,13 @@ document.querySelectorAll(".btnLast").forEach(btn => {
     })
 })
 
-document.getElementById("finish_test").addEventListener("click", function () {
+ getById("finish_test").addEventListener("click", function () {
     this.parentElement.parentElement.parentElement.classList.add("hide")
     this.parentElement.parentElement.parentElement.nextElementSibling.classList.remove("hide")
     timeFinishTesting = new Date();
     let current = (timeFinishTesting - timeStartTesting) / 1000 / 60
     let roundTime = Math.round(current)
-    document.getElementById("finalList_time").textContent = `${roundTime} мин.`
+    getById("finalList_time").textContent = `${roundTime} мин.`
 })
 
 
@@ -224,136 +133,8 @@ document.querySelector(".question-36").querySelectorAll(".question-36-item").for
 
 
 
-document.getElementById("btnAnswerQuestion36").addEventListener("click", getResQuest36)
-
-function getResQuest36() {
-    if (document.getElementById("dropAns1").innerText == 'I СТАДИЯ ХСН') {
-        document.getElementById("dropAns1").classList.add("bg-green")
-    } else {
-        document.getElementById("dropAns1").classList.add("bg-red")
-    }
-
-    if (document.getElementById("dropAns5").innerText == 'I СТАДИЯ ХСН') {
-        document.getElementById("dropAns5").classList.add("bg-green")
-    } else {
-        document.getElementById("dropAns5").classList.add("bg-red")
-    }
-
-    if (document.getElementById("dropAns9").innerText == 'I СТАДИЯ ХСН') {
-        document.getElementById("dropAns9").classList.add("bg-green")
-    } else {
-        document.getElementById("dropAns9").classList.add("bg-red")
-    }
 
 
-
-    if (document.getElementById("dropAns2").innerText == 'IIA СТАДИЯ ХСН') {
-        document.getElementById("dropAns2").classList.add("bg-green")
-    } else {
-        document.getElementById("dropAns2").classList.add("bg-red")
-    }
-
-    if (document.getElementById("dropAns6").innerText == 'IIA СТАДИЯ ХСН') {
-        document.getElementById("dropAns6").classList.add("bg-green")
-    } else {
-        document.getElementById("dropAns6").classList.add("bg-red")
-    }
-
-    if (document.getElementById("dropAns10").innerText == 'IIA СТАДИЯ ХСН') {
-        document.getElementById("dropAns10").classList.add("bg-green")
-    } else {
-        document.getElementById("dropAns10").classList.add("bg-red")
-    }
-
-
-
-    if (document.getElementById("dropAns3").innerText == 'IIБ СТАДИЯ ХСН') {
-        document.getElementById("dropAns3").classList.add("bg-green")
-    } else {
-        document.getElementById("dropAns3").classList.add("bg-red")
-    }
-
-    if (document.getElementById("dropAns7").innerText == 'IIБ СТАДИЯ ХСН') {
-        document.getElementById("dropAns7").classList.add("bg-green")
-    } else {
-        document.getElementById("dropAns7").classList.add("bg-red")
-    }
-
-    if (document.getElementById("dropAns11").innerText == 'IIБ СТАДИЯ ХСН') {
-        document.getElementById("dropAns11").classList.add("bg-green")
-    } else {
-        document.getElementById("dropAns11").classList.add("bg-red")
-    }
-
-
-    if (document.getElementById("dropAns4").innerText == 'III СТАДИЯ ХСН') {
-        document.getElementById("dropAns4").classList.add("bg-green")
-    } else {
-        document.getElementById("dropAns4").classList.add("bg-red")
-    }
-
-    if (document.getElementById("dropAns8").innerText == 'III СТАДИЯ ХСН') {
-        document.getElementById("dropAns8").classList.add("bg-green")
-    } else {
-        document.getElementById("dropAns8").classList.add("bg-red")
-    }
-
-    if (document.getElementById("dropAns12").innerText == 'III СТАДИЯ ХСН') {
-        document.getElementById("dropAns12").classList.add("bg-green")
-    } else {
-        document.getElementById("dropAns12").classList.add("bg-red")
-    }
-
-
-
-
-    if (
-        document.getElementById("dropAns1").innerText == 'I СТАДИЯ ХСН' &&
-        document.getElementById("dropAns5").innerText == 'I СТАДИЯ ХСН' &&
-        document.getElementById("dropAns9").innerText == 'I СТАДИЯ ХСН' &&
-
-        document.getElementById("dropAns2").innerText == 'IIA СТАДИЯ ХСН' &&
-        document.getElementById("dropAns6").innerText == 'IIA СТАДИЯ ХСН' &&
-        document.getElementById("dropAns10").innerText == 'IIA СТАДИЯ ХСН' &&
-
-        document.getElementById("dropAns3").innerText == 'IIБ СТАДИЯ ХСН' &&
-        document.getElementById("dropAns7").innerText == 'IIБ СТАДИЯ ХСН' &&
-        document.getElementById("dropAns11").innerText == 'IIБ СТАДИЯ ХСН' &&
-
-        document.getElementById("dropAns4").innerText == 'III СТАДИЯ ХСН' &&
-        document.getElementById("dropAns8").innerText == 'III СТАДИЯ ХСН' &&
-        document.getElementById("dropAns12").innerText == 'III СТАДИЯ ХСН'
-
-    ) {
-        userAnswers.right++
-
-    } else if (
-        document.getElementById("dropAns1").innerText == 'Выберите правильный ответ ' &&
-        document.getElementById("dropAns5").innerText == 'Выберите правильный ответ ' &&
-        document.getElementById("dropAns9").innerText == 'Выберите правильный ответ ' &&
-
-        document.getElementById("dropAns2").innerText == 'Выберите правильный ответ ' &&
-        document.getElementById("dropAns6").innerText == 'Выберите правильный ответ ' &&
-        document.getElementById("dropAns10").innerText == 'Выберите правильный ответ ' &&
-
-        document.getElementById("dropAns3").innerText == 'Выберите правильный ответ ' &&
-        document.getElementById("dropAns7").innerText == 'Выберите правильный ответ ' &&
-        document.getElementById("dropAns11").innerText == 'Выберите правильный ответ ' &&
-
-        document.getElementById("dropAns4").innerText == 'Выберите правильный ответ ' &&
-        document.getElementById("dropAns8").innerText == 'Выберите правильный ответ ' &&
-        document.getElementById("dropAns12").innerText == 'Выберите правильный ответ '
-    ) {
-        userAnswers.without++
-    } else {
-        userAnswers.wrong++
-    }
-
-    this.disabled = true
-    this.nextElementSibling.disabled = false
-    showResults()
-
-}
 let timeStartTesting;
 let timeFinishTesting;
 
@@ -432,17 +213,8 @@ document.querySelectorAll(".btnAnswer:not(#btnAnswerQuestion36):not(.btnInputTex
 
 let arrAncor = []
 
-function showHears() {
+ getById("findAncor").addEventListener("click", finder)
 
-}
-
-document.getElementById("findAncor").addEventListener("click", finder)
-let lastResFind = ""; // последний удачный результат
-let copy_page = ""; // копия страницы в ихсодном виде
-function trimStr(s) {
-    s = s.replace(/^\s+/g, '');
-    return s.replace(/\s+$/g, '');
-}
 let originalNode = [];
 let arrID;
 
@@ -452,14 +224,14 @@ function finder() {
     showAllArticle()
     getOriginlNodes()
 
-    document.getElementById("test12122022").classList.remove("hide")
+    getById("test12122022").classList.remove("hide")
 
 
-    let str = document.getElementById("inputSearch").value
+    let str = getById("inputSearch").value
     if(str.length<3)return
-    let textP = document.getElementById("test12122022").querySelectorAll('p')
-    let textH6 = document.getElementById("test12122022").querySelectorAll('h6')
-    let textLI = document.getElementById("test12122022").querySelectorAll('li')
+    let textP = getById("test12122022").querySelectorAll('p')
+    let textH6 = getById("test12122022").querySelectorAll('h6')
+    let textLI = getById("test12122022").querySelectorAll('li')
     var re = new RegExp(str, "i");
     for (let i = 0; i < textP.length; i++) {
         if (textP[i].innerText.toLowerCase().includes(str.toLowerCase())) {
@@ -474,7 +246,7 @@ function finder() {
             let ref = `
             <a href="#ancor_P${i}" id="ancorRef${i}" class='ancorA'>ссылка${i}</a>
             `
-            document.getElementById("divForRef").insertAdjacentHTML("beforeend", ref)
+            getById("divForRef").insertAdjacentHTML("beforeend", ref)
             arrID.push(`ancorRef${i}`)
         }
     }
@@ -490,7 +262,7 @@ function finder() {
             let ref = `
             <a href="#ancor_H6${i}" id="ancorRef${i}" class='ancorA'>ссылка${i}</a>
             `
-            document.getElementById("divForRef").insertAdjacentHTML("beforeend", ref)
+            getById("divForRef").insertAdjacentHTML("beforeend", ref)
             arrID.push(`ancorRef${i}`)
 
 
@@ -506,7 +278,7 @@ function finder() {
                 let ref = `
                 <a href="#ancor_Li${i}" id="ancorRef${i}" class='ancorA'>ссылка${i}</a>
                 `
-                document.getElementById("divForRef").insertAdjacentHTML("beforeend", ref)
+                getById("divForRef").insertAdjacentHTML("beforeend", ref)
                 arrID.push(`ancorRef${i}`)
     
     
@@ -514,23 +286,23 @@ function finder() {
     }
     countElemsFinded()
     
-    document.getElementById(arrID[0])?.classList.add("activeRef")
+    getById(arrID[0])?.classList.add("activeRef")
 
     setTimeout(() => {
-        document.getElementById(arrID[0]).click()
+        getById(arrID[0]).click()
     }, 0);
 }
 
 //вперед назад по найденным элементам+их колличество
-let countFinder;
+
 
 function countElemsFinded() {
     let count = document.querySelectorAll(".ancorA").length
 
-    document.getElementById("countRes").textContent = count;
+    getById("countRes").textContent = count;
 }
 
-document.getElementById("countResForvard").addEventListener("click", nextClickFind)
+ getById("countResForvard").addEventListener("click", nextClickFind)
 
 let idCount = 0
 function nextClickFind() {
@@ -547,7 +319,7 @@ function nextClickFind() {
 
 }
 
-document.getElementById("countResBack").addEventListener("click", previousClickFind)
+ getById("countResBack").addEventListener("click", previousClickFind)
 function previousClickFind() {
     let currentEl = document.querySelector(".activeRef")
     let prevElem = currentEl?.previousElementSibling
@@ -561,8 +333,8 @@ function previousClickFind() {
 }
 
 function getOriginlNodes() {
-    document.getElementById("divForRef").remove()
-    document.getElementById("blockInputSearch").insertAdjacentHTML("afterbegin", `<div id="divForRef" class="hide"></div>`)
+    getById("divForRef").remove()
+    getById("blockInputSearch").insertAdjacentHTML("afterbegin", `<div id="divForRef" class="hide"></div>`)
     originalNode.forEach(el => {
         el.innerHTML = el.textContent
     })
@@ -577,7 +349,7 @@ function deleteAncorTegs() {
 
 
 
-document.getElementById("inputSearch").addEventListener("click", showInputFinder)
+ getById("inputSearch").addEventListener("click", showInputFinder)
 
 
 

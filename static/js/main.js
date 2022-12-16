@@ -10,14 +10,23 @@
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "addClass": () => (/* binding */ addClass),
+/* harmony export */   "deleteClass": () => (/* binding */ deleteClass),
 /* harmony export */   "w320": () => (/* binding */ w320)
 /* harmony export */ });
-//увеличиваем инпут
 
-//увеличиваем инпут
 
 function w320(id) {
     document.getElementById(id).classList.add("width320")
+}
+
+//удалить класс у элемена
+function deleteClass(id, cls) {
+    document.getElementById(id).classList.remove(cls)
+}
+
+function addClass(id, cls) {
+    document.getElementById(id).classList.add(cls)
 }
 
 /***/ }),
@@ -127,6 +136,36 @@ function getPureValue(id) {
 
 /***/ }),
 
+/***/ "./helpers/hooks/getNodeElement.js":
+/*!*****************************************!*\
+  !*** ./helpers/hooks/getNodeElement.js ***!
+  \*****************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "getById": () => (/* binding */ getById)
+/* harmony export */ });
+const getById = (id) =>document.getElementById(id)
+
+/***/ }),
+
+/***/ "./helpers/hooks/listeners/attachListenerOnElement.js":
+/*!************************************************************!*\
+  !*** ./helpers/hooks/listeners/attachListenerOnElement.js ***!
+  \************************************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "attachListenersOnElement": () => (/* binding */ attachListenersOnElement)
+/* harmony export */ });
+function attachListenersOnElement(id, functionName){
+    document.getElementById(id).addEventListener("click", functionName)
+}
+
+/***/ }),
+
 /***/ "./helpers/mainData.js":
 /*!*****************************!*\
   !*** ./helpers/mainData.js ***!
@@ -135,6 +174,11 @@ function getPureValue(id) {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "arrArticleItems": () => (/* binding */ arrArticleItems),
+/* harmony export */   "arrMenuItems": () => (/* binding */ arrMenuItems),
+/* harmony export */   "btnTextQuestion1": () => (/* binding */ btnTextQuestion1),
+/* harmony export */   "btnTextQuestion2": () => (/* binding */ btnTextQuestion2),
+/* harmony export */   "itemsPaginate": () => (/* binding */ itemsPaginate),
 /* harmony export */   "mainImg": () => (/* binding */ mainImg),
 /* harmony export */   "title": () => (/* binding */ title),
 /* harmony export */   "userAnswers": () => (/* binding */ userAnswers)
@@ -145,8 +189,24 @@ const userAnswers = {
     wrong: 0,
     without: 0
 }
-const title = document.getElementById("articleTitle") 
+const title = document.getElementById("articleTitle")
 const mainImg = document.querySelector(".mainImg")
+const arrMenuItems = [
+    "id_1", "id_2", "id_3", "id_4", "id_5", "id_6", "id_7", "id_8", "id_9", "id_10", "id_11", "id_12", "id_13", "zadaniyaEKG", "literatura"
+]
+const arrArticleItems = [
+    "id_3", "id_4", "id_5", "id_6", "id_7", "id_8", "id_9", "id_10", "id_11", "id_12", "id_13"
+]
+const itemsPaginate = [
+    "paginate3", "paginate4", "paginate5", "paginate6", "paginate7", "paginate8", "paginate9", "paginate10", "paginate11", "paginate12", "paginate13"
+]
+
+const btnTextQuestion1 = ["btnInputTextQuestion1_1", "btnInputTextQuestion2_1", "btnInputTextQuestion4_1", "btnInputTextQuestion5_1", "btnInputTextQuestion6_1", "btnInputTextQuestion7_1", "btnInputTextQuestion8_1", "btnInputTextQuestion9_1", "btnInputTextQuestion10_1", "btnInputTextQuestion11_1", "btnInputTextQuestion12_1"
+]
+
+const btnTextQuestion2 = [
+    "btnInputTextQuestion1_2", "btnInputTextQuestion2_2", "btnInputTextQuestion4_2", "btnInputTextQuestion5_2", "btnInputTextQuestion6_2", "btnInputTextQuestion7_2", "btnInputTextQuestion8_2", "btnInputTextQuestion9_2", "btnInputTextQuestion10_2", "btnInputTextQuestion11_2", "btnInputTextQuestion12_2"
+]
 
 
 /***/ }),
@@ -825,6 +885,154 @@ function randerContent() {
 }
 
 
+/***/ }),
+
+/***/ "./helpers/test/question36.js":
+/*!************************************!*\
+  !*** ./helpers/test/question36.js ***!
+  \************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "getResQuest36": () => (/* binding */ getResQuest36)
+/* harmony export */ });
+/* harmony import */ var _changeCSSpref__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../changeCSSpref */ "./helpers/changeCSSpref.js");
+/* harmony import */ var _displayElement__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../displayElement */ "./helpers/displayElement.js");
+/* harmony import */ var _hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../hooks/getNodeElement */ "./helpers/hooks/getNodeElement.js");
+
+
+
+
+function getResQuest36() {
+    if ((0,_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_2__.getById)("dropAns1").innerText == 'I СТАДИЯ ХСН') {
+        (0,_changeCSSpref__WEBPACK_IMPORTED_MODULE_0__.addClass)("dropAns1","bg-green")
+    } else {
+        (0,_changeCSSpref__WEBPACK_IMPORTED_MODULE_0__.addClass)("dropAns1","bg-red")
+    }
+
+    if ((0,_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_2__.getById)("dropAns5").innerText == 'I СТАДИЯ ХСН') {
+        (0,_changeCSSpref__WEBPACK_IMPORTED_MODULE_0__.addClass)("dropAns5","bg-green")
+    } else {
+        (0,_changeCSSpref__WEBPACK_IMPORTED_MODULE_0__.addClass)("dropAns5","bg-red")
+    }
+
+    if ((0,_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_2__.getById)("dropAns9").innerText == 'I СТАДИЯ ХСН') {
+        (0,_changeCSSpref__WEBPACK_IMPORTED_MODULE_0__.addClass)("dropAns9","bg-green")
+    } else {
+        (0,_changeCSSpref__WEBPACK_IMPORTED_MODULE_0__.addClass)("dropAns9","bg-red")
+    }
+
+
+
+    if ((0,_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_2__.getById)("dropAns2").innerText == 'IIA СТАДИЯ ХСН') {
+        (0,_changeCSSpref__WEBPACK_IMPORTED_MODULE_0__.addClass)("dropAns2","bg-green")
+    } else {
+        (0,_changeCSSpref__WEBPACK_IMPORTED_MODULE_0__.addClass)("dropAns2","bg-red")
+    }
+
+    if ((0,_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_2__.getById)("dropAns6").innerText == 'IIA СТАДИЯ ХСН') {
+        (0,_changeCSSpref__WEBPACK_IMPORTED_MODULE_0__.addClass)("dropAns6","bg-green")
+    } else {
+        (0,_changeCSSpref__WEBPACK_IMPORTED_MODULE_0__.addClass)("dropAns6","bg-red")
+    }
+
+    if ((0,_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_2__.getById)("dropAns10").innerText == 'IIA СТАДИЯ ХСН') {
+        (0,_changeCSSpref__WEBPACK_IMPORTED_MODULE_0__.addClass)("dropAns10","bg-green")
+    } else {
+        (0,_changeCSSpref__WEBPACK_IMPORTED_MODULE_0__.addClass)("dropAns10","bg-red")
+    }
+
+
+
+    if ((0,_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_2__.getById)("dropAns3").innerText == 'IIБ СТАДИЯ ХСН') {
+        (0,_changeCSSpref__WEBPACK_IMPORTED_MODULE_0__.addClass)("dropAns3","bg-green")
+    } else {
+        (0,_changeCSSpref__WEBPACK_IMPORTED_MODULE_0__.addClass)("dropAns3","bg-red")
+    }
+
+    if ((0,_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_2__.getById)("dropAns7").innerText == 'IIБ СТАДИЯ ХСН') {
+        (0,_changeCSSpref__WEBPACK_IMPORTED_MODULE_0__.addClass)("dropAns7","bg-green")
+    } else {
+        (0,_changeCSSpref__WEBPACK_IMPORTED_MODULE_0__.addClass)("dropAns7","bg-red")
+    }
+
+    if ((0,_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_2__.getById)("dropAns11").innerText == 'IIБ СТАДИЯ ХСН') {
+        (0,_changeCSSpref__WEBPACK_IMPORTED_MODULE_0__.addClass)("dropAns11","bg-green")
+    } else {
+        (0,_changeCSSpref__WEBPACK_IMPORTED_MODULE_0__.addClass)("dropAns11","bg-red")
+    }
+
+
+    if ((0,_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_2__.getById)("dropAns4").innerText == 'III СТАДИЯ ХСН') {
+        (0,_changeCSSpref__WEBPACK_IMPORTED_MODULE_0__.addClass)("dropAns4","bg-green")
+    } else {
+        (0,_changeCSSpref__WEBPACK_IMPORTED_MODULE_0__.addClass)("dropAns4","bg-red")
+    }
+
+    if ((0,_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_2__.getById)("dropAns8").innerText == 'III СТАДИЯ ХСН') {
+        (0,_changeCSSpref__WEBPACK_IMPORTED_MODULE_0__.addClass)("dropAns8","bg-green")
+    } else {
+        (0,_changeCSSpref__WEBPACK_IMPORTED_MODULE_0__.addClass)("dropAns8","bg-red")
+    }
+
+    if ((0,_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_2__.getById)("dropAns12").innerText == 'III СТАДИЯ ХСН') {
+        (0,_changeCSSpref__WEBPACK_IMPORTED_MODULE_0__.addClass)("dropAns12","bg-green")
+    } else {
+        (0,_changeCSSpref__WEBPACK_IMPORTED_MODULE_0__.addClass)("dropAns12","bg-red")
+    }
+
+
+
+
+    if (
+        (0,_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_2__.getById)("dropAns1").innerText == 'I СТАДИЯ ХСН' &&
+        (0,_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_2__.getById)("dropAns5").innerText == 'I СТАДИЯ ХСН' &&
+        (0,_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_2__.getById)("dropAns9").innerText == 'I СТАДИЯ ХСН' &&
+
+        (0,_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_2__.getById)("dropAns2").innerText == 'IIA СТАДИЯ ХСН' &&
+        (0,_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_2__.getById)("dropAns6").innerText == 'IIA СТАДИЯ ХСН' &&
+        (0,_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_2__.getById)("dropAns10").innerText == 'IIA СТАДИЯ ХСН' &&
+
+        (0,_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_2__.getById)("dropAns3").innerText == 'IIБ СТАДИЯ ХСН' &&
+        (0,_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_2__.getById)("dropAns7").innerText == 'IIБ СТАДИЯ ХСН' &&
+        (0,_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_2__.getById)("dropAns11").innerText == 'IIБ СТАДИЯ ХСН' &&
+
+        (0,_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_2__.getById)("dropAns4").innerText == 'III СТАДИЯ ХСН' &&
+        (0,_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_2__.getById)("dropAns8").innerText == 'III СТАДИЯ ХСН' &&
+        (0,_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_2__.getById)("dropAns12").innerText == 'III СТАДИЯ ХСН'
+
+    ) {
+        userAnswers.right++
+
+    } else if (
+        (0,_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_2__.getById)("dropAns1").innerText == 'Выберите правильный ответ ' &&
+        (0,_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_2__.getById)("dropAns5").innerText == 'Выберите правильный ответ ' &&
+        (0,_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_2__.getById)("dropAns9").innerText == 'Выберите правильный ответ ' &&
+
+        (0,_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_2__.getById)("dropAns2").innerText == 'Выберите правильный ответ ' &&
+        (0,_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_2__.getById)("dropAns6").innerText == 'Выберите правильный ответ ' &&
+        (0,_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_2__.getById)("dropAns10").innerText == 'Выберите правильный ответ ' &&
+
+        (0,_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_2__.getById)("dropAns3").innerText == 'Выберите правильный ответ ' &&
+        (0,_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_2__.getById)("dropAns7").innerText == 'Выберите правильный ответ ' &&
+        (0,_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_2__.getById)("dropAns11").innerText == 'Выберите правильный ответ ' &&
+
+        (0,_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_2__.getById)("dropAns4").innerText == 'Выберите правильный ответ ' &&
+        (0,_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_2__.getById)("dropAns8").innerText == 'Выберите правильный ответ ' &&
+        (0,_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_2__.getById)("dropAns12").innerText == 'Выберите правильный ответ '
+    ) {
+        userAnswers.without++
+    } else {
+        userAnswers.wrong++
+    }
+
+    this.disabled = true
+    this.nextElementSibling.disabled = false
+    ;(0,_displayElement__WEBPACK_IMPORTED_MODULE_1__.showResults)()
+
+}
+
 /***/ })
 
 /******/ 	});
@@ -894,6 +1102,9 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _helpers_displayElement__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./helpers/displayElement */ "./helpers/displayElement.js");
 /* harmony import */ var _helpers_randerContent__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./helpers/randerContent */ "./helpers/randerContent.js");
 /* harmony import */ var _helpers_questionFromText__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./helpers/questionFromText */ "./helpers/questionFromText.js");
+/* harmony import */ var _helpers_hooks_listeners_attachListenerOnElement__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./helpers/hooks/listeners/attachListenerOnElement */ "./helpers/hooks/listeners/attachListenerOnElement.js");
+/* harmony import */ var _helpers_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./helpers/hooks/getNodeElement */ "./helpers/hooks/getNodeElement.js");
+/* harmony import */ var _helpers_test_question36__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ./helpers/test/question36 */ "./helpers/test/question36.js");
 
 
 
@@ -908,78 +1119,16 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
-//увеличиваем инпут
-
-function w320(id) {
-    document.getElementById(id).classList.add("width320")
-}
-
-//удалить класс у элемена
-function deleteClass(id, cls) {
-    document.getElementById(id).classList.remove(cls)
-}
-//прячем все
 
 
-document.getElementById("id_1").addEventListener("click", _helpers_randerContent__WEBPACK_IMPORTED_MODULE_2__.randerContent)
-document.getElementById("id_2").addEventListener("click", _helpers_randerContent__WEBPACK_IMPORTED_MODULE_2__.randerContent)
-document.getElementById("id_3").addEventListener("click", _helpers_randerContent__WEBPACK_IMPORTED_MODULE_2__.randerContent)
-document.getElementById("id_4").addEventListener("click", _helpers_randerContent__WEBPACK_IMPORTED_MODULE_2__.randerContent)
-document.getElementById("id_5").addEventListener("click", _helpers_randerContent__WEBPACK_IMPORTED_MODULE_2__.randerContent)
-document.getElementById("id_6").addEventListener("click", _helpers_randerContent__WEBPACK_IMPORTED_MODULE_2__.randerContent)
-document.getElementById("id_7").addEventListener("click", _helpers_randerContent__WEBPACK_IMPORTED_MODULE_2__.randerContent)
-document.getElementById("id_8").addEventListener("click", _helpers_randerContent__WEBPACK_IMPORTED_MODULE_2__.randerContent)
-document.getElementById("id_9").addEventListener("click", _helpers_randerContent__WEBPACK_IMPORTED_MODULE_2__.randerContent)
-document.getElementById("id_10").addEventListener("click", _helpers_randerContent__WEBPACK_IMPORTED_MODULE_2__.randerContent)
-document.getElementById("id_11").addEventListener("click", _helpers_randerContent__WEBPACK_IMPORTED_MODULE_2__.randerContent)
-document.getElementById("id_12").addEventListener("click", _helpers_randerContent__WEBPACK_IMPORTED_MODULE_2__.randerContent)
-document.getElementById("id_13").addEventListener("click", _helpers_randerContent__WEBPACK_IMPORTED_MODULE_2__.randerContent)
-document.getElementById("zadaniyaEKG").addEventListener("click", _helpers_randerContent__WEBPACK_IMPORTED_MODULE_2__.randerContent)
-document.getElementById("literatura").addEventListener("click", _helpers_randerContent__WEBPACK_IMPORTED_MODULE_2__.randerContent)
+_helpers_mainData__WEBPACK_IMPORTED_MODULE_0__.arrMenuItems.forEach(el=>(0,_helpers_hooks_listeners_attachListenerOnElement__WEBPACK_IMPORTED_MODULE_4__.attachListenersOnElement)(el, _helpers_randerContent__WEBPACK_IMPORTED_MODULE_2__.randerContent))
+_helpers_mainData__WEBPACK_IMPORTED_MODULE_0__.itemsPaginate.forEach((el, index)=>(0,_helpers_hooks_listeners_attachListenerOnElement__WEBPACK_IMPORTED_MODULE_4__.attachListenersOnElement)(el, ()=>(0,_helpers_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_5__.getById)(`id_${index+3}`).click()))
+_helpers_mainData__WEBPACK_IMPORTED_MODULE_0__.btnTextQuestion1.forEach(el=>(0,_helpers_hooks_listeners_attachListenerOnElement__WEBPACK_IMPORTED_MODULE_4__.attachListenersOnElement)(el, _helpers_questionFromText__WEBPACK_IMPORTED_MODULE_3__.checkAnswer1))
+_helpers_mainData__WEBPACK_IMPORTED_MODULE_0__.btnTextQuestion2.forEach(el=>(0,_helpers_hooks_listeners_attachListenerOnElement__WEBPACK_IMPORTED_MODULE_4__.attachListenersOnElement)(el, _helpers_questionFromText__WEBPACK_IMPORTED_MODULE_3__.checkAnswer2))
+;(0,_helpers_hooks_listeners_attachListenerOnElement__WEBPACK_IMPORTED_MODULE_4__.attachListenersOnElement)("btnAnswerQuestion36", _helpers_test_question36__WEBPACK_IMPORTED_MODULE_6__.getResQuest36)
+;(0,_helpers_hooks_listeners_attachListenerOnElement__WEBPACK_IMPORTED_MODULE_4__.attachListenersOnElement)("btnNextPage", next)
 
 
-
-document.getElementById("paginate3").addEventListener("click", function () {
-    document.getElementById("id_3").click()
-})
-document.getElementById("paginate4").addEventListener("click", function () {
-    document.getElementById("id_4").click()
-})
-document.getElementById("paginate5").addEventListener("click", function () {
-    document.getElementById("id_5").click()
-})
-document.getElementById("paginate6").addEventListener("click", function () {
-    document.getElementById("id_6").click()
-})
-document.getElementById("paginate7").addEventListener("click", function () {
-    document.getElementById("id_7").click()
-})
-document.getElementById("paginate8").addEventListener("click", function () {
-    document.getElementById("id_8").click()
-})
-document.getElementById("paginate9").addEventListener("click", function () {
-    document.getElementById("id_9").click()
-})
-document.getElementById("paginate10").addEventListener("click", function () {
-    document.getElementById("id_10").click()
-})
-document.getElementById("paginate10").addEventListener("click", function () {
-    document.getElementById("id_10").click()
-})
-document.getElementById("paginate11").addEventListener("click", function () {
-    document.getElementById("id_11").click()
-})
-document.getElementById("paginate12").addEventListener("click", function () {
-    document.getElementById("id_12").click()
-})
-document.getElementById("paginate13").addEventListener("click", function () {
-    document.getElementById("id_13").click()
-})
-
-
-
-
-document.getElementById("btnNextPage").addEventListener("click", next)
 function next() {
     let activeElement = document.querySelector(".active-item")
 
@@ -990,9 +1139,10 @@ function next() {
     let nextElement = activeElement?.nextElementSibling
     nextElement?.classList.add("active-item")
     nextElement?.click()
+    
 }
 
-document.getElementById("btnPriviousPage").addEventListener('click', previous)
+ (0,_helpers_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_5__.getById)("btnPriviousPage").addEventListener('click', previous)
 
 
 function previous() {
@@ -1005,54 +1155,24 @@ function previous() {
 }
 
 
-
-document.getElementById("btnInputTextQuestion1_1").addEventListener("click", _helpers_questionFromText__WEBPACK_IMPORTED_MODULE_3__.checkAnswer1)
-document.getElementById("btnInputTextQuestion2_1").addEventListener("click", _helpers_questionFromText__WEBPACK_IMPORTED_MODULE_3__.checkAnswer1)
-document.getElementById("btnInputTextQuestion4_1").addEventListener("click", _helpers_questionFromText__WEBPACK_IMPORTED_MODULE_3__.checkAnswer1)
-document.getElementById("btnInputTextQuestion5_1").addEventListener("click", _helpers_questionFromText__WEBPACK_IMPORTED_MODULE_3__.checkAnswer1)
-document.getElementById("btnInputTextQuestion6_1").addEventListener("click", _helpers_questionFromText__WEBPACK_IMPORTED_MODULE_3__.checkAnswer1)
-document.getElementById("btnInputTextQuestion7_1").addEventListener("click", _helpers_questionFromText__WEBPACK_IMPORTED_MODULE_3__.checkAnswer1)
-document.getElementById("btnInputTextQuestion8_1").addEventListener("click", _helpers_questionFromText__WEBPACK_IMPORTED_MODULE_3__.checkAnswer1)
-document.getElementById("btnInputTextQuestion9_1").addEventListener("click", _helpers_questionFromText__WEBPACK_IMPORTED_MODULE_3__.checkAnswer1)
-document.getElementById("btnInputTextQuestion10_1").addEventListener("click", _helpers_questionFromText__WEBPACK_IMPORTED_MODULE_3__.checkAnswer1)
-document.getElementById("btnInputTextQuestion11_1").addEventListener("click", _helpers_questionFromText__WEBPACK_IMPORTED_MODULE_3__.checkAnswer1)
-document.getElementById("btnInputTextQuestion12_1").addEventListener("click", _helpers_questionFromText__WEBPACK_IMPORTED_MODULE_3__.checkAnswer1)
-
-
-
-
-
-
-document.getElementById("btnInputTextQuestion1_2").addEventListener("click", _helpers_questionFromText__WEBPACK_IMPORTED_MODULE_3__.checkAnswer2)
-document.getElementById("btnInputTextQuestion2_2").addEventListener("click", _helpers_questionFromText__WEBPACK_IMPORTED_MODULE_3__.checkAnswer2)
-document.getElementById("btnInputTextQuestion4_2").addEventListener("click", _helpers_questionFromText__WEBPACK_IMPORTED_MODULE_3__.checkAnswer2)
-document.getElementById("btnInputTextQuestion5_2").addEventListener("click", _helpers_questionFromText__WEBPACK_IMPORTED_MODULE_3__.checkAnswer2)
-document.getElementById("btnInputTextQuestion6_2").addEventListener("click", _helpers_questionFromText__WEBPACK_IMPORTED_MODULE_3__.checkAnswer2)
-document.getElementById("btnInputTextQuestion7_2").addEventListener("click", _helpers_questionFromText__WEBPACK_IMPORTED_MODULE_3__.checkAnswer2)
-document.getElementById("btnInputTextQuestion8_2").addEventListener("click", _helpers_questionFromText__WEBPACK_IMPORTED_MODULE_3__.checkAnswer2)
-document.getElementById("btnInputTextQuestion9_2").addEventListener("click", _helpers_questionFromText__WEBPACK_IMPORTED_MODULE_3__.checkAnswer2)
-document.getElementById("btnInputTextQuestion10_2").addEventListener("click", _helpers_questionFromText__WEBPACK_IMPORTED_MODULE_3__.checkAnswer2)
-document.getElementById("btnInputTextQuestion11_2").addEventListener("click", _helpers_questionFromText__WEBPACK_IMPORTED_MODULE_3__.checkAnswer2)
-document.getElementById("btnInputTextQuestion12_2").addEventListener("click", _helpers_questionFromText__WEBPACK_IMPORTED_MODULE_3__.checkAnswer2)
-
 function hideMainImg(){
-    document.getElementById("divImageMain").classList.add("animate__bounceOutRight")
+    (0,_helpers_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_5__.getById)("divImageMain").classList.add("animate__bounceOutRight")
 }
 
 
-document.getElementById("TESTOVYE_ZADANIYA").addEventListener("click", showTests)
+ (0,_helpers_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_5__.getById)("TESTOVYE_ZADANIYA").addEventListener("click", showTests)
 
 function showTests() {
     _helpers_mainData__WEBPACK_IMPORTED_MODULE_0__.mainImg.classList.add("hide")
     document.querySelector(".active-item")?.classList.remove("active-item")
-    document.getElementById("test_list_item").classList.add("active-item")
+    ;(0,_helpers_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_5__.getById)("test_list_item").classList.add("active-item")
     timeStartTesting = new Date();
     
     _helpers_mainData__WEBPACK_IMPORTED_MODULE_0__.title.textContent = "Тестовые задания"
-    document.getElementById("block_result").classList.remove("hide")
-    document.getElementById("footerBtn").classList.add("hide")
+    ;(0,_helpers_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_5__.getById)("block_result").classList.remove("hide")
+    ;(0,_helpers_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_5__.getById)("footerBtn").classList.add("hide")
 
-    document.getElementById("outTestblock").classList.remove("hide")
+    ;(0,_helpers_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_5__.getById)("outTestblock").classList.remove("hide")
     document.querySelector("#test12122022")?.classList.add("hide")
 
 }
@@ -1072,13 +1192,13 @@ document.querySelectorAll(".btnLast").forEach(btn => {
     })
 })
 
-document.getElementById("finish_test").addEventListener("click", function () {
+ ;(0,_helpers_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_5__.getById)("finish_test").addEventListener("click", function () {
     this.parentElement.parentElement.parentElement.classList.add("hide")
     this.parentElement.parentElement.parentElement.nextElementSibling.classList.remove("hide")
     timeFinishTesting = new Date();
     let current = (timeFinishTesting - timeStartTesting) / 1000 / 60
     let roundTime = Math.round(current)
-    document.getElementById("finalList_time").textContent = `${roundTime} мин.`
+    ;(0,_helpers_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_5__.getById)("finalList_time").textContent = `${roundTime} мин.`
 })
 
 
@@ -1120,136 +1240,8 @@ document.querySelector(".question-36").querySelectorAll(".question-36-item").for
 
 
 
-document.getElementById("btnAnswerQuestion36").addEventListener("click", getResQuest36)
-
-function getResQuest36() {
-    if (document.getElementById("dropAns1").innerText == 'I СТАДИЯ ХСН') {
-        document.getElementById("dropAns1").classList.add("bg-green")
-    } else {
-        document.getElementById("dropAns1").classList.add("bg-red")
-    }
-
-    if (document.getElementById("dropAns5").innerText == 'I СТАДИЯ ХСН') {
-        document.getElementById("dropAns5").classList.add("bg-green")
-    } else {
-        document.getElementById("dropAns5").classList.add("bg-red")
-    }
-
-    if (document.getElementById("dropAns9").innerText == 'I СТАДИЯ ХСН') {
-        document.getElementById("dropAns9").classList.add("bg-green")
-    } else {
-        document.getElementById("dropAns9").classList.add("bg-red")
-    }
 
 
-
-    if (document.getElementById("dropAns2").innerText == 'IIA СТАДИЯ ХСН') {
-        document.getElementById("dropAns2").classList.add("bg-green")
-    } else {
-        document.getElementById("dropAns2").classList.add("bg-red")
-    }
-
-    if (document.getElementById("dropAns6").innerText == 'IIA СТАДИЯ ХСН') {
-        document.getElementById("dropAns6").classList.add("bg-green")
-    } else {
-        document.getElementById("dropAns6").classList.add("bg-red")
-    }
-
-    if (document.getElementById("dropAns10").innerText == 'IIA СТАДИЯ ХСН') {
-        document.getElementById("dropAns10").classList.add("bg-green")
-    } else {
-        document.getElementById("dropAns10").classList.add("bg-red")
-    }
-
-
-
-    if (document.getElementById("dropAns3").innerText == 'IIБ СТАДИЯ ХСН') {
-        document.getElementById("dropAns3").classList.add("bg-green")
-    } else {
-        document.getElementById("dropAns3").classList.add("bg-red")
-    }
-
-    if (document.getElementById("dropAns7").innerText == 'IIБ СТАДИЯ ХСН') {
-        document.getElementById("dropAns7").classList.add("bg-green")
-    } else {
-        document.getElementById("dropAns7").classList.add("bg-red")
-    }
-
-    if (document.getElementById("dropAns11").innerText == 'IIБ СТАДИЯ ХСН') {
-        document.getElementById("dropAns11").classList.add("bg-green")
-    } else {
-        document.getElementById("dropAns11").classList.add("bg-red")
-    }
-
-
-    if (document.getElementById("dropAns4").innerText == 'III СТАДИЯ ХСН') {
-        document.getElementById("dropAns4").classList.add("bg-green")
-    } else {
-        document.getElementById("dropAns4").classList.add("bg-red")
-    }
-
-    if (document.getElementById("dropAns8").innerText == 'III СТАДИЯ ХСН') {
-        document.getElementById("dropAns8").classList.add("bg-green")
-    } else {
-        document.getElementById("dropAns8").classList.add("bg-red")
-    }
-
-    if (document.getElementById("dropAns12").innerText == 'III СТАДИЯ ХСН') {
-        document.getElementById("dropAns12").classList.add("bg-green")
-    } else {
-        document.getElementById("dropAns12").classList.add("bg-red")
-    }
-
-
-
-
-    if (
-        document.getElementById("dropAns1").innerText == 'I СТАДИЯ ХСН' &&
-        document.getElementById("dropAns5").innerText == 'I СТАДИЯ ХСН' &&
-        document.getElementById("dropAns9").innerText == 'I СТАДИЯ ХСН' &&
-
-        document.getElementById("dropAns2").innerText == 'IIA СТАДИЯ ХСН' &&
-        document.getElementById("dropAns6").innerText == 'IIA СТАДИЯ ХСН' &&
-        document.getElementById("dropAns10").innerText == 'IIA СТАДИЯ ХСН' &&
-
-        document.getElementById("dropAns3").innerText == 'IIБ СТАДИЯ ХСН' &&
-        document.getElementById("dropAns7").innerText == 'IIБ СТАДИЯ ХСН' &&
-        document.getElementById("dropAns11").innerText == 'IIБ СТАДИЯ ХСН' &&
-
-        document.getElementById("dropAns4").innerText == 'III СТАДИЯ ХСН' &&
-        document.getElementById("dropAns8").innerText == 'III СТАДИЯ ХСН' &&
-        document.getElementById("dropAns12").innerText == 'III СТАДИЯ ХСН'
-
-    ) {
-        _helpers_mainData__WEBPACK_IMPORTED_MODULE_0__.userAnswers.right++
-
-    } else if (
-        document.getElementById("dropAns1").innerText == 'Выберите правильный ответ ' &&
-        document.getElementById("dropAns5").innerText == 'Выберите правильный ответ ' &&
-        document.getElementById("dropAns9").innerText == 'Выберите правильный ответ ' &&
-
-        document.getElementById("dropAns2").innerText == 'Выберите правильный ответ ' &&
-        document.getElementById("dropAns6").innerText == 'Выберите правильный ответ ' &&
-        document.getElementById("dropAns10").innerText == 'Выберите правильный ответ ' &&
-
-        document.getElementById("dropAns3").innerText == 'Выберите правильный ответ ' &&
-        document.getElementById("dropAns7").innerText == 'Выберите правильный ответ ' &&
-        document.getElementById("dropAns11").innerText == 'Выберите правильный ответ ' &&
-
-        document.getElementById("dropAns4").innerText == 'Выберите правильный ответ ' &&
-        document.getElementById("dropAns8").innerText == 'Выберите правильный ответ ' &&
-        document.getElementById("dropAns12").innerText == 'Выберите правильный ответ '
-    ) {
-        _helpers_mainData__WEBPACK_IMPORTED_MODULE_0__.userAnswers.without++
-    } else {
-        _helpers_mainData__WEBPACK_IMPORTED_MODULE_0__.userAnswers.wrong++
-    }
-
-    this.disabled = true
-    this.nextElementSibling.disabled = false
-    ;(0,_helpers_displayElement__WEBPACK_IMPORTED_MODULE_1__.showResults)()
-
-}
 let timeStartTesting;
 let timeFinishTesting;
 
@@ -1328,17 +1320,8 @@ document.querySelectorAll(".btnAnswer:not(#btnAnswerQuestion36):not(.btnInputTex
 
 let arrAncor = []
 
-function showHears() {
+ ;(0,_helpers_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_5__.getById)("findAncor").addEventListener("click", finder)
 
-}
-
-document.getElementById("findAncor").addEventListener("click", finder)
-let lastResFind = ""; // последний удачный результат
-let copy_page = ""; // копия страницы в ихсодном виде
-function trimStr(s) {
-    s = s.replace(/^\s+/g, '');
-    return s.replace(/\s+$/g, '');
-}
 let originalNode = [];
 let arrID;
 
@@ -1348,14 +1331,14 @@ function finder() {
     ;(0,_helpers_displayElement__WEBPACK_IMPORTED_MODULE_1__.showAllArticle)()
     getOriginlNodes()
 
-    document.getElementById("test12122022").classList.remove("hide")
+    ;(0,_helpers_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_5__.getById)("test12122022").classList.remove("hide")
 
 
-    let str = document.getElementById("inputSearch").value
+    let str = (0,_helpers_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_5__.getById)("inputSearch").value
     if(str.length<3)return
-    let textP = document.getElementById("test12122022").querySelectorAll('p')
-    let textH6 = document.getElementById("test12122022").querySelectorAll('h6')
-    let textLI = document.getElementById("test12122022").querySelectorAll('li')
+    let textP = (0,_helpers_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_5__.getById)("test12122022").querySelectorAll('p')
+    let textH6 = (0,_helpers_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_5__.getById)("test12122022").querySelectorAll('h6')
+    let textLI = (0,_helpers_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_5__.getById)("test12122022").querySelectorAll('li')
     var re = new RegExp(str, "i");
     for (let i = 0; i < textP.length; i++) {
         if (textP[i].innerText.toLowerCase().includes(str.toLowerCase())) {
@@ -1370,7 +1353,7 @@ function finder() {
             let ref = `
             <a href="#ancor_P${i}" id="ancorRef${i}" class='ancorA'>ссылка${i}</a>
             `
-            document.getElementById("divForRef").insertAdjacentHTML("beforeend", ref)
+            ;(0,_helpers_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_5__.getById)("divForRef").insertAdjacentHTML("beforeend", ref)
             arrID.push(`ancorRef${i}`)
         }
     }
@@ -1386,7 +1369,7 @@ function finder() {
             let ref = `
             <a href="#ancor_H6${i}" id="ancorRef${i}" class='ancorA'>ссылка${i}</a>
             `
-            document.getElementById("divForRef").insertAdjacentHTML("beforeend", ref)
+            ;(0,_helpers_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_5__.getById)("divForRef").insertAdjacentHTML("beforeend", ref)
             arrID.push(`ancorRef${i}`)
 
 
@@ -1402,7 +1385,7 @@ function finder() {
                 let ref = `
                 <a href="#ancor_Li${i}" id="ancorRef${i}" class='ancorA'>ссылка${i}</a>
                 `
-                document.getElementById("divForRef").insertAdjacentHTML("beforeend", ref)
+                ;(0,_helpers_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_5__.getById)("divForRef").insertAdjacentHTML("beforeend", ref)
                 arrID.push(`ancorRef${i}`)
     
     
@@ -1410,23 +1393,23 @@ function finder() {
     }
     countElemsFinded()
     
-    document.getElementById(arrID[0])?.classList.add("activeRef")
+    ;(0,_helpers_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_5__.getById)(arrID[0])?.classList.add("activeRef")
 
     setTimeout(() => {
-        document.getElementById(arrID[0]).click()
+        ;(0,_helpers_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_5__.getById)(arrID[0]).click()
     }, 0);
 }
 
 //вперед назад по найденным элементам+их колличество
-let countFinder;
+
 
 function countElemsFinded() {
     let count = document.querySelectorAll(".ancorA").length
 
-    document.getElementById("countRes").textContent = count;
+    ;(0,_helpers_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_5__.getById)("countRes").textContent = count;
 }
 
-document.getElementById("countResForvard").addEventListener("click", nextClickFind)
+ (0,_helpers_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_5__.getById)("countResForvard").addEventListener("click", nextClickFind)
 
 let idCount = 0
 function nextClickFind() {
@@ -1443,7 +1426,7 @@ function nextClickFind() {
 
 }
 
-document.getElementById("countResBack").addEventListener("click", previousClickFind)
+ (0,_helpers_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_5__.getById)("countResBack").addEventListener("click", previousClickFind)
 function previousClickFind() {
     let currentEl = document.querySelector(".activeRef")
     let prevElem = currentEl?.previousElementSibling
@@ -1457,8 +1440,8 @@ function previousClickFind() {
 }
 
 function getOriginlNodes() {
-    document.getElementById("divForRef").remove()
-    document.getElementById("blockInputSearch").insertAdjacentHTML("afterbegin", `<div id="divForRef" class="hide"></div>`)
+    (0,_helpers_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_5__.getById)("divForRef").remove()
+    ;(0,_helpers_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_5__.getById)("blockInputSearch").insertAdjacentHTML("afterbegin", `<div id="divForRef" class="hide"></div>`)
     originalNode.forEach(el => {
         el.innerHTML = el.textContent
     })
@@ -1473,7 +1456,7 @@ function deleteAncorTegs() {
 
 
 
-document.getElementById("inputSearch").addEventListener("click", _helpers_displayElement__WEBPACK_IMPORTED_MODULE_1__.showInputFinder)
+ (0,_helpers_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_5__.getById)("inputSearch").addEventListener("click", _helpers_displayElement__WEBPACK_IMPORTED_MODULE_1__.showInputFinder)
 
 
 
