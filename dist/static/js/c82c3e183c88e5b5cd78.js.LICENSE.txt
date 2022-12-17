@@ -1,0 +1,67 @@
+/*! ../changeCSSpref */
+
+/*! ../displayElement */
+
+/*! ../hooks/getNodeElement */
+
+/*! ./changeCSSpref */
+
+/*! ./displayElement */
+
+/*! ./getHtmlElement */
+
+/*! ./helpers/displayElement */
+
+/*! ./helpers/hooks/getNodeElement */
+
+/*! ./helpers/hooks/listeners/attachListenerOnElement */
+
+/*! ./helpers/mainData */
+
+/*! ./helpers/questionFromText */
+
+/*! ./helpers/randerContent */
+
+/*! ./helpers/test/question36 */
+
+/*! ./mainData */
+
+/*!*****************!*\
+  !*** ./main.js ***!
+  \*****************/
+
+/*!*****************************!*\
+  !*** ./helpers/mainData.js ***!
+  \*****************************/
+
+/*!**********************************!*\
+  !*** ./helpers/changeCSSpref.js ***!
+  \**********************************/
+
+/*!**********************************!*\
+  !*** ./helpers/randerContent.js ***!
+  \**********************************/
+
+/*!***********************************!*\
+  !*** ./helpers/displayElement.js ***!
+  \***********************************/
+
+/*!***********************************!*\
+  !*** ./helpers/getHtmlElement.js ***!
+  \***********************************/
+
+/*!************************************!*\
+  !*** ./helpers/test/question36.js ***!
+  \************************************/
+
+/*!*************************************!*\
+  !*** ./helpers/questionFromText.js ***!
+  \*************************************/
+
+/*!*****************************************!*\
+  !*** ./helpers/hooks/getNodeElement.js ***!
+  \*****************************************/
+
+/*!************************************************************!*\
+  !*** ./helpers/hooks/listeners/attachListenerOnElement.js ***!
+  \************************************************************/
