@@ -1,5 +1,6 @@
 const path = require("path")
 const HtmlWebpackPlugin = require("html-webpack-plugin")
+const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 
 const mode = process.env.NODE_ENV || "development";
 console.log(mode)
@@ -11,25 +12,44 @@ module.exports = {
     mode,
     target,
     devtool,
-    
+
     entry: "./main.js",
     output: {
-        filename: "main.js",
-        path: path.join(__dirname, "dist", "static", "js"),
-        clean: true
+        filename: "static/js/main.js",
+        path: path.join(__dirname, "dist"),
+        clean: true,
+        assetModuleFilename: "static/image/[name][ext]"
     },
-    plugins:[new HtmlWebpackPlugin(
-        {template: path.resolve(__dirname, "index.html")},
-        
-    )
+    plugins: [
+        new HtmlWebpackPlugin({
+            template: path.resolve(__dirname, "index.html")
+        }),
+        new MiniCssExtractPlugin({
+            filename: "static/css/[name].[contenthash].css"
+        })
     ],
-    module:{
-        rules:[
+
+    module: {
+        rules: [
+            
             {
-                test:/\.html$/i,
-                loader:"html-loader"
-            }
-        ]
+                test: /\.html$/i,
+                loader: "html-loader"
+            },
+            {
+                test: /\.(c|sa|sc)ss$/i,
+                use: [
+                    devMode ? "style-loader" : MiniCssExtractPlugin.loader,
+                    "css-loader"]
+            },
+            {
+                test: /\.(png|svg|jpg|jpeg|gif)$/i,
+                type: 'asset/resource',
+            },
+            
+
+        ],
+
     }
-    
+
 }

@@ -1,4 +1,9 @@
 import "./index.html"
+import "./static/css/animate.css"
+import "./static/css/main.css"
+import "./static/css/style.css"
+import "./static/js/script.js"
+
 import { btnTextQuestion1, btnTextQuestion2, userAnswers } from "./helpers/mainData";
 import { hideAll } from "./helpers/displayElement";
 import { title } from "./helpers/mainData";
