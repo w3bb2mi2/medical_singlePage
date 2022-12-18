@@ -22,3 +22,9 @@ export const btnTextQuestion1 = ["btnInputTextQuestion1_1", "btnInputTextQuestio
 export const btnTextQuestion2 = [
     "btnInputTextQuestion1_2", "btnInputTextQuestion2_2", "btnInputTextQuestion4_2", "btnInputTextQuestion5_2", "btnInputTextQuestion6_2", "btnInputTextQuestion7_2", "btnInputTextQuestion8_2", "btnInputTextQuestion9_2", "btnInputTextQuestion10_2", "btnInputTextQuestion11_2", "btnInputTextQuestion12_2"
 ]
+
+export const searchigData = {
+    originalNode: [],
+    arrayId: []
+
+}
