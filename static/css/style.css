@@ -311,3 +311,6 @@ ul{
 .mainImg{
     display: block;
 }
+.col-8{
+    overflow: hidden;
+}
