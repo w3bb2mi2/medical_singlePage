@@ -922,32 +922,6 @@ function countElemsFinded() {
 
 /***/ }),
 
-/***/ "./helpers/search/getOriginalNode.js":
-/*!*******************************************!*\
-  !*** ./helpers/search/getOriginalNode.js ***!
-  \*******************************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "getOriginlNodes": () => (/* binding */ getOriginlNodes)
-/* harmony export */ });
-/* harmony import */ var _hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../hooks/getNodeElement */ "./helpers/hooks/getNodeElement.js");
-/* harmony import */ var _mainData__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../mainData */ "./helpers/mainData.js");
-
-
-function getOriginlNodes() {
-    (0,_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_0__.getById)("divForRef").remove()
-    ;(0,_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_0__.getById)("blockInputSearch").insertAdjacentHTML("afterbegin", `<div id="divForRef" class="hide"></div>`)
-    if (_mainData__WEBPACK_IMPORTED_MODULE_1__.searchigData.originalNode.length == 0) return
-    _mainData__WEBPACK_IMPORTED_MODULE_1__.searchigData.originalNode?.originalNode.forEach(el => {
-        el.innerHTML = el.textContent
-    })
-}
-
-/***/ }),
-
 /***/ "./helpers/search/resetSearch.js":
 /*!***************************************!*\
   !*** ./helpers/search/resetSearch.js ***!
@@ -964,6 +938,7 @@ function resetSearch(){
     let array = document.querySelectorAll(".markedSpan")
     array.forEach(el=>{
         console.log(el.parentElement.textContent)
+        el.parentElement.innerHTML = el.parentElement.textContent
     })
 }
 
@@ -981,12 +956,10 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   "finder": () => (/* binding */ finder)
 /* harmony export */ });
 /* harmony import */ var _displayElement__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../displayElement */ "./helpers/displayElement.js");
-/* harmony import */ var _getOriginalNode__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./getOriginalNode */ "./helpers/search/getOriginalNode.js");
-/* harmony import */ var _mainData__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../mainData */ "./helpers/mainData.js");
-/* harmony import */ var _hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../hooks/getNodeElement */ "./helpers/hooks/getNodeElement.js");
-/* harmony import */ var _countElementFinder__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./countElementFinder */ "./helpers/search/countElementFinder.js");
-/* harmony import */ var _resetSearch__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./resetSearch */ "./helpers/search/resetSearch.js");
-
+/* harmony import */ var _mainData__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../mainData */ "./helpers/mainData.js");
+/* harmony import */ var _hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../hooks/getNodeElement */ "./helpers/hooks/getNodeElement.js");
+/* harmony import */ var _countElementFinder__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./countElementFinder */ "./helpers/search/countElementFinder.js");
+/* harmony import */ var _resetSearch__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./resetSearch */ "./helpers/search/resetSearch.js");
 
 
 
@@ -994,107 +967,42 @@ __webpack_require__.r(__webpack_exports__);
 
 
 function finder() {
-    _mainData__WEBPACK_IMPORTED_MODULE_2__.searchigData.arrayId = []
+    _mainData__WEBPACK_IMPORTED_MODULE_1__.searchigData.arrayId = []
     ;(0,_displayElement__WEBPACK_IMPORTED_MODULE_0__.hideAll)()
     ;(0,_displayElement__WEBPACK_IMPORTED_MODULE_0__.showAllArticle)()
-    // getOriginlNodes() //удалили все спаны на странице
-    ;(0,_resetSearch__WEBPACK_IMPORTED_MODULE_5__.resetSearch)()
+    ;(0,_resetSearch__WEBPACK_IMPORTED_MODULE_4__.resetSearch)()
 
-    ;(0,_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_3__.getById)("test12122022").classList.remove("hide")
+    ;(0,_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_2__.getById)("test12122022").classList.remove("hide")
+    ;(0,_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_2__.getById)("divForRef").innerHTML = ""
 
-
-    let str = (0,_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_3__.getById)("inputSearch").value
+    let str = (0,_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_2__.getById)("inputSearch").value
 
     if(str.length<3)return
-    
-    // let regex = `/${str}/`
-    let regex = new RegExp(str,"gi","g");
-    console.log(regex)
+    let regex = new RegExp(str,"gi");
     const len = str.length
-    const textP = (0,_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_3__.getById)("test12122022").querySelectorAll('p')
-    const textH6 = (0,_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_3__.getById)("test12122022").querySelectorAll('h6')
-    const textLI = (0,_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_3__.getById)("test12122022").querySelectorAll('li')
+    const textP = (0,_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_2__.getById)("test12122022").querySelectorAll('p')
+    const textH6 = (0,_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_2__.getById)("test12122022").querySelectorAll('h6')
+    const textLI = (0,_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_2__.getById)("test12122022").querySelectorAll('li')
     const allHtmlElems = [...textP, ...textH6, ...textLI];
-    // allHtmlElems.concat(textP).concat(textH6).concat(textLI)
-    console.log(allHtmlElems)
-    
     for (let i = 0; i < allHtmlElems.length; i++) {
         if (allHtmlElems[i].innerHTML.match(eval(regex))) {
-            const arrEquels = allHtmlElems[i].innerHTML.match(eval(regex))
+            const arrEquels = allHtmlElems[i].innerText.match(eval(regex))
+            console.log(arrEquels)
             for(let j = 0; j<arrEquels.length; j++){
                 allHtmlElems[i].innerHTML=allHtmlElems[i].innerText.replace(arrEquels[j], `<span class="bg-lightRed markedSpan" id="ancor_${i}">${arrEquels[j]}</span>`)
             }
-          
-            let ref = `
-            <a href="#ancor_${i}" id="ancorRef${i}" class='ancorA'>ссылка${i}</a>
-            `
-            ;(0,_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_3__.getById)("divForRef").insertAdjacentHTML("beforeend", ref)
-            _mainData__WEBPACK_IMPORTED_MODULE_2__.searchigData.arrayId.push(`ancorRef${i}`)
-            console.log(_mainData__WEBPACK_IMPORTED_MODULE_2__.searchigData.originalNode)
-            // const start = allHtmlElems[i].innerText.match(eval(regex))
-            // console.log("allHtmlElems[i].innerText.match(eval(regex)", start)
-
-            
-            // console.log("allHtmlElems[i].innerText.slice(start, len)", allHtmlElems[i].innerText.slice(start, len))
-            // console.log("allHtmlElems[i]",allHtmlElems[i])
-            // allHtmlElems[i].innerHTML = allHtmlElems[i].innerHTML.replace(regex, )
-
-            
-            // let incl = textP[i].innerText.toLowerCase().indexOf(str.toLowerCase())
-
-            // searchigData.originalNode.push(textP[i])
-            // console.log(searchigData.originalNode)
-           
-            // let p = textP[i].innerText.replace(textP[i].innerText.slice(incl, incl + str.length), `<span class="bg-lightRed markedSpan" id="ancor_P${i}">${textP[i].innerText.slice(incl, incl + str.length)}</span>`)
-
-            // textP[i].innerHTML = p
-            // let ref = `
-            // <a href="#ancor_P${i}" id="ancorRef${i}" class='ancorA'>ссылка${i}</a>
-            // `
-            // getById("divForRef").insertAdjacentHTML("beforeend", ref)
-            // searchigData.arrayId.push(`ancorRef${i}`)
+            let ref = `<a href="#ancor_${i}" id="ancorRef${i}" class='ancorA'>ссылка${i}</a>`
+            ;(0,_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_2__.getById)("divForRef").insertAdjacentHTML("beforeend", ref)
+            _mainData__WEBPACK_IMPORTED_MODULE_1__.searchigData.arrayId.push(`ancorRef${i}`)
         }
     }
 
-    // for (let i = 0; i < textH6.length; i++) {
-    //     if (textH6[i].innerText.toLowerCase().includes(str.toLowerCase())) {
-    //         let incl = textH6[i].innerText.toLowerCase().indexOf(str.toLowerCase())
-    //         searchigData.originalNode.push(textH6[i])
-            
-    //         console.log(searchigData.originalNode)
-    //         let p = textH6[i].innerText.replace(textH6[i].innerText.slice(incl, incl + str.length), `<span class="bg-lightRed markedSpan" id="ancor_H6${i}">${textH6[i].innerText.slice(incl, incl + str.length)}</span>`)
-    //         textH6[i].innerHTML = p
-    //         let ref = `
-    //         <a href="#ancor_H6${i}" id="ancorRef${i}" class='ancorA'>ссылка${i}</a>
-    //         `
-    //         getById("divForRef").insertAdjacentHTML("beforeend", ref)
-    //         searchigData.arrayId.push(`ancorRef${i}`)
-
-
-    //     }
-    //     for (let i = 0; i < textLI.length; i++) {
-    //         if (textLI[i].innerText.toLowerCase().includes(str.toLowerCase())) {
-    //             let incl = textLI[i].innerText.toLowerCase().indexOf(str.toLowerCase())
-                
-    //             searchigData.originalNode.push(textLI[i])
-    //             console.log(searchigData.originalNode)
-    //             let p = textLI[i].innerText.replace(textLI[i].innerText.slice(incl, incl + str.length), `<span class="bg-lightRed markedSpan" id="ancor_Li${i}">${textLI[i].innerText.slice(incl, incl + str.length)}</span>`)
-    //             textLI[i].innerHTML = p
-    //             let ref = `
-    //             <a href="#ancor_Li${i}" id="ancorRef${i}" class='ancorA'>ссылка${i}</a>
-    //             `
-    //             getById("divForRef").insertAdjacentHTML("beforeend", ref)
-    //             searchigData.arrayId.push(`ancorRef${i}`)
+    (0,_countElementFinder__WEBPACK_IMPORTED_MODULE_3__.countElemsFinded)()
     
-    
-    //         }}
-    // }
-    (0,_countElementFinder__WEBPACK_IMPORTED_MODULE_4__.countElemsFinded)()
-    
-    ;(0,_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_3__.getById)(_mainData__WEBPACK_IMPORTED_MODULE_2__.searchigData.arrayId[0])?.classList.add("activeRef")
+    ;(0,_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_2__.getById)(_mainData__WEBPACK_IMPORTED_MODULE_1__.searchigData.arrayId[0])?.classList.add("activeRef")
 
     setTimeout(() => {
-        ;(0,_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_3__.getById)(_mainData__WEBPACK_IMPORTED_MODULE_2__.searchigData.arrayId[0]).click()
+        ;(0,_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_2__.getById)(_mainData__WEBPACK_IMPORTED_MODULE_1__.searchigData.arrayId[0]).click()
     }, 0);
 }
 
