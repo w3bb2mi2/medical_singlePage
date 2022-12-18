@@ -26,7 +26,8 @@ btnTextQuestion1.forEach(el=>attachListenersOnElement(el, checkAnswer1))
 btnTextQuestion2.forEach(el=>attachListenersOnElement(el, checkAnswer2))
 attachListenersOnElement("btnAnswerQuestion36", getResQuest36)
 attachListenersOnElement("btnNextPage", next)
-getById("findAncor").addEventListener("click", finder)
+attachListenersOnElement("findAncor", finder)
+
 
 function next() {
     let activeElement = document.querySelector(".active-item")
@@ -216,23 +217,10 @@ document.querySelectorAll(".btnAnswer:not(#btnAnswerQuestion36):not(.btnInputTex
 
 
 
-
-let arrAncor = []
-
- 
-
-let originalNode = [];
-let arrID;
-
-
 //вперед назад по найденным элементам+их колличество
 
 
-function countElemsFinded() {
-    let count = document.querySelectorAll(".ancorA").length
 
-    getById("countRes").textContent = count;
-}
 
  getById("countResForvard").addEventListener("click", nextClickFind)
 

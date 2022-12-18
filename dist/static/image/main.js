@@ -964,7 +964,6 @@ function resetSearch(){
     let array = document.querySelectorAll(".markedSpan")
     array.forEach(el=>{
         console.log(el.parentElement.textContent)
-        el.parentElement.innerHTML = el.parentElement.textContent
     })
 }
 
@@ -1031,7 +1030,7 @@ function finder() {
             `
             ;(0,_hooks_getNodeElement__WEBPACK_IMPORTED_MODULE_3__.getById)("divForRef").insertAdjacentHTML("beforeend", ref)
             _mainData__WEBPACK_IMPORTED_MODULE_2__.searchigData.arrayId.push(`ancorRef${i}`)
-            console.log(_mainData__WEBPACK_IMPORTED_MODULE_2__.searchigData.arrayId)
+            console.log(_mainData__WEBPACK_IMPORTED_MODULE_2__.searchigData.originalNode)
             // const start = allHtmlElems[i].innerText.match(eval(regex))
             // console.log("allHtmlElems[i].innerText.match(eval(regex)", start)
 
