@@ -3,23 +3,23 @@ import "./style/normolize.css"
 import "./static/css/main.css"
 import "./static/css/style.css"
 import "./static/css/animate.css"
+import "./style/_style.scss"
 import "./static/js/script.js"
 
 
 import { btnTextQuestion1, btnTextQuestion2, userAnswers } from "./helpers/mainData";
-
 import { title } from "./helpers/mainData";
 import { mainImg } from "./helpers/mainData";
 import { randerContent } from "./helpers/randerContent";
-import { show, showResults } from "./helpers/displayElement";
-import { showAllArticle } from "./helpers/displayElement";
 import { showInputFinder } from "./helpers/displayElement";
 import { checkAnswer1, checkAnswer2 } from "./helpers/questionFromText";
 import { attachListenersOnElement } from "./helpers/hooks/listeners/attachListenerOnElement";
-import { arrMenuItems, arrArticleItems, itemsPaginate } from "./helpers/mainData";
+import { arrMenuItems, itemsPaginate } from "./helpers/mainData";
 import { getById } from "./helpers/hooks/getNodeElement";
 import { getResQuest36 } from "./helpers/test/question36";
 import { finder } from "./helpers/search/search"
+import { next } from "./helpers/navigationOnArticle/next"
+import { previous } from "./helpers/navigationOnArticle/prev"
 
 
 arrMenuItems.forEach(el=>attachListenersOnElement(el, randerContent))
@@ -29,40 +29,11 @@ btnTextQuestion2.forEach(el=>attachListenersOnElement(el, checkAnswer2))
 attachListenersOnElement("btnAnswerQuestion36", getResQuest36)
 attachListenersOnElement("btnNextPage", next)
 attachListenersOnElement("findAncor", finder)
+attachListenersOnElement("inputSearch", showInputFinder)
+attachListenersOnElement("TESTOVYE_ZADANIYA", showTests)
+attachListenersOnElement("countResForvard", nextClickFind)
+attachListenersOnElement("btnPriviousPage", previous)
 
-
-function next() {
-    let activeElement = document.querySelector(".active-item")
-
-    if (activeElement.id == "id_12") {
-        this.classList.add("hide")
-    }
-    activeElement?.classList?.remove("active-item")
-    let nextElement = activeElement?.nextElementSibling
-    nextElement?.classList.add("active-item")
-    nextElement?.click()
-    
-}
-
- getById("btnPriviousPage").addEventListener('click', previous)
-
-
-function previous() {
-    let activeElement = document.querySelector(".active-item")
-
-    activeElement?.classList?.remove("active-item")
-    let prevElement = activeElement?.previousElementSibling
-    prevElement?.classList.add("active-item")
-    prevElement?.click()
-}
-
-
-function hideMainImg(){
-    getById("divImageMain").classList.add("animate__bounceOutRight")
-}
-
-
- getById("TESTOVYE_ZADANIYA").addEventListener("click", showTests)
 
 function showTests() {
     mainImg.classList.add("hide")
@@ -94,7 +65,7 @@ document.querySelectorAll(".btnLast").forEach(btn => {
     })
 })
 
- getById("finish_test").addEventListener("click", function () {
+getById("finish_test").addEventListener("click", function () {
     this.parentElement.parentElement.parentElement.classList.add("hide")
     this.parentElement.parentElement.parentElement.nextElementSibling.classList.remove("hide")
     timeFinishTesting = new Date();
@@ -139,9 +110,6 @@ document.querySelector(".question-36").querySelectorAll(".question-36-item").for
 
     })
 })
-
-
-
 
 
 let timeStartTesting;
@@ -219,14 +187,9 @@ document.querySelectorAll(".btnAnswer:not(#btnAnswerQuestion36):not(.btnInputTex
 
 
 
-//вперед назад по найденным элементам+их колличество
 
 
 
-
- getById("countResForvard").addEventListener("click", nextClickFind)
-
-let idCount = 0
 function nextClickFind() {
     let currentEl = document.querySelector(".activeRef")
     let nextEl = currentEl?.nextElementSibling
@@ -264,15 +227,7 @@ function deleteAncorTegs() {
 
 
 
- getById("inputSearch").addEventListener("click", showInputFinder)
+ 
 
 
-
-
-
-
-
-function FindOnPage(inputId) {//ищет текст на странице, в параметр передается ID поля для ввода
-
-}
 

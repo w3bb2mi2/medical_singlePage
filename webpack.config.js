@@ -29,22 +29,36 @@ module.exports = {
 
     module: {
         rules: [
-            
             {
-                test: /\.html$/i,
-                loader: "html-loader"
+                test: /\.js$/,
+                loader: "babel-loader",
+                exclude: "/node_modules/"
             },
+
+
             {
                 test: /\.(c|sa|sc)ss$/i,
                 use: [
                     devMode ? "style-loader" : MiniCssExtractPlugin.loader,
-                    "css-loader"]
+                    "css-loader",
+                    {
+                        loader: "postcss-loader",
+                        options: { sourceMap: true }
+                    },
+                    {
+                        loader:"sass-loader"
+                    }
+                ]
             },
             {
                 test: /\.(png|svg|jpg|jpeg|gif)$/i,
                 type: 'asset/resource',
             },
-            
+            {
+                test: /\.html$/i,
+                loader: "html-loader"
+            },
+
 
         ],
 

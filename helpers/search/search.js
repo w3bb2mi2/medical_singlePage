@@ -17,15 +17,13 @@ export function finder() {
 
     if(str.length<3)return
     let regex = new RegExp(str,"gi");
-    const len = str.length
     const textP = getById("test12122022").querySelectorAll('p')
     const textH6 = getById("test12122022").querySelectorAll('h6')
     const textLI = getById("test12122022").querySelectorAll('li')
     const allHtmlElems = [...textP, ...textH6, ...textLI];
     for (let i = 0; i < allHtmlElems.length; i++) {
         if (allHtmlElems[i].innerHTML.match(eval(regex))) {
-            const arrEquels = allHtmlElems[i].innerText.match(eval(regex))
-            console.log(arrEquels)
+            let arrEquels = allHtmlElems[i].innerText.match(eval(regex));
             for(let j = 0; j<arrEquels.length; j++){
                 allHtmlElems[i].innerHTML=allHtmlElems[i].innerText.replaceAll(arrEquels[j], `<span class="bg-lightRed markedSpan" id="ancor_${i}">${arrEquels[j]}</span>`)
             }
