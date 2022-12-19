@@ -80,6 +80,7 @@ img {
     display: block;
     max-width: inherit;
     width: -webkit-fill-available;
+    width: -moz-available;
 }
 
 .hide {
@@ -311,6 +312,6 @@ ul{
 .mainImg{
     display: block;
 }
-.col-8{
+/* .col-8{
     overflow: hidden;
-}
+} */

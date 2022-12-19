@@ -1,11 +1,13 @@
 import "./index.html"
+import "./style/normolize.css"
 import "./static/css/main.css"
 import "./static/css/style.css"
 import "./static/css/animate.css"
 import "./static/js/script.js"
 
+
 import { btnTextQuestion1, btnTextQuestion2, userAnswers } from "./helpers/mainData";
-import { hideAll } from "./helpers/displayElement";
+
 import { title } from "./helpers/mainData";
 import { mainImg } from "./helpers/mainData";
 import { randerContent } from "./helpers/randerContent";
