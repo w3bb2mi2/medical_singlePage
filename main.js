@@ -20,6 +20,7 @@ import { getResQuest36 } from "./helpers/test/question36";
 import { finder } from "./helpers/search/search"
 import { next } from "./helpers/navigationOnArticle/next"
 import { previous } from "./helpers/navigationOnArticle/prev"
+import { showResults } from "./helpers/test/showResults"
 
 
 arrMenuItems.forEach(el=>attachListenersOnElement(el, randerContent))

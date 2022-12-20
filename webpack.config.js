@@ -30,13 +30,6 @@ module.exports = {
     module: {
         rules: [
             {
-                test: /\.js$/,
-                loader: "babel-loader",
-                exclude: "/node_modules/"
-            },
-
-
-            {
                 test: /\.(c|sa|sc)ss$/i,
                 use: [
                     devMode ? "style-loader" : MiniCssExtractPlugin.loader,
@@ -46,13 +39,18 @@ module.exports = {
                         options: { sourceMap: true }
                     },
                     {
-                        loader:"sass-loader"
+                        loader: "sass-loader"
                     }
                 ]
             },
             {
                 test: /\.(png|svg|jpg|jpeg|gif)$/i,
                 type: 'asset/resource',
+            },
+            {
+                test: /\.js$/,
+                loader: "babel-loader",
+                exclude: "/node_modules/"
             },
             {
                 test: /\.html$/i,
