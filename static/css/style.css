@@ -178,11 +178,21 @@ img {
 
 
 
-@media screen and (min-width: 500px) and (max-width: 1000px) {
-
+@media screen and (min-width: 500px) and (max-width: 1400px) {
     .align-bottom,
     .align-baseline {
         margin: 0px !important;
+    }
+    #mainContainer{
+        margin: 0 !important;
+        /* padding: 1px !important; */
+    }
+    #mainContainer_container{
+        height: 618px;
+        overflow: hidden;
+    }
+    #divImageMain>img{
+        width: 877px;
     }
 
     .align-baseline {
