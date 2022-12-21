@@ -49,4 +49,8 @@ export const timeTesting = {
 export const timeControlTesting = {
     start:[],
     finish:[]
+} 
+
+export const timeForTest = {
+    time:[]
 }

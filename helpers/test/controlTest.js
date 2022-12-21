@@ -13,14 +13,14 @@ const title = getById("articleTitle");  //заголовок
 
 export function randomQuestions() {
     timeControlTesting.start = new Date()
+    
     // getById("clock").remove()
     // getById("footer_container").insertAdjacentHTML("afterbegin", `<p id="clock"></p>`)
-    // stopClock()
     resetLastResults()                         //очистка инпутов и кнопок
     resetResultControlQuestion();
     hideAllElems()
     showSelectBlock("controlTestId")
-    timer()
+    
     controlTestQuestions.all = document.querySelectorAll(".controlQuestion")
     title.innerHTML = "Контрольное тестирование: ВОПРОС №<span id='idSpanNumberQuestion'>1</span>"
 
@@ -73,7 +73,7 @@ export function getControlTestRes() {
         show("imgControlResEr")
     }
 
-    stopClock()
+    
     try {
         getById("clock").remove()
     } catch (error) {

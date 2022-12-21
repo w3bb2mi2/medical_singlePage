@@ -1,4 +1,5 @@
 import { getById } from "../hooks/getNodeElement";
+import { timeForTest } from "../mainData";
 
 var out = getById("clock")
 var start = document.getElementById('strt');
@@ -8,6 +9,7 @@ var sec = 0;
 var min = 0;
 var hrs = 0;
 var t;
+
 
 function tick(){
     sec++;
@@ -28,8 +30,8 @@ function add() {
     timer();
 }
 export function timer() {
-    t = setTimeout(add, 1000);
+    timeForTest.time = setTimeout(add, 1000);
 }
 export function stopClock(){
-    clearTimeout(t)
+    clearTimeout(timeForTest.time)
 }
