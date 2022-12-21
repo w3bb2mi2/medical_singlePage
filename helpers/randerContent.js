@@ -19,6 +19,7 @@ export function randerContent() {
 
     show("articleTitle")
     show("divInpuHead")
+    show("arrovLinkId")
     hideInputFinder()
     document.querySelector(".active-item")?.classList.remove("active-item")
     this?.classList?.add("active-item")

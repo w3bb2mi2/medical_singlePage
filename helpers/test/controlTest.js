@@ -20,6 +20,7 @@ export function randomQuestions() {
     resetResultControlQuestion();
     hideAllElems()
     showSelectBlock("controlTestId")
+    show("articleTitle")
     
     controlTestQuestions.all = document.querySelectorAll(".controlQuestion")
     title.innerHTML = "Контрольное тестирование: ВОПРОС №<span id='idSpanNumberQuestion'>1</span>"
@@ -74,11 +75,6 @@ export function getControlTestRes() {
     }
 
     
-    try {
-        getById("clock").remove()
-    } catch (error) {
-
-    }
     timeControlTesting.finish = new Date();
 
     const time = Math.round((timeControlTesting.finish - timeControlTesting.start) / 1000 / 60)

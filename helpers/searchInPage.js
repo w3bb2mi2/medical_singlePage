@@ -1,12 +1,13 @@
 import { arrID } from "../static/js/function"
 import { hideAllElems } from "./display/hideAllElem"
+import { show } from "./displayElement"
 
 function finder() {
     arrID = []
     hideAllElems()
     showAllArticle()
     getOriginlNodes()
-
+    show("arrovLinkId")
     document.getElementById("test12122022").classList.remove("hide")
 
 

@@ -11,5 +11,6 @@ export function showTests() {
     hideAllElems()
     show("outTestblock")
     show("block_result")  
+    show("articleTitle")  
 
 }

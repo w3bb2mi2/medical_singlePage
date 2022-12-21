@@ -4,13 +4,15 @@ import { getById } from "../hooks/getNodeElement"
 import { countElemsFinded } from "./countElementFinder"
 import { resetSearch } from "./resetSearch"
 import { hideAllElems } from "../display/hideAllElem"
+import { show } from "../display/showSingle"
 
 export function finder() {
     searchigData.arrayId = []
     hideAllElems()
     showAllArticle()
     resetSearch()
-
+    show("arrovLinkId")
+    show("divInpuHead") 
     getById("test12122022").classList.remove("hide")
     getById("divForRef").innerHTML = ""
 

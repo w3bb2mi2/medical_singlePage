@@ -12,5 +12,6 @@ export function hideAllElems() {
     hide("controlTestId") 
     hide("resControlPage") 
     hide("divInpuHead") 
+    hide("arrovLinkId") 
     
 }
