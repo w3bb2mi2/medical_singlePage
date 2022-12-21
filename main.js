@@ -21,6 +21,7 @@ import { finder } from "./helpers/search/search"
 import { next } from "./helpers/navigationOnArticle/next"
 import { previous } from "./helpers/navigationOnArticle/prev"
 import { showResults } from "./helpers/test/showResults"
+import {randomQuestions} from "./helpers/test/controlTest"
 
 
 arrMenuItems.forEach(el=>attachListenersOnElement(el, randerContent))
@@ -34,6 +35,7 @@ attachListenersOnElement("inputSearch", showInputFinder)
 attachListenersOnElement("TESTOVYE_ZADANIYA", showTests)
 attachListenersOnElement("countResForvard", nextClickFind)
 attachListenersOnElement("btnPriviousPage", previous)
+attachListenersOnElement("controlTest", randomQuestions)
 
 
 function showTests() {

@@ -1,12 +1,14 @@
+import { getById } from "../hooks/getNodeElement"
 import {  userAnswers } from "../mainData"
 
 export function showResults() {
-    document.getElementById("showResTrue").textContent = userAnswers.right
-    document.getElementById("finalList_right").textContent = userAnswers.right
+    getById("showResTrue").textContent = userAnswers.right
+    getById("finalList_right").textContent = userAnswers.right
 
-    document.getElementById("showResFalse").textContent = userAnswers.wrong
-    document.getElementById("finalList_wrong").textContent =  userAnswers.wrong
+    getById("showResFalse").textContent = userAnswers.wrong
+    getById("finalList_wrong").textContent =  userAnswers.wrong
 
-    document.getElementById("showResNoAnswer").textContent = userAnswers.without
-    document.getElementById("finalList_noAnswer").textContent = userAnswers.without
+    getById("showResNoAnswer").textContent = userAnswers.without
+    getById("finalList_noAnswer").textContent = userAnswers.without
+    
 }
