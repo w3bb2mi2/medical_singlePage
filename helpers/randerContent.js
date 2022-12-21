@@ -1,4 +1,5 @@
-import { deleteActiveItem, hideInputFinder, show } from "./displayElement"
+import { deleteActiveItem, hide, hideInputFinder, show } from "./displayElement"
+import { getById } from "./hooks/getNodeElement"
 import { mainImg, title } from "./mainData"
 
 export function randerContent() {
@@ -13,7 +14,12 @@ export function randerContent() {
     document.getElementById("outTestblock").classList.add("hide")
     document.getElementById("footerBtn").classList.remove("hide")
 
+    getById("clock").remove()
+    hide("resControlPage") 
+    hide("controlTestId") 
+
     show("articleTitle")
+    show("divInpuHead")
     hideInputFinder()
     document.querySelector(".active-item")?.classList.remove("active-item")
     this?.classList?.add("active-item")

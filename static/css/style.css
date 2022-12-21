@@ -18,7 +18,7 @@
 }
 .my-container .list-group-item:hover{
     z-index: 2;
-    transition: all 0.7s;
+    transition: scale 0.3s;
     scale: 1.1;
 }
 .list-group {
@@ -312,6 +312,15 @@ ul{
 .mainImg{
     display: block;
 }
-/* .col-8{
-    overflow: hidden;
-} */
+.text{
+    text-indent: 2rem;
+    text-align: justify;
+    margin-bottom: 5px;
+}
+
+#clock{
+    margin-top: 5px;
+    margin-left: 5rem;
+    font-size: 23px;
+    font-weight: 500;
+}

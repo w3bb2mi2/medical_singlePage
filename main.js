@@ -20,12 +20,15 @@ import { finder } from "./helpers/search/search"
 import { next } from "./helpers/navigationOnArticle/next"
 import { previous } from "./helpers/navigationOnArticle/prev"
 import { showResults } from "./helpers/test/showResults"
-import {randomQuestions} from "./helpers/test/controlTest"
+import {nextControlTestQuestion, randomQuestions} from "./helpers/test/controlTest"
 
 import { showTests } from "./helpers/test/showTests"
 import { resetResultControlQuestion } from "./helpers/test/resetResultControlQuestion"
+import { mainLogic } from "./helpers/test/mainLogic"
 
-
+import { selectorAll } from "./helpers/hooks/querySelectorAll"
+import { getResQuest36control } from "./helpers/test/controlQuestion36"
+import { selectAns } from "./helpers/selectAns"
 arrMenuItems.forEach(el=>attachListenersOnElement(el, randerContent))
 itemsPaginate.forEach((el, index)=>attachListenersOnElement(el, ()=>getById(`id_${index+3}`).click()))
 btnTextQuestion1.forEach(el=>attachListenersOnElement(el, checkAnswer1))
@@ -38,8 +41,13 @@ attachListenersOnElement("TESTOVYE_ZADANIYA", showTests)
 attachListenersOnElement("countResForvard", nextClickFind)
 attachListenersOnElement("btnPriviousPage", previous)
 attachListenersOnElement("controlTest", randomQuestions)
+attachListenersOnElement("controlQuestion36", getResQuest36control)
 
 
+selectAns()
+
+mainLogic();
+selectorAll(".btnAnswerControl").forEach(el=>el.addEventListener("click", nextControlTestQuestion))
 
 
 document.querySelectorAll(".btnNext:not(#finish_test)").forEach(btn => {
@@ -68,28 +76,28 @@ getById("finish_test").addEventListener("click", function () {
 
 
 
-document.querySelectorAll(".answer").forEach(el => {
-    el.addEventListener("click", function (e) {
-        let input = e.currentTarget.querySelector("input")
+// document.querySelectorAll(".answer").forEach(el => {
+//     el.addEventListener("click", function (e) {
+//         let input = e.currentTarget.querySelector("input")
 
 
-        if (input?.type == "radio") {
-            input.closest("ul").querySelectorAll("input").forEach(el => {
-                el.checked = false
-            })
-            input.checked = false
-            el.querySelectorAll("input").forEach(input => {
-                input.disabled = true;
-            })
-            e.target.parentElement.querySelector("input").checked = true
-            e.target.parentElement.querySelector("input").disabled = false
-        }
-        if (input?.type == "checkbox") {
+//         if (input?.type == "radio") {
+//             input.closest("ul").querySelectorAll("input").forEach(el => {
+//                 el.checked = false
+//             })
+//             input.checked = false
+//             el.querySelectorAll("input").forEach(input => {
+//                 input.disabled = true;
+//             })
+//             e.target.parentElement.querySelector("input").checked = true
+//             e.target.parentElement.querySelector("input").disabled = false
+//         }
+//         if (input?.type == "checkbox") {
             
-        }
-    })
+//         }
+//     })
 
-})
+// })
 
 
 document.querySelector(".question-36").querySelectorAll(".question-36-item").forEach(el => {
@@ -103,92 +111,16 @@ document.querySelector(".question-36").querySelectorAll(".question-36-item").for
     })
 })
 
+document.querySelector(".controlQuestion-36").querySelectorAll(".controlQuestion-36-item").forEach(el => {
+    el.addEventListener("click", function (e) {
+        let text = this.innerText
+        let menu = this.closest("ul")
+        menu.classList.remove("show")
+        const btn = menu.previousElementSibling
+        btn.innerText = text
 
-
-document.querySelectorAll(".btnAnswer:not(#btnAnswerQuestion36):not(.btnInputTextQuestion)").forEach(btn => {
-    btn.addEventListener("click", function (e) {        
-        let allinputs = this.closest(".question ")?.querySelectorAll("input")
-        let allQuestions = 0;   //всего вопросов
-        let raghtAnswerInQuestion = 0;
-        let isAnswer = 0;       //отвечено
-        let isRight = 0;        //отвечено правильно
-        let isWrong = 0;        //отвечено правильно
-        let radioInp = false;
-        for (let i = 0; i < allinputs.length; i++) {
-            if (allinputs[i].type == "radio") {
-                radioInp = true;
-                if (allinputs[i].dataset.answer == "x") {
-                    if(!this.classList.contains("btnAnswerControl")){
-                        allinputs[i].parentElement.querySelector("p")?.classList?.add("right")
-                        allinputs[i].classList?.add("right")
-                    }                    
-                    if (allinputs[i].checked) {
-                        userAnswers.right++
-                        userAnswersControlTest.right++
-                        isAnswer++
-
-                    }
-                } else {
-                    if(!this.classList.contains("btnAnswerControl")){
-                        allinputs[i].parentElement.querySelector("p")?.classList?.add("error")
-                    }
-                    if (allinputs[i].checked) {
-                        isAnswer++
-                        userAnswers.wrong++
-                        userAnswersControlTest.wrong++
-
-                    }
-                }
-            } else if (allinputs[i].type == "checkbox") {
-
-                if (allinputs[i].dataset.answer) {
-                    raghtAnswerInQuestion++;
-                    if(!this.classList.contains("btnAnswerControl")){
-                        allinputs[i].parentElement.classList.add("right")
-                    }
-                    if (allinputs[i].checked) {           //привильные ответы
-                        isRight++
-                        isAnswer++
-                    } else {                                //не правильные ответы
-
-                    }
-                } else {
-                    if(!this.classList.contains("btnAnswerControl")){
-                        allinputs[i].parentElement.classList.add("error")
-                    }
-                    if (allinputs[i].checked) {
-                        isWrong++
-                        isAnswer++
-                    }
-                }
-            }
-
-
-        }
-
-
-        if (!isAnswer) {
-            userAnswers.without++
-            userAnswersControlTest.without++
-        }else
-        if (isWrong >= 1 && isAnswer!=0 || isRight != raghtAnswerInQuestion &&  isAnswer!=0) {
-            userAnswers.wrong++
-            userAnswersControlTest.wrong++
-        }
-        if (isRight == raghtAnswerInQuestion && isWrong == 0 && !radioInp) {
-            userAnswers.right++
-            userAnswersControlTest.right++
-        }
-        btn.disabled = true
-
-        btn.nextElementSibling.disabled = false
-        showResults()
-        console.log(userAnswersControlTest)
     })
-
-
 })
-
 
 
 
@@ -221,13 +153,6 @@ function previousClickFind() {
 
 }
 
-
-
-function deleteAncorTegs() {
-    document.querySelectorAll(".ancorFinded").forEach(el => {
-        console.log(el)
-    })
-}
 
 
 

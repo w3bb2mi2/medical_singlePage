@@ -46,6 +46,7 @@ export function showInputFinder() {
     show("divArrovInput");
     hide("articleTitle");
     show("findAncor")
+
 }
 
 

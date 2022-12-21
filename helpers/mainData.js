@@ -10,6 +10,13 @@ export let userAnswersControlTest = {
     without: 0
 }
 
+export let controlTestQuestions = {
+    hasToAskID:[],
+    hasToAsk:[],
+    all:[]
+
+}
+
 export const title = document.getElementById("articleTitle")
 export const mainImg = document.querySelector(".mainImg")
 export const arrMenuItems = [
@@ -35,6 +42,11 @@ export const searchigData = {
 
 }
 export const timeTesting = {
+    start:[],
+    finish:[]
+}
+
+export const timeControlTesting = {
     start:[],
     finish:[]
 }

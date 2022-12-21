@@ -10,5 +10,7 @@ export function hideAllElems() {
     hide("block_result")    //результаты теста
     hide("test12122022")   
     hide("controlTestId") 
+    hide("resControlPage") 
+    hide("divInpuHead") 
     
 }
