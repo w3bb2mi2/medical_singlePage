@@ -14,7 +14,6 @@ export function randerContent() {
     document.getElementById("outTestblock").classList.add("hide")
     document.getElementById("footerBtn").classList.remove("hide")
 
-    getById("clock").remove()
     hide("resControlPage") 
     hide("controlTestId") 
 
