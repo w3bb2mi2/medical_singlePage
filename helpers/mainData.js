@@ -4,6 +4,12 @@ export const userAnswers = {
     wrong: 0,
     without: 0
 }
+export let userAnswersControlTest = {
+    right: 0,
+    wrong: 0,
+    without: 0
+}
+
 export const title = document.getElementById("articleTitle")
 export const mainImg = document.querySelector(".mainImg")
 export const arrMenuItems = [
@@ -27,4 +33,8 @@ export const searchigData = {
     originalNode: [],
     arrayId: []
 
+}
+export const timeTesting = {
+    start:[],
+    finish:[]
 }

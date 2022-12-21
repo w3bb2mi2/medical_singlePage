@@ -1,8 +1,9 @@
 import { arrID } from "../static/js/function"
+import { hideAllElems } from "./display/hideAllElem"
 
 function finder() {
     arrID = []
-    hideAll()
+    hideAllElems()
     showAllArticle()
     getOriginlNodes()
 

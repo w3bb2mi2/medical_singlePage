@@ -24,7 +24,7 @@ export function deleteClass(id, cls) {
 
 
 export function hide(id) {
-    document.getElementById(id).classList.add("hide")
+    document.getElementById(id)?.classList.add("hide")
 }
 
 
@@ -40,15 +40,6 @@ export function showResults() {
     document.getElementById("finalList_noAnswer").textContent = userAnswers.without
 }
 
-export function hideAll() {
-    deleteActiveItem()
-    mainImg.classList.add("hide")            //Заставка
-    document.querySelector(".test_1-main")?.classList.add("hide")       //тесты
-    document.getElementById("outTestblock").classList.add("hide")
-    document.getElementById("footerBtn").classList.add("hide")
-    document.getElementById("block_result").classList.add("hide")    //результаты теста
-    document.getElementById("test12122022").classList.add("hide")    //результаты теста
-}
 
 export function showInputFinder() {
     w320("inputSearch");

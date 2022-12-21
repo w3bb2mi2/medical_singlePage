@@ -1,12 +1,13 @@
-import { hideAll, showAllArticle } from "../displayElement"
+import { showAllArticle } from "../displayElement"
 import { getOriginlNodes } from "./getOriginalNode"
 import { searchigData } from "../mainData"
 import { getById } from "../hooks/getNodeElement"
 import { countElemsFinded } from "./countElementFinder"
+import { hideAllElems } from "../display/hideAllElem"
 
 export function finder() {
     searchigData.arrayId = []
-    hideAll()
+    hideAllElems()
     showAllArticle()
     getOriginlNodes()
 
