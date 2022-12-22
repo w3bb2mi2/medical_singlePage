@@ -305,11 +305,13 @@ ul{
     margin-bottom: 5px;
 }
 
-#clock{
+#timer{
     margin-top: 5px;
     margin-left: 5rem;
     font-size: 23px;
     font-weight: 500;
+    position: absolute;
+    font-size: 15pt;
 }
 
 @media screen and (min-width: 500px) and (max-width: 1366px) {

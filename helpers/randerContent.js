@@ -1,9 +1,10 @@
 import { deleteActiveItem, hide, hideInputFinder, show } from "./displayElement"
 import { getById } from "./hooks/getNodeElement"
 import { mainImg, title } from "./mainData"
+import { stopClock } from "./time/clock"
 
 export function randerContent() {
-    
+    stopClock()
     deleteActiveItem()
     document.querySelectorAll(".headTitle").forEach(el => el.classList.add("hide"))
     mainImg.classList.add("hide")

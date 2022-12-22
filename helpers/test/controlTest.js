@@ -13,7 +13,10 @@ const title = getById("articleTitle");  //заголовок
 
 export function randomQuestions() {
     timeControlTesting.start = new Date()
-    
+    stopClock()
+    timer()
+    getById("timer").textContent = ""
+    getById("timer").classList.remove("hide")
     // getById("clock").remove()
     // getById("footer_container").insertAdjacentHTML("afterbegin", `<p id="clock"></p>`)
     resetLastResults()                         //очистка инпутов и кнопок
@@ -83,5 +86,7 @@ export function getControlTestRes() {
     getById("finalList_right_control").textContent = userAnswersControlTest.right
     getById("finalList_wrong_control").textContent = userAnswersControlTest.wrong
     getById("finalList_noAnswer_control").textContent = userAnswersControlTest.without
+
+    stopClock()
 }
 

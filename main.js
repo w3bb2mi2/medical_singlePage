@@ -7,7 +7,7 @@ import "./style/_style.scss"
 import "./static/js/script.js"
 
 
-import { btnTextQuestion1, btnTextQuestion2, timeTesting, userAnswers, userAnswersControlTest } from "./helpers/mainData";
+import { btnTextQuestion1, btnTextQuestion2, timeForTest, timeTesting, userAnswers, userAnswersControlTest } from "./helpers/mainData";
 
 import { randerContent } from "./helpers/randerContent";
 import { showInputFinder } from "./helpers/displayElement";
@@ -19,16 +19,15 @@ import { getResQuest36 } from "./helpers/test/question36";
 import { finder } from "./helpers/search/search"
 import { next } from "./helpers/navigationOnArticle/next"
 import { previous } from "./helpers/navigationOnArticle/prev"
-import { showResults } from "./helpers/test/showResults"
 import {nextControlTestQuestion, randomQuestions} from "./helpers/test/controlTest"
 
 import { showTests } from "./helpers/test/showTests"
-import { resetResultControlQuestion } from "./helpers/test/resetResultControlQuestion"
 import { mainLogic } from "./helpers/test/mainLogic"
 
 import { selectorAll } from "./helpers/hooks/querySelectorAll"
 import { getResQuest36control } from "./helpers/test/controlQuestion36"
 import { selectAns } from "./helpers/selectAns"
+import { stopClock, timer } from "./helpers/time/clock"
 arrMenuItems.forEach(el=>attachListenersOnElement(el, randerContent))
 itemsPaginate.forEach((el, index)=>attachListenersOnElement(el, ()=>getById(`id_${index+3}`).click()))
 btnTextQuestion1.forEach(el=>attachListenersOnElement(el, checkAnswer1))
@@ -45,9 +44,13 @@ attachListenersOnElement("controlQuestion36", getResQuest36control)
 
 
 selectAns()
-
 mainLogic();
 selectorAll(".btnAnswerControl").forEach(el=>el.addEventListener("click", nextControlTestQuestion))
+
+
+
+
+
 
 
 document.querySelectorAll(".btnNext:not(#finish_test)").forEach(btn => {
@@ -66,6 +69,7 @@ document.querySelectorAll(".btnLast").forEach(btn => {
 })
 
 getById("finish_test").addEventListener("click", function () {
+    stopClock()
     this.parentElement.parentElement.parentElement.classList.add("hide")
     this.parentElement.parentElement.parentElement.nextElementSibling.classList.remove("hide")
     timeTesting.finish = new Date();
@@ -74,30 +78,6 @@ getById("finish_test").addEventListener("click", function () {
     getById("finalList_time").textContent = `${roundTime} мин.`
 })
 
-
-
-// document.querySelectorAll(".answer").forEach(el => {
-//     el.addEventListener("click", function (e) {
-//         let input = e.currentTarget.querySelector("input")
-
-
-//         if (input?.type == "radio") {
-//             input.closest("ul").querySelectorAll("input").forEach(el => {
-//                 el.checked = false
-//             })
-//             input.checked = false
-//             el.querySelectorAll("input").forEach(input => {
-//                 input.disabled = true;
-//             })
-//             e.target.parentElement.querySelector("input").checked = true
-//             e.target.parentElement.querySelector("input").disabled = false
-//         }
-//         if (input?.type == "checkbox") {
-            
-//         }
-//     })
-
-// })
 
 
 document.querySelector(".question-36").querySelectorAll(".question-36-item").forEach(el => {
@@ -121,10 +101,6 @@ document.querySelector(".controlQuestion-36").querySelectorAll(".controlQuestion
 
     })
 })
-
-
-
-
 
 function nextClickFind() {
     let currentEl = document.querySelector(".activeRef")

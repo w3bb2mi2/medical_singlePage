@@ -1,7 +1,8 @@
 import { getById } from "../hooks/getNodeElement";
+import { attachListenersOnElement } from "../hooks/listeners/attachListenerOnElement";
 import { timeForTest } from "../mainData";
 
-var out = getById("clock")
+var out = getById("timer")
 var start = document.getElementById('strt');
 var stop = document.getElementById('stp');
 var reset = document.getElementById('rst');
@@ -11,7 +12,7 @@ var hrs = 0;
 var t;
 
 
-function tick(){
+function tick() {
     sec++;
     if (sec >= 60) {
         sec = 0;
@@ -24,14 +25,20 @@ function tick(){
 }
 function add() {
     tick();
-    out.textContent = (hrs > 9 ? hrs : "0" + hrs) 
-        	 + ":" + (min > 9 ? min : "0" + min)
-       		 + ":" + (sec > 9 ? sec : "0" + sec);
+    out.textContent = (hrs > 9 ? hrs : "0" + hrs)
+        + ":" + (min > 9 ? min : "0" + min)
+        + ":" + (sec > 9 ? sec : "0" + sec);
     timer();
 }
 export function timer() {
-    timeForTest.time = setTimeout(add, 1000);
+    timeForTest.time = setTimeout(add, 1000);    
 }
-export function stopClock(){
+export function stopClock() {
     clearTimeout(timeForTest.time)
+    out.classList.add("hide")
+    sec = 0;
+    min = 0;
+    hrs = 0;
 }
+
+
