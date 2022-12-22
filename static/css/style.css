@@ -178,33 +178,6 @@ img {
 
 
 
-@media screen and (min-width: 500px) and (max-width: 1400px) {
-    .align-bottom,
-    .align-baseline {
-        margin: 0px !important;
-    }
-    #mainContainer{
-        margin: 0 !important;
-        /* padding: 1px !important; */
-    }
-    #mainContainer_container{
-        height: 618px;
-        overflow: hidden;
-    }
-    #divImageMain>img{
-        width: 877px;
-    }
-
-    .align-baseline {
-        margin: 0px !important;
-    }
-
-    .container,
-    .container-md,
-    .container-sm {
-        max-width: 100%;
-    }
-}
 
 @media screen and (max-width:990px) {
     .navbar-toggler {
@@ -333,4 +306,99 @@ ul{
     margin-left: 5rem;
     font-size: 23px;
     font-weight: 500;
+}
+
+@media screen and (min-width: 500px) and (max-width: 1400px) {
+    .align-bottom,
+    .align-baseline {
+        margin: 0px !important;
+    }
+   .container .my-container-listt-group {
+        /* width: 262px; */
+        font-size: 12pt;
+        margin: 0px !important;
+        padding: 0;
+    }
+    .col-4{
+        flex: 0 0 auto;
+        width: 26%;
+    }
+    .controlQuestion>.row>p{
+        font-size: 10pt !important;
+    }
+    #mainContainer{
+        margin: 0 !important;
+        padding: 5px 0px !important;
+        
+    }
+    .container, .container-md, .container-sm{
+        max-width: fit-content;
+    }
+    #mainContainer_container{
+        max-width: 1000px;
+        flex: auto;
+        margin-right: 10px;
+    }
+    .fw_bold{
+        font-size: 9px;
+        font-weight: 600; 
+    }
+    .navbar-expand-lg{
+        padding: 0;
+    }
+    #navbarColor03{
+        height: 38px;
+    }
+    .col-8>.navbar{
+        height: 50px;
+    }
+    p{
+        font-size: 11pt !important;
+    }
+    #articleTitle{
+        font-size: 16px;
+    }
+    .footer{
+        min-height: 45px;
+    }
+    a{
+        font-size: 12pt !important;
+    }
+    #mainContainer_container{
+        height: 618px;
+        overflow: hidden;
+    }
+    #divImageMain>img{
+        width: 877px;
+    }
+
+    .align-baseline {
+        margin: 0px !important;
+    }
+
+    .container,
+    .container-md,
+    .container-sm {
+        max-width: 100%;
+    }
+}
+@media screen and (min-height: 1200px) and (min-width: 1400px) {
+    #mainContainer{
+        height: 1204px;
+    }
+    #mainContainer_container{
+        height: 1000px !important;
+        overflow: hidden;
+    }
+    #test12122022{
+
+    }
+    #outTestblock, #controlTestId{
+        padding-top: 30px;
+    }
+    .content-out{
+        max-height: -webkit-fill-available;
+        padding-bottom: 69px;
+        margin-bottom: 69px;
+    }
 }
