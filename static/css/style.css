@@ -64,13 +64,17 @@ button {
     height: fit-content;
 
 }
+#mainContainer_container{
+    height: 791px;
+    border-radius: 6px;
+}
 
 .content-out {
     /* padding-top: 1rem; */
     padding-right: 1rem;
     padding-left: 1rem;
     padding-bottom: 4rem;
-    max-height: 600px;
+    max-height: 662px;
     overflow: auto;
     scroll-behavior: smooth;
 }
@@ -233,8 +237,7 @@ div>input:disabled {
 }
 
 .mainImg{
-    height: 575px !important;
-    height: 82%;
+    height: 665px !important;
 }
 .lightOpacity{
     opacity: 5%;
@@ -308,7 +311,7 @@ ul{
     font-weight: 500;
 }
 
-@media screen and (min-width: 500px) and (max-width: 1400px) {
+@media screen and (min-width: 500px) and (max-width: 1366px) {
     .align-bottom,
     .align-baseline {
         margin: 0px !important;
@@ -338,6 +341,9 @@ ul{
         max-width: 1000px;
         flex: auto;
         margin-right: 10px;
+        min-height: 100%;
+        height: 618px;
+        overflow: hidden;
     }
     .fw_bold{
         font-size: 9px;
@@ -365,8 +371,7 @@ ul{
         font-size: 12pt !important;
     }
     #mainContainer_container{
-        height: 618px;
-        overflow: hidden;
+        
     }
     #divImageMain>img{
         width: 877px;
@@ -381,6 +386,28 @@ ul{
     .container-sm {
         max-width: 100%;
     }
+    .input_checkBox, div[data-answer]>p{
+        font-size: 12px !important;
+    }
+    .content-out{
+        max-height: 521px;
+    }
+    .col-4{
+        padding: 0
+    }
+    .my-container .list-group-item:hover{
+        z-index: 2;
+        transition: scale 0.3s;
+        scale: 1;
+    }
+    .dropdown-item{
+        font-size: 12px !important;
+    }
+    #divImageMain>img {
+        width: 982px;
+        height: 520px !important;
+    }
+    
 }
 @media screen and (min-height: 1200px) and (min-width: 1400px) {
     #mainContainer{
@@ -400,5 +427,11 @@ ul{
         max-height: -webkit-fill-available;
         padding-bottom: 69px;
         margin-bottom: 69px;
+        height: 873px;
     }
+    .mainImg{
+        height: 875px !important; 
+        width: 1012px;
+    }
+    
 }
