@@ -26,7 +26,6 @@ export function finder() {
             let incl = textP[i].innerText.toLowerCase().indexOf(str.toLowerCase())
 
             searchigData.originalNode.push(textP[i])
-            console.log(searchigData.originalNode)
            
             let p = textP[i].innerText.replace(textP[i].innerText.slice(incl, incl + str.length), `<span class="bg-lightRed markedSpan" id="ancor_P${i}">${textP[i].innerText.slice(incl, incl + str.length)}</span>`)
 
@@ -44,7 +43,7 @@ export function finder() {
             let incl = textH6[i].innerText.toLowerCase().indexOf(str.toLowerCase())
             searchigData.originalNode.push(textH6[i])
             
-            console.log(searchigData.originalNode)
+            
             let p = textH6[i].innerText.replace(textH6[i].innerText.slice(incl, incl + str.length), `<span class="bg-lightRed markedSpan" id="ancor_H6${i}">${textH6[i].innerText.slice(incl, incl + str.length)}</span>`)
             textH6[i].innerHTML = p
             let ref = `
@@ -60,7 +59,7 @@ export function finder() {
                 let incl = textLI[i].innerText.toLowerCase().indexOf(str.toLowerCase())
                 
                 searchigData.originalNode.push(textLI[i])
-                console.log(searchigData.originalNode)
+                
                 let p = textLI[i].innerText.replace(textLI[i].innerText.slice(incl, incl + str.length), `<span class="bg-lightRed markedSpan" id="ancor_Li${i}">${textLI[i].innerText.slice(incl, incl + str.length)}</span>`)
                 textLI[i].innerHTML = p
                 let ref = `

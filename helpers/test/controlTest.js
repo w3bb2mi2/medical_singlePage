@@ -52,7 +52,7 @@ export function nextControlTestQuestion() {
         show("resControlPage")
         title.innerHTML = "Тестирование завершено"
         getControlTestRes()
-        console.log("Вопросы закончились")
+        
     }
 }
 export function getControlTestRes() {

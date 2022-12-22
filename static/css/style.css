@@ -13,7 +13,7 @@
 
 .list-group-item:hover {
     background-color: var(--mainBlue);
-    
+     
    
 }
 .my-container .list-group-item:hover{
@@ -67,6 +67,7 @@ button {
 #mainContainer_container{
     height: 791px;
     border-radius: 6px;
+    overflow: hidden;
 }
 
 .content-out {
@@ -74,7 +75,7 @@ button {
     padding-right: 1rem;
     padding-left: 1rem;
     padding-bottom: 4rem;
-    max-height: 662px;
+    
     overflow: auto;
     scroll-behavior: smooth;
 }
@@ -370,9 +371,7 @@ ul{
     a{
         font-size: 12pt !important;
     }
-    #mainContainer_container{
-        
-    }
+   
     #divImageMain>img{
         width: 877px;
     }
@@ -389,7 +388,7 @@ ul{
     .input_checkBox, div[data-answer]>p{
         font-size: 12px !important;
     }
-    .content-out{
+    .content-out, #test12122022{
         max-height: 521px;
     }
     .col-4{
@@ -404,8 +403,14 @@ ul{
         font-size: 12px !important;
     }
     #divImageMain>img {
-        width: 982px;
+        width: 987px;
         height: 520px !important;
+    }
+    #imgControlResEr, #imgControlResSuc{
+        height: 152px !important;
+    }
+    .controlQuestion-36, .question-36{
+        height: 459px !important; 
     }
     
 }
@@ -417,9 +422,7 @@ ul{
         height: 1000px !important;
         overflow: hidden;
     }
-    #test12122022{
-
-    }
+   
     #outTestblock, #controlTestId{
         padding-top: 30px;
     }
@@ -434,4 +437,10 @@ ul{
         width: 1012px;
     }
     
+}
+
+@media screen and (max-width: 2000px) and (max-height: 1200px) {
+    .content-out{
+        max-height: 662px;
+    }
 }

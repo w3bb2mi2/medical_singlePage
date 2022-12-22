@@ -1448,11 +1448,6 @@ function getOriginlNodes() {
 }
 
 
-function deleteAncorTegs() {
-    document.querySelectorAll(".ancorFinded").forEach(el => {
-        console.log(el)
-    })
-}
 
 
 

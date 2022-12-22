@@ -1,6 +1,7 @@
 import { addClass } from "../changeCSSpref"
 import { showResults } from "../displayElement"
 import { getById } from "../hooks/getNodeElement"
+import { userAnswers } from "../mainData"
 
 export function getResQuest36() {
     if (getById("dropAns1").innerText == 'I СТАДИЯ ХСН') {

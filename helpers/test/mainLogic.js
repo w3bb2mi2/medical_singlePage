@@ -105,6 +105,6 @@ export const mainLogic = () =>
                 }
 
                 showResults();
-                console.log(userAnswersControlTest);
+                
             });
         });
