@@ -1,35 +1,86 @@
-function fn_get_balance_rate_and_int(p_acc varchar2, p_start_date date, p_end_date date, p_target_rate number) return res_tbl_t pipelined
-    as
-        v_res res_row_t;
-    begin
-        for i in (select * from table(fn_get_balance_and_rate(p_acc, p_start_date, p_end_date, p_target_rate)))
-        loop
-            v_res.bal_date := i.bal_date;
-            v_res.bal_amt  := i.bal_amt;
-            v_res.int_rate := i.int_rate;
-            
-            if g_acc_details.EARLY_CLOSING is not null then -- Early closing, Original_rate = Closing_rate
-                select sum(year_amt)  
-                  into v_res.int_amt
-                  from actb_int_fns_earlycl_custom
-                 where 1=1
-                   and cust_ac_no = p_acc
-                     ;
-            else
-                select sum(case when DRCR_IND = 'D' then -1 else 1 end *
-                           --case when ac_ccy = 'RUR' then lcy_amount else fcy_amount end
-                           lcy_amount -- в рублевом эквиваленте, E.Tyulyagin 29.11.2021
-                          ) 
-                  into v_res.int_amt
-                  from FCC.ACTBS_HISTORY --FCC.ACVW_ALL_AC_ENTRIES 
-                 where 1=1
-                   and RELATED_ACCOUNT = p_acc
-                   and ac_no like substr(p_acc, 1, 8) || '%'
-                   and EVENT = 'ILIQ'
-                   and VALUE_DT between p_start_date and p_end_date
-                   and NVL(IB,'N') = 'N'
-                     ;
-            end if;
-            PIPE ROW (v_res);
-        end loop;
-    end;
+
+CREATE OR REPLACE function fn_transfer_data(p_year IN NUMBER, origin_table IN VARCHAR2, destination_table IN VARCHAR2) AS
+    CREATE TABLE temp_table AS 
+            SELECT * FROM origin_table;  
+        -- добавляем новый столбец
+        ALTER TABLE temp_table
+        ADD YEAR NUMBER;
+        -- Заполняем столбец 'year' во временной таблице
+        UPDATE temp_table SET year = p_year;
+        -- Перенос данных из временной таблицы в целевую
+        INSERT INTO destination_table
+        SELECT * FROM temp_table;
+        DROP TABLE temp_table;
+        COMMIT;
+        -- DELETE FROM ACTH_INT_FNS_list_CUSTOM
+    exception
+        WHEN OTHERS THEN
+            ROLLBACK;
+            EXECUTE IMMEDIATE 'DROP TABLE temp_table';
+        RAISE;
+
+
+
+CREATE OR REPLACE procedure transfer_data(p_year IN NUMBER) AS
+begin
+    fn_transfer_data(2022, 'ACTB_INT_FNS_list_CUSTOM', 'ACTH_INT_FNS_list_CUSTOM__TEST')
+    fn_transfer_data(2022, 'ACTB_INT_FNS_RES_CUSTOM', 'ACTH_INT_FNS_RES_CUSTOM__TEST')
+
+END;
+
+-- ACTH_INT_FNS_list_CUSTOM__TEST - временная таблица для тестирования процедур
+-- ACTH_INT_FNS_RES_CUSTOM__TEST - временная таблица для тестирования процедур
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- old version
+
+CREATE OR REPLACE procedure transfer_data(p_year IN NUMBER) AS
+    -- Переменная для хранения данных
+    -- v_error_flag boolean := FALSE;
+begin
+    -- Создаем временную таблицу для хранения данных
+    CREATE TABLE temp_table AS 
+        SELECT * FROM ACTB_INT_FNS_list_CUSTOM;  
+    -- добавляем новый столбец
+    ALTER TABLE temp_table
+    ADD YEAR NUMBER;
+    -- Заполняем столбец 'year' во временной таблице
+    UPDATE temp_table SET year = p_year;
+    -- Перенос данных из временной таблицы в целевую
+    INSERT INTO ACTH_INT_FNS_list_CUSTOM__TEST
+    SELECT * FROM temp_table;
+    DROP TABLE temp_table;
+    COMMIT;
+    -- DELETE FROM ACTH_INT_FNS_list_CUSTOM
+exception
+    WHEN OTHERS THEN
+        ROLLBACK;
+        EXECUTE IMMEDIATE 'DROP TABLE temp_table';
+        RAISE;
+
+END;
+
+
+drop procedure transfer_data;
