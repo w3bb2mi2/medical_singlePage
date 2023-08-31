@@ -1,86 +1,176 @@
+pipeline {
+	agent any
 
-CREATE OR REPLACE function fn_transfer_data(p_year IN NUMBER, origin_table IN VARCHAR2, destination_table IN VARCHAR2) AS
-    CREATE TABLE temp_table AS 
-            SELECT * FROM origin_table;  
-        -- добавляем новый столбец
-        ALTER TABLE temp_table
-        ADD YEAR NUMBER;
-        -- Заполняем столбец 'year' во временной таблице
-        UPDATE temp_table SET year = p_year;
-        -- Перенос данных из временной таблицы в целевую
-        INSERT INTO destination_table
-        SELECT * FROM temp_table;
-        DROP TABLE temp_table;
-        COMMIT;
-        -- DELETE FROM ACTH_INT_FNS_list_CUSTOM
-    exception
-        WHEN OTHERS THEN
-            ROLLBACK;
-            EXECUTE IMMEDIATE 'DROP TABLE temp_table';
-        RAISE;
+	parameters {
+		stashedFile 'docfile'
+	}
 
+	options {
+		disableConcurrentBuilds()
+		timestamps()
+	}
 
+	environment {
+		FILE_NAME = "${env.RELEASE_VERSION}"
+		WORK_FOLDER = "${env.WORKSPACE}"
+	}
+	
+	stages {
+		stage('Clear workspace') {
+			steps {
+				deleteDir()
+				script {
+					def now = new Date()
+					DATETIME_STR = now.format("yyMMddHHmm", TimeZone.getTimeZone('Europe/Moscow'))
+					//DATETIME_STR = "${FILE_NAME.substring(0, 10)}"
+					echo DATETIME_STR
+					DISTR_FOLDER_NAME = "buffer/SW-FCC/SWV-FCC-${DATETIME_STR}/distr/"
+					DOC_FOLDER_NAME = "buffer/SW-FCC/SWV-FCC-${DATETIME_STR}/doc/"
+					PATCH_NAME = "PATCH_${DATETIME_STR}"
+				}
+				sh "printenv"
+				unstash 'docfile'
+				sh "mv docfile ${docfile_FILENAME}"
+			}
+		}
+		
+        stage('Get artifact') {
+			environment {
+				PATCH_NAME = "${PATCH_NAME}"
+			}
+            steps {
+                echo env.RELEASE_VERSION
 
-CREATE OR REPLACE procedure transfer_data(p_year IN NUMBER) AS
-begin
-    fn_transfer_data(2022, 'ACTB_INT_FNS_list_CUSTOM', 'ACTH_INT_FNS_list_CUSTOM__TEST')
-    fn_transfer_data(2022, 'ACTB_INT_FNS_RES_CUSTOM', 'ACTH_INT_FNS_RES_CUSTOM__TEST')
+                rtServer (
+                    id: 'Artfctry',
+                    url: 'https://artifactory.intranet/artifactory',
+                    credentialsId: 'AD Jenkins'
+                )
 
-END;
+                rtDownload (
+                    serverId: 'Artfctry',
+                    spec: '''{
+                        "files": [
+                            {
+                                "pattern": "buffer/SW-FCC/builds/${FILE_NAME}",
+                                "target": "/${PATCH_NAME}.tar.gz"
+                            }
+                        ]
+                    }''',
+                )
+				
+				sh "find -name ${PATCH_NAME}.tar.gz -print"
+		
+            }
+        }
+		
+		stage('Patch_no to DOC') {
+			environment {
+				DATETIME_STR = "${DATETIME_STR}"
+				PATCH_NAME = "${PATCH_NAME}"
+				CHECK_SUM = sh(script: "sha256sum  ${WORK_FOLDER}/SW-FCC/builds/${PATCH_NAME}.tar.gz | cut -f1 -d' '", returnStdout: true).trim()
 
--- ACTH_INT_FNS_list_CUSTOM__TEST - временная таблица для тестирования процедур
--- ACTH_INT_FNS_RES_CUSTOM__TEST - временная таблица для тестирования процедур
+			}
+			steps {
+			    echo "${CHECK_SUM}"
+				sh '''
+ZIPFILE=${docfile_FILENAME}
+BATCH_NO=${DATETIME_STR}
+rm -rf tmp    
+mkdir tmp
+unzip "$ZIPFILE" -d tmp
+cd tmp
+n=0
+for filename in *.doc; do
+	[ -e "$filename" ] || continue
+	echo "Doc file exists: $filename"
+	exit 1
+done
+for filename in *.docx; do
+	let n=$n+1
+	[ -e "$filename" ] || continue
+	echo $filename
+	echo tmp$n
+	unzip "$filename" -d tmp$n
+	sed -i "s/{{PATCHNO}}/$BATCH_NO/g" tmp$n/word/document.xml
+	sed -i "s/{{CHECKSUM}}/$CHECK_SUM/g" tmp$n/word/document.xml
+	cd tmp$n
+	zip -h
+	zip -r ../"$filename" *
+	cd ..
+	rm -rf tmp$n
+done
+zip -r ../"$ZIPFILE" *
+'''
+			}
+		}
+		
+		stage('Publish the artifact') {
+			environment {
+				PATCH_NAME = "${PATCH_NAME}"
+				DISTR_FOLDER_NAME = "${DISTR_FOLDER_NAME}"
+				DOC_FOLDER_NAME = "${DOC_FOLDER_NAME}"
+			}
+			steps {
+				echo 'Publishing the artifact'
+				
+				echo "${PATCH_NAME}"
+				echo "${DISTR_FOLDER_NAME}"
+				echo "${DOC_FOLDER_NAME}"
 
+				rtServer (
+					id: 'Artfctry',
+					url: 'https://artifactory.intranet/artifactory',
+					credentialsId: 'AD Jenkins'
+				)
+				
+				dir("${WORK_FOLDER}/SW-FCC/builds")  {
+				
+					sh "pwd"
+					sh "ls -l"
+					
+					rtUpload (
+						serverId: 'Artfctry',
+						spec: '''{
+							"files": [
+								{
+								"pattern": "${PATCH_NAME}.tar.gz",
+								"target": "${DISTR_FOLDER_NAME}",
+								"flat": "false"
+								}
+							]
+						}''',
+						module:    'SW-FCC',
+						buildName: 'SW-FCC',
+						buildNumber: "${DATETIME_STR}"
+					)
 
+				}
+				rtUpload (
+					serverId: 'Artfctry',
+					spec: '''{
+						"files": [
+							{
+							"pattern": "${docfile_FILENAME}",
+							"target": "${DOC_FOLDER_NAME}",
+							"flat": "false"
+							}
+						]
+					}''',
+					module:    'SW-FCC',
+					buildName: 'SW-FCC',
+					buildNumber: "${DATETIME_STR}"
+				)
+				
+				rtPublishBuildInfo (
+					serverId: 'Artfctry',
+					buildName: 'SW-FCC',
+					buildNumber: "${DATETIME_STR}"
+				)
 
+				echo 'Published the artifact'
+			}
+		}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
---------------------------------------------------------------------------------------------------------------------------------------------------------------------
--- old version
-
-CREATE OR REPLACE procedure transfer_data(p_year IN NUMBER) AS
-    -- Переменная для хранения данных
-    -- v_error_flag boolean := FALSE;
-begin
-    -- Создаем временную таблицу для хранения данных
-    CREATE TABLE temp_table AS 
-        SELECT * FROM ACTB_INT_FNS_list_CUSTOM;  
-    -- добавляем новый столбец
-    ALTER TABLE temp_table
-    ADD YEAR NUMBER;
-    -- Заполняем столбец 'year' во временной таблице
-    UPDATE temp_table SET year = p_year;
-    -- Перенос данных из временной таблицы в целевую
-    INSERT INTO ACTH_INT_FNS_list_CUSTOM__TEST
-    SELECT * FROM temp_table;
-    DROP TABLE temp_table;
-    COMMIT;
-    -- DELETE FROM ACTH_INT_FNS_list_CUSTOM
-exception
-    WHEN OTHERS THEN
-        ROLLBACK;
-        EXECUTE IMMEDIATE 'DROP TABLE temp_table';
-        RAISE;
-
-END;
-
-
-drop procedure transfer_data;
+	}
+}
