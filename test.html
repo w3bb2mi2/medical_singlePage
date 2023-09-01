@@ -1,176 +1,59 @@
-pipeline {
-	agent any
+prompt recompile invalids
+DECLARE
+  n        NUMBER := 0;
+  invalids NUMBER := 999;
+BEGIN
+  WHILE invalids > 0 AND n <= 3
+  LOOP
+    sys.utl_recomp.recomp_parallel(threads => 4);
+    SELECT COUNT(*)
+      INTO invalids
+      FROM all_objects
+     WHERE status <> 'VALID'
+       AND owner NOT LIKE 'MB%'
+       AND owner NOT LIKE 'BTD%'
+       AND NOT regexp_like(owner, '^ER\d*$')
+       AND NOT (owner IN ('FCCREP', 'BODEV', 'BORONLY') AND ora_database_name IN ('FCC07.IMB.RU',
+                                                                                  'FCC02.IMB.RU',
+                                                                                  'FCC03.IMB.RU',
+                                                                                  'FCC04.IMB.RU',
+                                                                                  'FCC05.IMB.RU',
+                                                                                  'FCC06.IMB.RU',
+                                                                                  'FCC08.IMB.RU',
+                                                                                  'FCC09.IMB.RU',
+                                                                                  'FCC10.IMB.RU',
+                                                                                  'FCC13.IMB.RU',
+                                                                                  'FCC20.IMB.RU',
+                                                                                  'FCC21.IMB.RU'));
+    n := n + 1;
+  END LOOP;
+END;
+/
 
-	parameters {
-		stashedFile 'docfile'
-	}
+prompt Check number of invalid objects. Is it 0 ?
+select owner, count(*) invalids from all_objects where status<>'VALID' group by owner;
 
-	options {
-		disableConcurrentBuilds()
-		timestamps()
-	}
 
-	environment {
-		FILE_NAME = "${env.RELEASE_VERSION}"
-		WORK_FOLDER = "${env.WORKSPACE}"
-	}
-	
-	stages {
-		stage('Clear workspace') {
-			steps {
-				deleteDir()
-				script {
-					def now = new Date()
-					DATETIME_STR = now.format("yyMMddHHmm", TimeZone.getTimeZone('Europe/Moscow'))
-					//DATETIME_STR = "${FILE_NAME.substring(0, 10)}"
-					echo DATETIME_STR
-					DISTR_FOLDER_NAME = "buffer/SW-FCC/SWV-FCC-${DATETIME_STR}/distr/"
-					DOC_FOLDER_NAME = "buffer/SW-FCC/SWV-FCC-${DATETIME_STR}/doc/"
-					PATCH_NAME = "PATCH_${DATETIME_STR}"
-				}
-				sh "printenv"
-				unstash 'docfile'
-				sh "mv docfile ${docfile_FILENAME}"
-			}
-		}
-		
-        stage('Get artifact') {
-			environment {
-				PATCH_NAME = "${PATCH_NAME}"
-			}
-            steps {
-                echo env.RELEASE_VERSION
+DECLARE
+  invalid_qty NUMBER;
+BEGIN
+  SELECT COUNT(*)
+    INTO invalid_qty
+    FROM all_objects
+   WHERE status <> 'VALID'
+     AND owner NOT LIKE 'MB%'
+     AND owner NOT LIKE 'BTD%'
+     AND NOT REGEXP_LIKE(owner, '^ER\d*$')
+     AND NOT (owner IN ('FCCREP', 'BODEV', 'BORONLY') AND
+          ora_database_name IN ('FCC07.IMB.RU', 'FCC02.IMB.RU', 'FCC03.IMB.RU', 'FCC04.IMB.RU', 'FCC05.IMB.RU', 'FCC06.IMB.RU', 'FCC08.IMB.RU', 'FCC09.IMB.RU', 'FCC10.IMB.RU', 'FCC13.IMB.RU', 'FCC20.IMB.RU', 'FCC21.IMB.RU'));
 
-                rtServer (
-                    id: 'Artfctry',
-                    url: 'https://artifactory.intranet/artifactory',
-                    credentialsId: 'AD Jenkins'
-                )
+  IF invalid_qty <> 0
+  THEN
+    raise_application_error(-20101, 'Invalid objects found');
+  END IF;
 
-                rtDownload (
-                    serverId: 'Artfctry',
-                    spec: '''{
-                        "files": [
-                            {
-                                "pattern": "buffer/SW-FCC/builds/${FILE_NAME}",
-                                "target": "/${PATCH_NAME}.tar.gz"
-                            }
-                        ]
-                    }''',
-                )
-				
-				sh "find -name ${PATCH_NAME}.tar.gz -print"
-		
-            }
-        }
-		
-		stage('Patch_no to DOC') {
-			environment {
-				DATETIME_STR = "${DATETIME_STR}"
-				PATCH_NAME = "${PATCH_NAME}"
-				CHECK_SUM = sh(script: "sha256sum  ${WORK_FOLDER}/SW-FCC/builds/${PATCH_NAME}.tar.gz | cut -f1 -d' '", returnStdout: true).trim()
-
-			}
-			steps {
-			    echo "${CHECK_SUM}"
-				sh '''
-ZIPFILE=${docfile_FILENAME}
-BATCH_NO=${DATETIME_STR}
-rm -rf tmp    
-mkdir tmp
-unzip "$ZIPFILE" -d tmp
-cd tmp
-n=0
-for filename in *.doc; do
-	[ -e "$filename" ] || continue
-	echo "Doc file exists: $filename"
-	exit 1
-done
-for filename in *.docx; do
-	let n=$n+1
-	[ -e "$filename" ] || continue
-	echo $filename
-	echo tmp$n
-	unzip "$filename" -d tmp$n
-	sed -i "s/{{PATCHNO}}/$BATCH_NO/g" tmp$n/word/document.xml
-	sed -i "s/{{CHECKSUM}}/$CHECK_SUM/g" tmp$n/word/document.xml
-	cd tmp$n
-	zip -h
-	zip -r ../"$filename" *
-	cd ..
-	rm -rf tmp$n
-done
-zip -r ../"$ZIPFILE" *
-'''
-			}
-		}
-		
-		stage('Publish the artifact') {
-			environment {
-				PATCH_NAME = "${PATCH_NAME}"
-				DISTR_FOLDER_NAME = "${DISTR_FOLDER_NAME}"
-				DOC_FOLDER_NAME = "${DOC_FOLDER_NAME}"
-			}
-			steps {
-				echo 'Publishing the artifact'
-				
-				echo "${PATCH_NAME}"
-				echo "${DISTR_FOLDER_NAME}"
-				echo "${DOC_FOLDER_NAME}"
-
-				rtServer (
-					id: 'Artfctry',
-					url: 'https://artifactory.intranet/artifactory',
-					credentialsId: 'AD Jenkins'
-				)
-				
-				dir("${WORK_FOLDER}/SW-FCC/builds")  {
-				
-					sh "pwd"
-					sh "ls -l"
-					
-					rtUpload (
-						serverId: 'Artfctry',
-						spec: '''{
-							"files": [
-								{
-								"pattern": "${PATCH_NAME}.tar.gz",
-								"target": "${DISTR_FOLDER_NAME}",
-								"flat": "false"
-								}
-							]
-						}''',
-						module:    'SW-FCC',
-						buildName: 'SW-FCC',
-						buildNumber: "${DATETIME_STR}"
-					)
-
-				}
-				rtUpload (
-					serverId: 'Artfctry',
-					spec: '''{
-						"files": [
-							{
-							"pattern": "${docfile_FILENAME}",
-							"target": "${DOC_FOLDER_NAME}",
-							"flat": "false"
-							}
-						]
-					}''',
-					module:    'SW-FCC',
-					buildName: 'SW-FCC',
-					buildNumber: "${DATETIME_STR}"
-				)
-				
-				rtPublishBuildInfo (
-					serverId: 'Artfctry',
-					buildName: 'SW-FCC',
-					buildNumber: "${DATETIME_STR}"
-				)
-
-				echo 'Published the artifact'
-			}
-		}
-
-	}
-}
+EXCEPTION
+  WHEN no_data_found THEN
+    NULL;
+END;
+/
