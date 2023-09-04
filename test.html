@@ -1,59 +1,70 @@
-prompt recompile invalids
-DECLARE
-  n        NUMBER := 0;
-  invalids NUMBER := 999;
+-- CREATE OR REPLACE PROCEDURE PR_COMPARE_TABLES 
+-- AS
+declare
+counter integer := 0;
+V_DEAL_REF VARCHAR2(32);
+V_REPAY_DATE DATE;
+V_AMT_DIM_LOAN_UCB NUMBER(22,3);
+V_AMT_FULL_UCB NUMBER(22,3);
+V_INT_DIM_LOAN_UCB NUMBER(22,3);
+V_INT_FULL_UCB NUMBER(22,3);
+V_DEAL_CCY CHAR(3);
+EXTRACTION_DATE DATE;
+BRANCH_CODE VARCHAR2(3);
+IS_EQUAL_VALUE VARCHAR2(3);
 BEGIN
-  WHILE invalids > 0 AND n <= 3
-  LOOP
-    sys.utl_recomp.recomp_parallel(threads => 4);
-    SELECT COUNT(*)
-      INTO invalids
-      FROM all_objects
-     WHERE status <> 'VALID'
-       AND owner NOT LIKE 'MB%'
-       AND owner NOT LIKE 'BTD%'
-       AND NOT regexp_like(owner, '^ER\d*$')
-       AND NOT (owner IN ('FCCREP', 'BODEV', 'BORONLY') AND ora_database_name IN ('FCC07.IMB.RU',
-                                                                                  'FCC02.IMB.RU',
-                                                                                  'FCC03.IMB.RU',
-                                                                                  'FCC04.IMB.RU',
-                                                                                  'FCC05.IMB.RU',
-                                                                                  'FCC06.IMB.RU',
-                                                                                  'FCC08.IMB.RU',
-                                                                                  'FCC09.IMB.RU',
-                                                                                  'FCC10.IMB.RU',
-                                                                                  'FCC13.IMB.RU',
-                                                                                  'FCC20.IMB.RU',
-                                                                                  'FCC21.IMB.RU'));
-    n := n + 1;
-  END LOOP;
-END;
-/
-
-prompt Check number of invalid objects. Is it 0 ?
-select owner, count(*) invalids from all_objects where status<>'VALID' group by owner;
-
-
-DECLARE
-  invalid_qty NUMBER;
-BEGIN
-  SELECT COUNT(*)
-    INTO invalid_qty
-    FROM all_objects
-   WHERE status <> 'VALID'
-     AND owner NOT LIKE 'MB%'
-     AND owner NOT LIKE 'BTD%'
-     AND NOT REGEXP_LIKE(owner, '^ER\d*$')
-     AND NOT (owner IN ('FCCREP', 'BODEV', 'BORONLY') AND
-          ora_database_name IN ('FCC07.IMB.RU', 'FCC02.IMB.RU', 'FCC03.IMB.RU', 'FCC04.IMB.RU', 'FCC05.IMB.RU', 'FCC06.IMB.RU', 'FCC08.IMB.RU', 'FCC09.IMB.RU', 'FCC10.IMB.RU', 'FCC13.IMB.RU', 'FCC20.IMB.RU', 'FCC21.IMB.RU'));
-
-  IF invalid_qty <> 0
-  THEN
-    raise_application_error(-20101, 'Invalid objects found');
-  END IF;
-
-EXCEPTION
-  WHEN no_data_found THEN
-    NULL;
+    EXECUTE IMMEDIATE '
+        CREATE TABLE DATA_FROM_BOTH_TAB(
+            DEAL_REF VARCHAR2(32),
+            REPAY_DATE DATE,
+            AMT_DIM_LOAN_UCB NUMBER(22,3),
+            AMT_FULL_UCB NUMBER(22,3),
+            INT_DIM_LOAN_UCB NUMBER(22,3),
+            INT_FULL_UCB NUMBER(22,3),
+            DEAL_CCY CHAR(3),
+            EXTRACTION_DATE DATE,
+            BRANCH_CODE VARCHAR2(3),
+            IS_EQUAL_VALUE VARCHAR2(3)
+        )
+    ';
+    INSERT INTO DATA_FROM_BOTH_TAB(
+            DEAL_REF,
+            REPAY_DATE,
+            AMT_DIM_LOAN_UCB,
+            AMT_FULL_UCB,
+            INT_DIM_LOAN_UCB,
+            INT_FULL_UCB,
+            DEAL_CCY,
+            EXTRACTION_DATE,
+            BRANCH_CODE
+    )
+    select  NVL(tab_1.DEAL_REF, tab_2.DEAL_REF) DEAL_REF,
+            NVL(tab_1.REPAY_DATE, tab_2.REPAY_DATE) REPAY_DATE,
+            tab_2.repay_amount as AMT_DIM_LOAN_UCB, 
+            tab_1.repay_amount as AMT_FULL_UCB, 
+            tab_2.repay_interest as INT_DIM_LOAN_UCB, 
+            tab_1.repay_interest as INT_FULL_UCB, 
+            NVL(tab_1.DEAL_CCY, tab_2.DEAL_CCY) DEAL_CCY,
+            NVL(tab_1.EXTRACTION_DATE, tab_2.EXTRACTION_DATE) EXTRACTION_DATE,
+            NVL(tab_1.BRANCH_CODE, tab_2.BRANCH_CODE) BRANCH_CODE
+        from 
+            (
+                select * from FCCUCB.DIM_LOAN_SCH_FULL_UCB t
+                -- Where t.REPAY_DATE > (select max(today) from FCC.STTM_DATES)
+                Where t.REPAY_DATE >  to_date('11-08-2023', 'dd-mm-yyyy')
+            ) tab_1
+        FULL OUTER JOIN 
+            (
+                select * from FCCUCB.dim_loan_schedule_UCB 
+            ) tab_2
+        on tab_1.DEAL_REF  = tab_2.DEAL_REF and tab_1.REPAY_DATE  = tab_2.REPAY_DATE
+            and
+            CASE WHEN tab_1.repay_amount is not null then 'principal' 
+                WHEN tab_1.REPAY_INTEREST IS NOT NULL THEN 'interest'
+            end 
+            = 
+            CASE WHEN tab_2.repay_amount is not null then 'principal' 
+                WHEN tab_2.REPAY_INTEREST IS NOT NULL THEN 'interest'
+            end ;
 END;
 /
