@@ -1,451 +1,124 @@
-#!/bin/bash
+pipeline {
+	agent any
 
-INSTALL_TXT=./SRC/install.txt
-LAST_TYPE=""
-LAST_SCHEMA=""
-PREV_SCHEMA=""
-LAST_SQL_FILE=""
-SQL_FILES=()
-SQL_SCHEMAS=()
-LAST_LANG=""
-LAST_FILE_NAME=""
-LAST_FILE_PATH=""
-LAST_FILE_EXT=""
-ALLOWED_TYPES="SQL JS XML JAVA_DB JAVA_APP"
-FCJ_SERVER="\${JENKINS_USER}@\${FCJ_SERVER}"
-FCJ_KEY_FILE="\${JENKINS_KEY_FILE}"
-JENKINS_USER="\${JENKINS_USER}"
-ENVIRONMENT_FOLDER="\${ENV_FOLDER}"
-APP_FOLDER=${ENVIRONMENT_FOLDER}/servers/FCJ/tmp/_WL_user/FCUBSApp_12.0.3.5.4
-JS_FOLDER=${APP_FOLDER}/e9jdck/war/Script/JS
-UIXML_FOLDER=${APP_FOLDER}/e9jdck/war/UIXML
-JAR_FOLDER=${APP_FOLDER}/ff891y
-JENKINS_FOLDER_BACKUP=/home/${JENKINS_USER}/backup
-JENKINS_FOLDER_BUFFER=/home/${JENKINS_USER}/buffer
-PATCH_FOLDER=${1}/install
-APP_EXIST_FLAG=""
+	options {
+		disableConcurrentBuilds()
+		timestamps()
+	}
 
+	environment {
+		BRANCH_NAME = "${env.BRANCH_NAME}"
+		WORK_FOLDER = "${env.WORKSPACE}"
+		GIT_ADDRESS = 'http://git.intranet/scm/ABS/fcc-fccba.git'
+		PATCH_NAME = "PATCH_0"
+		DEFAULT_ORA_SCHEMA = 'FCC'
+		SLEEP_TIME = 0
+		ENV_FILE = "${WORK_FOLDER}/jenkins/env/${env.ENVIRONMENT}"
+		//DB_CRED_NAME = "ORA_DB_USER_${env.ENVIRONMENT}"
+		DB_CREDENTIALS = credentials('oracle_proxy_user_flex12')
+		DB_CREDENTIALS_PSW = "${env.DB_PASSWORD == '' ? env.DB_CREDENTIALS_PSW : env.DB_PASSWORD}" // Get password first from parameter, next from credentials
+	}
 
-BACKUP_SCRIPT="backupScript.sh"
-> $BACKUP_SCRIPT
-RESTORE_SCRIPT="restoreScript.sh"
-> $RESTORE_SCRIPT
-INSTALL_SCRIPT="installScript.sh"
-> $INSTALL_SCRIPT
-SQL_INSTALL_SCRIPT="sqlInstallScript.sh"
-> $SQL_INSTALL_SCRIPT
-BUFFER_SCRIPT="bufferScript.sh"
-> $BUFFER_SCRIPT
-PATCH_SCRIPT="patchScript.sh"
-> $PATCH_SCRIPT
-MAIN_INSTALL_SCRIPT="install.sh"
-> $MAIN_INSTALL_SCRIPT
-
-
-echo "set -e" >> $INSTALL_SCRIPT
-echo "set -e" >> $BACKUP_SCRIPT
-echo "set -e" >> $PATCH_SCRIPT
-echo "set -e" >> $BUFFER_SCRIPT
-echo "set -e" >> $RESTORE_SCRIPT
-
-
-echo "rm -rf $JENKINS_FOLDER_BACKUP/**" >> $BACKUP_SCRIPT
-echo "ssh -i $FCJ_KEY_FILE -o StrictHostKeychecking=no $FCJ_SERVER \"rm -rf $JENKINS_FOLDER_BUFFER/**\"" >> $BUFFER_SCRIPT
-echo "mkdir -p $PATCH_FOLDER" >> $PATCH_SCRIPT
-echo "cp $INSTALL_TXT $PATCH_FOLDER$(sed 's/.*\(\/.*\)/\1/g;' <<<$INSTALL_TXT)" >> $PATCH_SCRIPT
-echo "cp $MAIN_INSTALL_SCRIPT $PATCH_FOLDER/$MAIN_INSTALL_SCRIPT" >> $PATCH_SCRIPT
-
-cat "$INSTALL_TXT"
-
-readarray linesArr a < $INSTALL_TXT
-for line in ${linesArr[*]}
-do	
-    if [[ $line = *"SCHEMA="* ]]; then
-        LAST_SCHEMA=$(echo ${line#*=} | tr '[:upper:]' '[:lower:]') 
-        LAST_SCHEMA="$(sed 's/[^A-Za-z0-9._\/\-]//g' <<<"${LAST_SCHEMA}")"
-            
-        echo exit | sqlplus $DB_CREDENTIALS_USR[$LAST_SCHEMA]/$DB_CREDENTIALS_PSW@$DB_SERVER | grep Connected > /dev/null
-        if [ ! $? -eq 0 ]; then
-                        printf "\n>>>>>> Error: invalid credentials: $LAST_SCHEMA\n"
-            exit 1
-        fi
-    fi
-
-    if [[ $line = *"TYPE="* ]]; then
-        LAST_TYPE="$(sed 's/[^A-Za-z0-9._\/\-]//g' <<<"${line#*=}")"
-        
-        if ! echo $ALLOWED_TYPES | grep -w $LAST_TYPE > /dev/null; then
-                printf "\n>>>>>> Error: unknown type in Install.txt: $LAST_TYPE\n"
-                                    exit 1
-        fi
-    fi
-
-    if [[ $line = *"LANG="* ]]; then
-        LAST_LANG="$(sed 's/[^A-Za-z0-9._\/\-]//g' <<<"${line#*=}")"
-        echo "mkdir -p $UIXML_FOLDER/$LAST_LANG" >> $INSTALL_SCRIPT
-    fi
-	
-	if [[ $line = "#"* ]]; then
-		continue
-	fi
-	
-    if [[ $line = *"RESTART_APP="* ]]; then
-        continue #02.02.2022 Disable restart application
-		#Y_N="$(sed 's/[^A-Za-z0-9._\/\-]//g' <<<"${line#*=}")"
-		# We'll write to RESTART_APP_SCRIPT after all rows processing. To provide default action Y_N == N
-    fi
-	
-    if [[ $line = *"RESTART_ADAPTER="* ]]; then
-        ADAPTER_NAME="$(sed 's/[^A-Za-z0-9._\/\-]//g' <<<"${line#*=}")"
+	stages {
+		stage('Clear workspace') {
+			steps {
+			    script {
+                       currentBuild.displayName = "#${BUILD_NUMBER} - ${BRANCH_NAME} - ${env.ENVIRONMENT}"
+                       }
+				deleteDir()
+			}
+		}
 		
-		if ! [[ $RESTART_ADAPTER_FLAG = 'Y' ]]; then # First adapter reference
-			ADAPTER_LIST="install_adapter_list.txt"
-			> $ADAPTER_LIST
-			echo -n "'$ADAPTER_NAME'" >> $ADAPTER_LIST
-			RESTART_ADAPTER_FLAG='Y'
-		else
-			echo -n ", '$ADAPTER_NAME'" >> $ADAPTER_LIST
-		fi
-	fi
-	
-    if [[ $line = *"@"* ]]; then
-		PATCH_FILE_PATH="$(sed 's/\\/\//g; s/\@\.\///g; s/\@\"\.\///g; s/\"//g; s/\@\///g; s/\@//g; s/[^A-Za-z0-9._\/\-]//g' <<<"$line")"
-        GIT_FILE_PATH=SRC/"$PATCH_FILE_PATH"
-        FILE_NAME=${PATCH_FILE_PATH##*'/'}
-        FILE_NAME_WITHOUT_EXT="$(cut -d '.' -f 1 <<< "$FILE_NAME")"
-		PATCH_FOLDER_NAME="$(sed  's/\(.*\)\/.*/\1/' <<<$PATCH_FILE_PATH)"
-		#ABS_PATCH_FILE_PATH=$WORKSPACE/$PATCH_FOLDER/$PATCH_FILE_PATH
-
-        if [ ! -f $GIT_FILE_PATH ]; then 
-			printf "\n>>>>>> Error: file not found: $GIT_FILE_PATH\n"
-			exit 1
-        fi
+		stage('Checkout branch') {
+			  steps {
+				echo 'Checking out branch'
+				checkout([
+					$class: 'GitSCM',
+					branches:[[name: "*/${BRANCH_NAME}"]],
+					extensions: [[$class: 'GitLFSPull'],[$class: 'RelativeTargetDirectory', relativeTargetDir: './']],
+					userRemoteConfigs: [[credentialsId: 'AD Jenkins', url: env.GIT_ADDRESS]]
+				])
+				library identifier: "fcc@$BRANCH_NAME", retriever: legacySCM(scm)
+				echo 'Checked out branch'
+			  }
+		}
 		
-		# Begin check charset block
-		chrst=$(file -bi "${GIT_FILE_PATH}" | cut -d "=" -f 2)
-		if [[ $chrst =~ 'unknown' ]]; then
-			echo "${GIT_FILE_PATH} >>>>>> Error! unknown charset: (${chrst})"
-			exit 1
-		elif [ $chrst != 'utf-8' ] && [ $chrst != 'binary' ]; then
-			rus_text=$(cat "$GIT_FILE_PATH" | iconv -f windows-1251 | grep -E '[А-Яа-яёЁ]' || true)
-			if [ ${#rus_text} -ne 0 ]; then
-				echo "${GIT_FILE_PATH} >>>>>> Error! wrong charset: (windows-1251)"
-				exit 1
-			fi
-			rus_text=''
-			rus_text=$(cat "$GIT_FILE_PATH" | iconv -f $chrst | grep -E '[А-Яа-яёЁ]' || true)
-			if [ ${#rus_text} -ne 0 ]; then
-				echo "${GIT_FILE_PATH} >>>>>> Error! wrong charset: (${chrst})"
-				exit 1
-			fi
-		else
-			if [ "`head -c 3 -- "$GIT_FILE_PATH"`" == $'\xef\xbb\xbf' ]
-			then
-				echo "${GIT_FILE_PATH} >>>>>> Error!: found BOM"
-				exit 1
-			fi
-		fi
-		# End check charset block
-		
-		if [[ $PATCH_FOLDER_NAME != $PATCH_FILE_PATH ]]; then 
-			echo "mkdir -p $PATCH_FOLDER/$PATCH_FOLDER_NAME" >> $PATCH_SCRIPT
-		fi
-		echo "cp $GIT_FILE_PATH $PATCH_FOLDER/$PATCH_FILE_PATH" >> $PATCH_SCRIPT
-		
-        if [[ $LAST_TYPE = "SQL" ]] || [[ $LAST_TYPE = "JAVA_DB" ]]; then
-			if [[ $PREV_SCHEMA != $LAST_SCHEMA ]]; then        # Is it necessary to start new file?
-				LAST_SQL_FILE="install_db_${LAST_SCHEMA}.sql"  # Select spare name
-				FILE_NUM=1
+		stage('Validate config') {
+			steps {
+				validateEnvironmentConfig env.ENV_FILE
 				
-				while [ 1 = 1 ] 
-				do
-					V_EXIST_FILE='N'
-					for i in ${SQL_FILES[@]}; 
-					do
-						if [[ $LAST_SQL_FILE = $i ]]; then
-							V_EXIST_FILE='Y'
-							let "FILE_NUM+=1"
-							LAST_SQL_FILE="install_db_${LAST_SCHEMA}${FILE_NUM}.sql"
-						fi
-					done
-					if [[ $V_EXIST_FILE = 'N' ]]; then
-						break
-					fi
-				done
-				
-				SQL_LOG_FILE="$(cut -d '.' -f 1 <<< "$LAST_SQL_FILE").log"
-				SQL_FILES+=($LAST_SQL_FILE)
-				SQL_SCHEMAS+=($LAST_SCHEMA)
-				
-				echo "spool $SQL_LOG_FILE
-WHENEVER OSERROR EXIT 9;
-WHENEVER SQLERROR EXIT SQL.SQLCODE
-set timing on
-set serveroutput on
-set define off
-set sqlblanklines on
-alter session set nls_numeric_characters='.,';
-alter session set nls_date_format = 'DD-MON-YYYY';
---call fcj.cspkss_patch_custom.pr_checkuser(upper('${LAST_SCHEMA}'));
-" >> $LAST_SQL_FILE
-			fi
-			
-			PREV_SCHEMA=$LAST_SCHEMA
-			if [[ $LAST_TYPE = "SQL" ]]; then
-				echo "@${PATCH_FILE_PATH}" >> $LAST_SQL_FILE
-			fi
-			if [[ $LAST_TYPE = "JAVA_DB" ]]; then
-				cat ${GIT_FILE_PATH} | base64 -w 4000 | sed "s/.*/exec fcj.ucbr_java.write_base64('${FILE_NAME}','&');/" >> $LAST_SQL_FILE
-				echo "exec ucbr_java.load_base64('${FILE_NAME}', '-resolve -schema ${LAST_SCHEMA}');" >> $LAST_SQL_FILE
-			fi
-        fi
-        
-        if [[ $LAST_TYPE = "JAVA_APP" ]]; then
-			APP_EXIST_FLAG="Y"
-            # BUFFER SCRIPT
-            echo "scp  -i $FCJ_KEY_FILE $PATCH_FILE_PATH $FCJ_SERVER:$JENKINS_FOLDER_BUFFER/$FILE_NAME" >> $BUFFER_SCRIPT
-            
-            # BACKUP SCRIPT
-            echo "if [ -f $JAR_FOLDER/$FILE_NAME ]; then 
-    cp $JAR_FOLDER/$FILE_NAME $JENKINS_FOLDER_BACKUP/$FILE_NAME 
-fi" >> $BACKUP_SCRIPT    
-            
-            # RESTORE SCRIPT
-            echo "if [ -f $JAR_FOLDER/$FILE_NAME ]; then 
-    rm -rf $JAR_FOLDER/$FILE_NAME 
-fi" >> $RESTORE_SCRIPT    
-                  
-            echo "if [ -f $JENKINS_FOLDER_BACKUP/$FILE_NAME ]; then 
-    cp $JENKINS_FOLDER_BACKUP/$FILE_NAME $JAR_FOLDER/$FILE_NAME 
-fi" >> $RESTORE_SCRIPT    
-                
-            # INSTALL SCRIPT
-            echo "cp $JENKINS_FOLDER_BUFFER/$FILE_NAME $JAR_FOLDER/$FILE_NAME" >> $INSTALL_SCRIPT
-        fi
-        
-#        if [[ $LAST_TYPE = "JAVA_DB" ]]; then
-#            echo "dropjava -user $LAST_SCHEMA/$LAST_SCHEMA@$DB_SERVER $PATCH_FOLDER/$PATCH_FILE_PATH" >> $SQL_INSTALL_SCRIPT    
-#            echo "loadjava -user $LAST_SCHEMA/$LAST_SCHEMA@$DB_SERVER -resolve $PATCH_FOLDER/$PATCH_FILE_PATH" >> $SQL_INSTALL_SCRIPT    
-#        fi
+				withEnv(readFile(env.ENV_FILE).split('\n') as List) {
+					wrap([$class: 'MaskPasswordsBuildWrapper', varPasswordPairs: [[var: 'PASS', password: DB_CREDENTIALS_PSW]], varMaskRegexes: []]) {
+						sh "source ${env.WORK_FOLDER}/jenkins/check_db.sh ${DB_CREDENTIALS_USR} ${DB_CREDENTIALS_PSW} ${DB_SERVER}"
+					}
+				}
+			}			
+		}
+		
+		stage('Checkout master') {
+		  steps {
+			echo 'Checking out master'
 
+			checkout([
+				$class: 'GitSCM',
+				branches:[[name: '*/master']],
+				extensions: [[$class: 'GitLFSPull'],[$class: 'RelativeTargetDirectory', relativeTargetDir: 'MASTER']],
+				userRemoteConfigs: [[credentialsId: 'AD Jenkins', url: env.GIT_ADDRESS]]
+			])
 
-        if [[ $LAST_TYPE = "JS" ]]; then
-			APP_EXIST_FLAG="Y"
-            # BUFFER SCRIPT
-            echo "scp -i $FCJ_KEY_FILE $PATCH_FILE_PATH $FCJ_SERVER:$JENKINS_FOLDER_BUFFER/$FILE_NAME" >> $BUFFER_SCRIPT    
-            
-            # BACKUP SCRIPT
-            echo "if [ -f $JS_FOLDER/$FILE_NAME ]; then 
-    cp $JS_FOLDER/$FILE_NAME $JENKINS_FOLDER_BACKUP/$FILE_NAME 
-fi" >> $BACKUP_SCRIPT    
-            
-            # RESTORE SCRIPT
-            echo "if [ -f $JS_FOLDER/$FILE_NAME ]; then 
-    rm -rf $JS_FOLDER/$FILE_NAME 
-fi" >> $RESTORE_SCRIPT    
-                  
-            echo "if [ -f $JENKINS_FOLDER_BACKUP/$FILE_NAME ]; then 
-    cp $JENKINS_FOLDER_BACKUP/$FILE_NAME $JS_FOLDER/$FILE_NAME 
-fi" >> $RESTORE_SCRIPT    
-                
-            # INSTALL SCRIPT
-            echo "find $JS_FOLDER/SYS -type f -iname \"$(cut -d '_' -f 1 <<< "$FILE_NAME_WITHOUT_EXT")*\" -delete" >> $INSTALL_SCRIPT    
-            echo "cp $JENKINS_FOLDER_BUFFER/$FILE_NAME $JS_FOLDER/$FILE_NAME" >> $INSTALL_SCRIPT
-        fi
-        
-        if [[ $LAST_TYPE = "XML" ]]; then
-			APP_EXIST_FLAG="Y"
-            # BUFFER SCRIPT
-            echo "scp -i $FCJ_KEY_FILE $PATCH_FILE_PATH $FCJ_SERVER:$JENKINS_FOLDER_BUFFER/$FILE_NAME" >> $BUFFER_SCRIPT    
-            
-            # BACKUP SCRIPT
-            echo "if [ -f $UIXML_FOLDER/$LAST_LANG/$FILE_NAME ]; then 
-    cp $UIXML_FOLDER/$LAST_LANG/$FILE_NAME $JENKINS_FOLDER_BACKUP/$FILE_NAME 
-fi" >> $BACKUP_SCRIPT    
-            
-            # RESTORE SCRIPT
-            echo "if [ -f $UIXML_FOLDER/$LAST_LANG/$FILE_NAME ]; then 
-    rm -rf $UIXML_FOLDER/$LAST_LANG/$FILE_NAME 
-fi" >> $RESTORE_SCRIPT    
-                  
-            echo "if [ -f $JENKINS_FOLDER_BACKUP/$FILE_NAME ]; then 
-    cp $JENKINS_FOLDER_BACKUP/$FILE_NAME $UIXML_FOLDER/$LAST_LANG/$FILE_NAME 
-fi" >> $RESTORE_SCRIPT    
-        
-            # INSTALL SCRIPT
-            echo "cp $JENKINS_FOLDER_BUFFER/$FILE_NAME $UIXML_FOLDER/$LAST_LANG/$FILE_NAME" >> $INSTALL_SCRIPT                
-        fi        
-    fi    
-done
+			echo 'Checked out master'
+		  }
+		}
+		
+		stage('Build patch') {
+			steps {
+				withEnv(readFile(env.ENV_FILE).split('\n') as List) {
+					wrap([$class: 'MaskPasswordsBuildWrapper', varPasswordPairs: [[var: 'PASS', password: DB_CREDENTIALS_PSW]], varMaskRegexes: []]) {
+						buildPatch env.PATCH_NAME
+					}
+				}
+			}
+		}
+		
+		stage('Stop adapter') {
+			steps {
+				withEnv(readFile(env.ENV_FILE).split('\n') as List) {
+					restartAdapter "AD_test_Jenkins", "${env.WORK_FOLDER}/${PATCH_NAME}/install/install_stop", "${env.WORK_FOLDER}/jenkins/ansible_inventory/${env.ADAPTER_SERVER}"
+				}
+			}
+		}
 
-# Constant part
-cat << 'EOF2' >> $MAIN_INSTALL_SCRIPT
-
-#!/bin/sh
-
-err() {
-    echo "Error: $*" >>/dev/stderr
+		stage('Install SQL') {
+			steps {
+				withEnv(readFile(env.ENV_FILE).split('\n') as List) {
+					wrap([$class: 'MaskPasswordsBuildWrapper', varPasswordPairs: [[var: 'PASS', password: DB_CREDENTIALS_PSW]], varMaskRegexes: []]) {
+						installDB "${env.WORK_FOLDER}/${env.PATCH_NAME}", env.DB_CREDENTIALS_USR, env.DB_CREDENTIALS_PSW, env.DB_SERVER, env.DEFAULT_ORA_SCHEMA
+					}
+				}
+			}
+			post { 
+				failure {
+					input (message: "Installation failed. Examine the logs to see if auto rollback might work", ok: "Apply rollback")
+					echo "Applying Rollback"
+					withEnv(readFile(env.ENV_FILE).split('\n') as List) {
+						restartAdapter "AD_test_Jenkins", "${env.WORK_FOLDER}/${PATCH_NAME}/install/rollback_stop", "${env.WORK_FOLDER}/jenkins/ansible_inventory/${env.ADAPTER_SERVER}"
+						wrap([$class: 'MaskPasswordsBuildWrapper', varPasswordPairs: [[var: 'PASS', password: DB_CREDENTIALS_PSW]], varMaskRegexes: []]) {
+							rollbackDB "${env.WORK_FOLDER}/${env.PATCH_NAME}", env.DB_CREDENTIALS_USR, env.DB_CREDENTIALS_PSW, env.DB_SERVER, env.DEFAULT_ORA_SCHEMA
+						}
+						restartAdapter "AD_test_Jenkins", "${env.WORK_FOLDER}/${PATCH_NAME}/install/rollback_start", "${env.WORK_FOLDER}/jenkins/ansible_inventory/${env.ADAPTER_SERVER}"
+					}
+				}
+				success {
+					echo "Success!"
+				}
+			}
+		}
+		stage('Start adapter') {
+			steps {
+				withEnv(readFile(env.ENV_FILE).split('\n') as List) {
+					restartAdapter "AD_test_Jenkins", "${env.WORK_FOLDER}/${PATCH_NAME}/install/install_start", "${env.WORK_FOLDER}/jenkins/ansible_inventory/${env.ADAPTER_SERVER}"
+				}
+			}
+		}
+	}
 }
-
-#check_var varname positional_value is_password
-check_var() {
-      local command=$(cat <<'EOF'
-if [[ -z $VARNAME ]]
-then
-      VARNAME='VALUE'
-      
-      if [[ -z $VARNAME ]]
-      then
-            if [[ -t 0 ]]
-            then #Interactive console (0 is stdin)
-                  read -PARAM 'Enter VARNAME: ' VARNAME
-            fi
-            
-            if [[ -z $VARNAME ]]
-            then
-                  err "VARNAME is not set!"
-                  exit 1
-            fi
-      fi
-fi
-EOF
-)
-
-      command=$(echo "$command" | sed "s/VARNAME/$1/g")
-      command=$(echo "$command" | sed "s/VALUE/$2/g")
-      if [[ -z $3 ]]
-      then
-            command=$(echo "$command" | sed "s/PARAM/p/g")
-      else
-            command=$(echo "$command" | sed "s/PARAM/sp/g")
-			command="${command}
-			echo ' '"
-      fi
-      
-      eval "$command"
-}
-EOF2
-
-
-# SQL part exists
-if [[ ${#SQL_FILES[@]} > 0 ]]; then
-	echo "set -e
-export NLS_LANG=AMERICAN_AMERICA.AL32UTF8" >> $SQL_INSTALL_SCRIPT
-	for i in ${!SQL_FILES[@]};
-	do
-		echo "commit;
-spool off;"  >> "${SQL_FILES[$i]}"
-		echo "sqlplus -l \$1[${SQL_SCHEMAS[$i]}]\/\$2@\$3 <<EOF
-WHENEVER OSERROR EXIT 9;
-WHENEVER SQLERROR EXIT SQL.SQLCODE
-@${SQL_FILES[$i]}
-EOF
-" >> $SQL_INSTALL_SCRIPT
-		echo "cp ${SQL_FILES[$i]} $PATCH_FOLDER/${SQL_FILES[$i]}" >> $PATCH_SCRIPT
-	done
-	echo "cp sqlInstallScript.sh $PATCH_FOLDER/sqlInstallScript.sh" >> $PATCH_SCRIPT
-	echo "cp jenkins/recompile_invalids.sh $PATCH_FOLDER/recompile_invalids.sh" >> $PATCH_SCRIPT
-	echo "cp jenkins/recompile_invalids.sql $PATCH_FOLDER/recompile_invalids.sql" >> $PATCH_SCRIPT
-	
-	echo "check_var fcj_login \"\$1\"
-check_var fcj_pass \"\$2\" 1
-check_var fcj_db \"\$3\"
-echo exit | sqlplus \$fcj_login/\$fcj_pass@\$fcj_db | grep Connected > /dev/null
-if [ ! \$? -eq 0 ]; then
-				printf \"\\n>>>>>> Error: invalid DB credentials!\\n\"
-	exit 1
-fi
-
-set -e
-
-sh sqlInstallScript.sh \$fcj_login \$fcj_pass \$fcj_db
-sh recompile_invalids.sh \$fcj_login[fcc]/\$fcj_pass \$fcj_db
-" >> $MAIN_INSTALL_SCRIPT
-fi
-
-# APP part exists
-if [[ $APP_EXIST_FLAG == 'Y' ]]; then
-	echo "cp backupScript.sh $PATCH_FOLDER/backupScript.sh" >> $PATCH_SCRIPT
-	echo "cp installScript.sh $PATCH_FOLDER/installScript.sh" >> $PATCH_SCRIPT
-	echo "cp bufferScript.sh $PATCH_FOLDER/bufferScript.sh" >> $PATCH_SCRIPT
-	if [[ $Y_N == 'Y' ]]; then
-		RESTART_APP_SCRIPT="installRestartAppScript.sh"
-		> $RESTART_APP_SCRIPT
-		echo "Let's restart application" >> $RESTART_APP_SCRIPT
-		echo "cp installRestartAppScript.sh $PATCH_FOLDER/installRestartAppScript.sh" >> $PATCH_SCRIPT
-	fi
-	
-	if [[ ${#SQL_FILES[@]} > 0 ]]; then
-		echo "check_var JENKINS_USER \"\$4\"
-check_var FCJ_SERVER \"\$5\"
-check_var JENKINS_KEY_FILE \"\$6\"
-check_var ENV_FOLDER \"\$7\"" >> $MAIN_INSTALL_SCRIPT
-	else
-		echo "check_var JENKINS_USER \"\$1\"
-check_var FCJ_SERVER \"\$2\"
-check_var JENKINS_KEY_FILE \"\$3\"
-check_var ENV_FOLDER \"\$4\"" >> $MAIN_INSTALL_SCRIPT
-	fi
-	
-	
-
-	echo "echo exit | ssh -i \$JENKINS_KEY_FILE -o StrictHostKeychecking=no \$JENKINS_USER@\$FCJ_SERVER echo Hello | grep Hello > /dev/null
-if [ ! \$? -eq 0 ]; then
-				printf \"\\n>>>>>> Error: invalid SSH credentials!\\n\"
-	exit 1
-fi
-
-ssh -i \$JENKINS_KEY_FILE -o StrictHostKeychecking=no \$JENKINS_USER@\$FCJ_SERVER \"FCJ_SERVER=\${FCJ_SERVER} JENKINS_USER=\${JENKINS_USER} ENV_FOLDER=\${ENV_FOLDER} JENKINS_KEY_FILE=\${JENKINS_KEY_FILE} exec sh\" < backupScript.sh
-sh bufferScript.sh
-
-ssh -i \$JENKINS_KEY_FILE -o StrictHostKeychecking=no \$JENKINS_USER@\$FCJ_SERVER \"FCJ_SERVER=\${FCJ_SERVER} JENKINS_USER=\${JENKINS_USER} ENV_FOLDER=\${ENV_FOLDER} JENKINS_KEY_FILE=\${JENKINS_KEY_FILE} exec sh\" < installScript.sh
-" >> $MAIN_INSTALL_SCRIPT	
-
-	if [[ $Y_N == 'Y' ]]; then
-		echo "ssh -tt -i \$JENKINS_KEY_FILE -o StrictHostKeychecking=no \$JENKINS_USER@\$FCJ_SERVER \$(cat installRestartAppScript.sh)" >> $MAIN_INSTALL_SCRIPT
-	fi
-fi
-
-# Adapters restarting
-if [[ $RESTART_ADAPTER_FLAG == 'Y' ]]; then
-	#echo "cp install_stop.yml $PATCH_FOLDER/install_stop.yml" >> $PATCH_SCRIPT
-	#echo "cp install_start.yml $PATCH_FOLDER/install_start.yml" >> $PATCH_SCRIPT
-	
-	echo "cp jenkins/ansible_inventory/adapters_powershell_stop.yml $PATCH_FOLDER/install_stop.yml" >> $PATCH_SCRIPT
-	echo "cp jenkins/ansible_inventory/adapters_powershell_start.yml $PATCH_FOLDER/install_start.yml" >> $PATCH_SCRIPT
-	
-	echo "sed -i \"s/<<LIST_OF_ADAPTERS>>/$(<$ADAPTER_LIST)/\" $PATCH_FOLDER/install_stop.yml" >> $PATCH_SCRIPT
-	echo "sed -i \"s/<<LIST_OF_ADAPTERS>>/$(<$ADAPTER_LIST)/\" $PATCH_FOLDER/install_start.yml" >> $PATCH_SCRIPT
-	
-	#printf "\n>>>>>> Debug: install_stop.yml\n"
-	#cat "$STOP_ADAPTER_SCRIPT"
-	#printf "\n>>>>>> Debug: install_start.yml\n"
-	#cat "$START_ADAPTER_SCRIPT"
-fi
-
-printf "\n>>>>>> Debug: buffer script\n"
-cat "$BUFFER_SCRIPT"
-
-printf "\n>>>>>> Debug: backup script\n"
-cat "$BACKUP_SCRIPT"
-
-printf "\n>>>>>> Debug: app install script\n"
-cat "$INSTALL_SCRIPT"
-
-printf "\n>>>>>> Debug: sqlInstall script\n"
-cat "$SQL_INSTALL_SCRIPT"
-
-printf "\n>>>>>> Debug: restore script\n"
-cat "$RESTORE_SCRIPT"
-
-for i in ${SQL_FILES[@]}; 
-do
-	printf "\n>>>>>> Debug: sql script $i\n\n"
-    cat "$i"
-done
-
-printf "\n>>>>>> Debug: patch script\n"
-cat "$PATCH_SCRIPT"
-
-printf "\n>>>>>> Debug: main install script\n"
-cat "$MAIN_INSTALL_SCRIPT"
