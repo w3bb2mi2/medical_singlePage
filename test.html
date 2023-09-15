@@ -1,77 +1,40 @@
-pipeline {
-	agent any
-
-	options {
-		disableConcurrentBuilds()
-		timestamps()
-	}
-
-	environment {
-		BRANCH_NAME = "${env.BRANCH_NAME}"
-		WORK_FOLDER = "${env.WORKSPACE}"
-		GIT_ADDRESS = 'http://git.intranet/scm/ABS/fcc-fccba.git'
-		PATCH_NAME = "${env.BRANCH_NAME}"
-		// SLEEP_TIME = 0
-		DB_CREDENTIALS = credentials('oracle_proxy_user_flex12')
-        DB_SERVER = 'fox06.IMB.RU:21567/FCC03.IMB.RU'
-	}
-
-	stages {
-        
-		stage('Clear workspace') {
-			steps {
-			    script {
-                       currentBuild.displayName = "#${BUILD_NUMBER} - ${BRANCH_NAME} - ${env.ENVIRONMENT}"
-                       }
-				deleteDir()
-			}
-		}
-		
-		stage('Checkout branch') {
-			  steps {
-				echo 'Checking out branch'
-				checkout([
-					$class: 'GitSCM',
-					branches:[[name: "*/${BRANCH_NAME}"]],
-					extensions: [[$class: 'GitLFSPull'],[$class: 'RelativeTargetDirectory', relativeTargetDir: './']],
-					userRemoteConfigs: [[credentialsId: 'AD Jenkins', url: env.GIT_ADDRESS]]
-				])
-				library identifier: "fcc@$BRANCH_NAME", retriever: legacySCM(scm)
-				echo 'Checked out branch'
-			  }
-		}
-		
-
-		stage('Checkout master') {
-		  steps {
-			echo 'Checking out master'
-
-			checkout([
-				$class: 'GitSCM',
-				branches:[[name: '*/master']],
-				extensions: [[$class: 'GitLFSPull'],[$class: 'RelativeTargetDirectory', relativeTargetDir: 'MASTER']],
-				userRemoteConfigs: [[credentialsId: 'AD Jenkins', url: env.GIT_ADDRESS]]
-			])
-
-			echo 'Checked out master'
-		  }
-		}
-		
-        stage('Build patch') {
-            steps {
-                buildPatch "${PATCH_NAME}"
-            }
-        }
-		
-        stage('Create archive') {
-            steps {
-		        sh """
-					cd ${WORK_FOLDER}/${PATCH_NAME}; tar -cvzf ${WORK_FOLDER}/${PATCH_NAME}.tar.gz ./*
-					cd ..
-                """
-				
-				archiveArtifacts artifacts: "**/*.gz", allowEmptyArchive: true
-            }
-        }
-	}
-}
+create or replace function fn_adapters_reboot_needed(p_owner varchar2
+                                                    ,p_object_name varchar2) return varchar2
+AS
+    v_object_name varchar2(50);
+BEGIN
+    begin
+        select distinct object_name
+          into v_object_name
+          from dba_objects
+         where owner = p_owner
+           and object_name = p_object_name
+             ;
+    exception
+        when no_data_found then
+            raise_application_error(-20101, SQLERRM);
+    end;
+         
+    declare
+        v_res varchar2(4000);
+    begin
+        -- all_dependencies - not suitable, it sees only object with grants
+        select d_path
+          into v_res
+          from (
+        select level, d.*,  substr(SYS_CONNECT_BY_PATH (owner||'.'||name, '<--'), 4) d_path
+          from dba_dependencies d
+       connect by prior name = referenced_name
+                    and prior owner = referenced_owner
+                    and prior type = referenced_type
+         start with referenced_name = p_object_name and referenced_owner = p_owner
+       ) where owner in ('FCCBLAMADP', 'FCCADPRO') and TYPE in ( 'PACKAGE BODY', 'PACKAGE' )
+           and rownum = 1
+             ;
+        return v_res;
+    exception
+        when no_data_found then
+            return null;
+    end;
+END;
+/
