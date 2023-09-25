@@ -1,36 +1,58 @@
-def call(
-    String patchLocation,
-    String user,
-    String password,
-    String server,
-    String defaultSchema = 'FCJ'
-) {
-    echo 'Rolling back SQL'
-    sh """
-        if [[ -f ${patchLocation}/rollback/sqlRollbackScript.sh ]]
-        then
-            cd ${patchLocation}/rollback/
-            source ./sqlRollbackScript.sh ${user} ${password} ${server}
-        else
-            echo "No SQL part"
-        fi
-		
-		if grep -F -q SP2- rollback*.log; then
-			grep SP2- rollback*.log
-			printf "Syntax error in SQL script!!!"
-			exit 1
-		fi
-    """
 
-    sh """
-        if [[ -f ${patchLocation}/rollback/recompile_invalids.sh ]]
-        then
-            cd ${patchLocation}/rollback/
-            source ./recompile_invalids.sh ${user}[${defaultSchema}]/${password} ${server}
-        else
-            echo "No SQL part"
-        fi
-    """
+#!/bin/sh
 
-    echo 'Rolled back SQL'
+err() {
+    echo "Error: $*" >>/dev/stderr
 }
+
+#check_var varname positional_value is_password
+check_var() {
+      local command=$(cat <<'EOF'
+if [[ -z $VARNAME ]]
+then
+      VARNAME='VALUE'
+      
+      if [[ -z $VARNAME ]]
+      then
+            if [[ -t 0 ]]
+            then #Interactive console (0 is stdin)
+                  read -PARAM 'Enter VARNAME: ' VARNAME
+            fi
+            
+            if [[ -z $VARNAME ]]
+            then
+                  err "VARNAME is not set!"
+                  exit 1
+            fi
+      fi
+fi
+EOF
+)
+
+      command=$(echo "$command" | sed "s/VARNAME/$1/g")
+      command=$(echo "$command" | sed "s/VALUE/$2/g")
+      if [[ -z $3 ]]
+      then
+            command=$(echo "$command" | sed "s/PARAM/p/g")
+      else
+            command=$(echo "$command" | sed "s/PARAM/sp/g")
+			command="${command}
+			echo ' '"
+      fi
+      
+      eval "$command"
+}
+check_var fcj_login "$1"
+check_var fcj_pass "$2" 1
+check_var fcj_db "$3"
+echo exit | sqlplus $fcj_login/$fcj_pass@$fcj_db | grep Connected > /dev/null
+if [ ! $? -eq 0 ]; then
+				printf "\n>>>>>> Error: invalid DB credentials!\n"
+	exit 1
+fi
+
+set -e
+
+sh sqlRollbackScript.sh $fcj_login $fcj_pass $fcj_db
+sh recompile_invalids.sh $fcj_login[fcc]/$fcj_pass $fcj_db
+
