@@ -1,58 +1,258 @@
+setlocal enabledelayedexpansion
 
-#!/bin/sh
+set FUNCTION_ID=%1
+set ENVIRONMENT=%2
+set MODULE=%FUNCTION_ID:~0,2%
 
-err() {
-    echo "Error: $*" >>/dev/stderr
-}
+set LOG_FILE=%FUNCTION_ID%.log
+set SQL_FILE=deploy.sql
 
-#check_var varname positional_value is_password
-check_var() {
-      local command=$(cat <<'EOF'
-if [[ -z $VARNAME ]]
-then
-      VARNAME='VALUE'
-      
-      if [[ -z $VARNAME ]]
-      then
-            if [[ -t 0 ]]
-            then #Interactive console (0 is stdin)
-                  read -PARAM 'Enter VARNAME: ' VARNAME
-            fi
-            
-            if [[ -z $VARNAME ]]
-            then
-                  err "VARNAME is not set!"
-                  exit 1
-            fi
-      fi
-fi
-EOF
+set FCJ_PASS=fcj
+
+echo Start with parameters %FUNCTION_ID% %ENVIRONMENT%>%LOG_FILE%
+
+for /f "usebackq tokens=1,2 delims==" %%a in ("deploy.ini") do (
+	set %%a=%%b
 )
 
-      command=$(echo "$command" | sed "s/VARNAME/$1/g")
-      command=$(echo "$command" | sed "s/VALUE/$2/g")
-      if [[ -z $3 ]]
-      then
-            command=$(echo "$command" | sed "s/PARAM/p/g")
-      else
-            command=$(echo "$command" | sed "s/PARAM/sp/g")
-			command="${command}
-			echo ' '"
-      fi
-      
-      eval "$command"
-}
-check_var fcj_login "$1"
-check_var fcj_pass "$2" 1
-check_var fcj_db "$3"
-echo exit | sqlplus $fcj_login/$fcj_pass@$fcj_db | grep Connected > /dev/null
-if [ ! $? -eq 0 ]; then
-				printf "\n>>>>>> Error: invalid DB credentials!\n"
-	exit 1
-fi
+::GOTO skip_all
 
-set -e
+::rmdir /s /q %FUNCTION_ID%>>%LOG_FILE%
+::echo Directory %FUNCTION_ID% deleted>>%LOG_FILE%
 
-sh sqlRollbackScript.sh $fcj_login $fcj_pass $fcj_db
-sh recompile_invalids.sh $fcj_login[fcc]/$fcj_pass $fcj_db
+unzip -o %ZIPFILE% -d %FUNCTION_ID%>>%LOG_FILE%
+echo File %ZIPFILE% extracted>>%LOG_FILE%
 
+
+:: начало блока для SFTP FCJ12
+IF /i NOT %ENVIRONMENT%==FCJ12 goto skip_fcj12
+
+winscp.com /ini=nul /command ^
+								"open sftp://ofs:ofs@vs382.imb.ru/ -hostkey=""ssh-rsa 2048 cd:a2:5b:c8:ee:dc:92:5a:c2:4e:4d:af:ca:e1:f8:29""" ^
+								"cd ../../u01/oracle/domains/fcj12_domain/servers/FCJ/tmp/_WL_user/FCUBSApp_12.0.3.5.4/e9jdck/war/UIXML/ENG/" ^
+								"put %FUNCTION_ID%\UIXML\ENG\%FUNCTION_ID%.xml" ^
+								"cd ../../Script/JS/" ^
+								"put %FUNCTION_ID%\JS\%FUNCTION_ID%_SYS.js" ^
+								"put %FUNCTION_ID%\JS\%FUNCTION_ID%_CUSTOM.js" ^
+								"close" ^
+								"exit">>%LOG_FILE%
+								
+winscp.com /ini=nul /command ^
+								"open sftp://ofs:ofs@vs382.imb.ru/ -hostkey=""ssh-rsa 2048 cd:a2:5b:c8:ee:dc:92:5a:c2:4e:4d:af:ca:e1:f8:29""" ^
+								"cd ../../u01/oracle/domains/fcj12_domain/servers/FCJ/tmp/_WL_user/FCUBSApp_12.0.3.5.4/e9jdck/war/Script/JS/SYS" ^
+								"rm %FUNCTION_ID%_SYS.js" ^
+								"close" ^
+								"exit">>%LOG_FILE%
+			
+echo Files copied to FTP server %ENVIRONMENT%>>%LOG_FILE%
+			
+:skip_fcj12
+:: конец блока для SFTP FCJ12
+
+IF /i NOT %ENVIRONMENT%==FCJ16 goto skip_fcj16
+
+set FCJ_PASS=fcjfcj16
+
+winscp.com /ini=nul /command ^
+								"open sftp://ofs:ofs@vs945.imb.ru/ -hostkey=""ssh-rsa 2048 32:ae:40:d9:31:5d:2a:60:9d:ee:a6:8a:67:e7:59:e1""" ^
+								"cd ../../oracle/u01/domains/fcj16_domain/servers/FCJ/tmp/_WL_user/FCUBSApp_12.0.3.5.4/e9jdck/war/UIXML/ENG/" ^
+								"put %FUNCTION_ID%\UIXML\ENG\%FUNCTION_ID%.xml" ^
+								"close" ^
+								"exit">>%LOG_FILE%
+								
+:: Upload of file 'CLDCOMPM.xml' was successful, but error occurred while setting the permissions and/or timestamp.
+:: If the problem persists, turn off setting permissions or preserving timestamp. Alternatively you can turn on 'Ignore permission errors' option.
+:: Permission denied.
+:: Error code: 3
+:: Error message from server: Permission denied
+:: (A)bort, (R)etry, (S)kip, Ski(p) all: Abort
+
+winscp.com /ini=nul /command ^
+								"open sftp://ofs:ofs@vs945.imb.ru/ -hostkey=""ssh-rsa 2048 32:ae:40:d9:31:5d:2a:60:9d:ee:a6:8a:67:e7:59:e1""" ^
+								"cd ../../oracle/u01/domains/fcj16_domain/servers/FCJ/tmp/_WL_user/FCUBSApp_12.0.3.5.4/e9jdck/war/Script/JS/" ^
+								"put %FUNCTION_ID%\JS\%FUNCTION_ID%_SYS.js" ^
+								"close" ^
+								"exit">>%LOG_FILE%
+								
+winscp.com /ini=nul /command ^
+								"open sftp://ofs:ofs@vs945.imb.ru/ -hostkey=""ssh-rsa 2048 32:ae:40:d9:31:5d:2a:60:9d:ee:a6:8a:67:e7:59:e1""" ^
+								"cd ../../oracle/u01/domains/fcj16_domain/servers/FCJ/tmp/_WL_user/FCUBSApp_12.0.3.5.4/e9jdck/war/Script/JS/" ^
+								"put %FUNCTION_ID%\JS\%FUNCTION_ID%_CUSTOM.js" ^
+								"close" ^
+								"exit">>%LOG_FILE%
+																
+winscp.com /ini=nul /command ^
+								"open sftp://ofs:ofs@vs945.imb.ru/ -hostkey=""ssh-rsa 2048 32:ae:40:d9:31:5d:2a:60:9d:ee:a6:8a:67:e7:59:e1""" ^
+								"cd ../../oracle/u01/domains/fcj16_domain/servers/FCJ/tmp/_WL_user/FCUBSApp_12.0.3.5.4/e9jdck/war/Script/JS/SYS" ^
+								"rm %FUNCTION_ID%_SYS.js" ^
+								"close" ^
+								"exit">>%LOG_FILE%
+			
+echo Files copied to FTP server %ENVIRONMENT%>>%LOG_FILE%
+			
+:skip_fcj16
+
+IF /i NOT %ENVIRONMENT%==FCJ02 goto skip_fcj02
+
+winscp.com /ini=nul /command ^
+								"open sftp://ofs:ofs@172.19.42.195/ -hostkey=""ssh-rsa 2048 0f:ba:4e:c4:e3:66:34:8a:31:49:1e:27:bf:fb:88:a0""" ^
+								"cd ../../u01/oracle/domains/fcj_domain_02/servers/FCJ/tmp/_WL_user/FCUBSApp_12.0.3.5.4/e9jdck/war/UIXML/ENG/" ^
+								"put %FUNCTION_ID%\UIXML\ENG\%FUNCTION_ID%.xml" ^
+								"cd ../../Script/JS/" ^
+								"put %FUNCTION_ID%\JS\%FUNCTION_ID%_SYS.js" ^
+								"put %FUNCTION_ID%\JS\%FUNCTION_ID%_CUSTOM.js" ^
+								"close" ^
+								"exit">>%LOG_FILE%
+								
+winscp.com /ini=nul /command ^
+								"open sftp://ofs:ofs@172.19.42.195/ -hostkey=""ssh-rsa 2048 0f:ba:4e:c4:e3:66:34:8a:31:49:1e:27:bf:fb:88:a0""" ^
+								"cd ../../u01/oracle/domains/fcj_domain_02/servers/FCJ/tmp/_WL_user/FCUBSApp_12.0.3.5.4/e9jdck/war/Script/JS/" ^
+								"put %FUNCTION_ID%\JS\%FUNCTION_ID%_SYS.js" ^
+								"close" ^
+								"exit">>%LOG_FILE%
+								
+winscp.com /ini=nul /command ^
+								"open sftp://ofs:ofs@172.19.42.195/ -hostkey=""ssh-rsa 2048 0f:ba:4e:c4:e3:66:34:8a:31:49:1e:27:bf:fb:88:a0""" ^
+								"cd ../../u01/oracle/domains/fcj_domain_02/servers/FCJ/tmp/_WL_user/FCUBSApp_12.0.3.5.4/e9jdck/war/Script/JS/" ^
+								"put %FUNCTION_ID%\JS\%FUNCTION_ID%_CUSTOM.js" ^
+								"close" ^
+								"exit">>%LOG_FILE%
+								
+winscp.com /ini=nul /command ^
+								"open sftp://ofs:ofs@172.19.42.195/ -hostkey=""ssh-rsa 2048 0f:ba:4e:c4:e3:66:34:8a:31:49:1e:27:bf:fb:88:a0""" ^
+								"cd ../../u01/oracle/domains/fcj_domain_02/servers/FCJ/tmp/_WL_user/FCUBSApp_12.0.3.5.4/e9jdck/war/Script/JS/SYS" ^
+								"rm %FUNCTION_ID%_SYS.js" ^
+								"close" ^
+								"exit">>%LOG_FILE%
+			
+echo Files copied to FTP server %ENVIRONMENT%>>%LOG_FILE%
+			
+:skip_fcj02
+
+IF /i NOT %ENVIRONMENT%==FCJ11 goto skip_fcj11
+
+winscp.com /ini=nul /command ^
+								"open sftp://ofs:ofs@vs945.imb.ru/ -hostkey=""ssh-rsa 2048 32:ae:40:d9:31:5d:2a:60:9d:ee:a6:8a:67:e7:59:e1""" ^
+								"cd ../../oracle/u01/domains/fcj11_domain/servers/FCJ/tmp/_WL_user/FCUBSApp_12.0.3.5.4/e9jdck/war/UIXML/ENG/" ^
+								"put %FUNCTION_ID%\UIXML\ENG\%FUNCTION_ID%.xml" ^
+								"cd ../../Script/JS/" ^
+								"put %FUNCTION_ID%\JS\%FUNCTION_ID%_SYS.js" ^
+								"put %FUNCTION_ID%\JS\%FUNCTION_ID%_CUSTOM.js" ^
+								"close" ^
+								"exit">>%LOG_FILE%
+								
+winscp.com /ini=nul /command ^
+								"open sftp://ofs:ofs@vs945.imb.ru/ -hostkey=""ssh-rsa 2048 32:ae:40:d9:31:5d:2a:60:9d:ee:a6:8a:67:e7:59:e1""" ^
+								"cd ../../oracle/u01/domains/fcj11_domain/servers/FCJ/tmp/_WL_user/FCUBSApp_12.0.3.5.4/e9jdck/war/Script/JS/SYS" ^
+								"rm %FUNCTION_ID%_SYS.js" ^
+								"close" ^
+								"exit">>%LOG_FILE%
+			
+echo Files copied to FTP server %ENVIRONMENT%>>%LOG_FILE%
+			
+:skip_fcj11
+
+IF /i NOT %ENVIRONMENT%==FCJ06 goto skip_fcj06
+
+winscp.com /ini=nul /command ^
+								"open sftp://ofs:ofs@172.19.42.195/ -hostkey=""ssh-rsa 2048 0f:ba:4e:c4:e3:66:34:8a:31:49:1e:27:bf:fb:88:a0""" ^
+								"cd ../../u01/oracle/domains/fcj06_domain/servers/FCJ/tmp/_WL_user/FCUBSApp_12.0.3.5.4/e9jdck/war/UIXML/ENG/" ^
+								"put %FUNCTION_ID%\UIXML\ENG\%FUNCTION_ID%.xml" ^
+								"close" ^
+								"exit">>%LOG_FILE%
+								
+winscp.com /ini=nul /command ^
+								"open sftp://ofs:ofs@172.19.42.195/ -hostkey=""ssh-rsa 2048 0f:ba:4e:c4:e3:66:34:8a:31:49:1e:27:bf:fb:88:a0""" ^
+								"cd ../../u01/oracle/domains/fcj06_domain/servers/FCJ/tmp/_WL_user/FCUBSApp_12.0.3.5.4/e9jdck/war/Script/JS/" ^
+								"put %FUNCTION_ID%\JS\%FUNCTION_ID%_SYS.js" ^
+								"close" ^
+								"exit">>%LOG_FILE%
+								
+winscp.com /ini=nul /command ^
+								"open sftp://ofs:ofs@172.19.42.195/ -hostkey=""ssh-rsa 2048 0f:ba:4e:c4:e3:66:34:8a:31:49:1e:27:bf:fb:88:a0""" ^
+								"cd ../../u01/oracle/domains/fcj06_domain/servers/FCJ/tmp/_WL_user/FCUBSApp_12.0.3.5.4/e9jdck/war/Script/JS/" ^
+								"put %FUNCTION_ID%\JS\%FUNCTION_ID%_CUSTOM.js" ^
+								"close" ^
+								"exit">>%LOG_FILE%
+								
+winscp.com /ini=nul /command ^
+								"open sftp://ofs:ofs@172.19.42.195/ -hostkey=""ssh-rsa 2048 0f:ba:4e:c4:e3:66:34:8a:31:49:1e:27:bf:fb:88:a0""" ^
+								"cd ../../u01/oracle/domains/fcj06_domain/servers/FCJ/tmp/_WL_user/FCUBSApp_12.0.3.5.4/e9jdck/war/Script/JS/SYS" ^
+								"rm %FUNCTION_ID%_SYS.js" ^
+								"close" ^
+								"exit">>%LOG_FILE%
+			
+echo Files copied to FTP server %ENVIRONMENT%>>%LOG_FILE%
+:skip_fcj06
+
+:: начало блока для SFTP FCJ10
+IF /i NOT %ENVIRONMENT%==FCJ10 goto skip_fcj10
+
+winscp.com /ini=nul /command ^
+								"open sftp://ofs:ofs@vs382.imb.ru/ -hostkey=""ssh-rsa 2048 cd:a2:5b:c8:ee:dc:92:5a:c2:4e:4d:af:ca:e1:f8:29""" ^
+								"cd ../../u01/oracle/domains/fcj10_domain/servers/FCJ/tmp/_WL_user/FCUBSApp_12.0.3.5.4/e9jdck/war/UIXML/ENG/" ^
+								"put %FUNCTION_ID%\UIXML\ENG\%FUNCTION_ID%.xml" ^
+								"cd ../../Script/JS/" ^
+								"put %FUNCTION_ID%\JS\%FUNCTION_ID%_SYS.js" ^
+								"put %FUNCTION_ID%\JS\%FUNCTION_ID%_CUSTOM.js" ^
+								"close" ^
+								"exit">>%LOG_FILE%
+								
+winscp.com /ini=nul /command ^
+								"open sftp://ofs:ofs@vs382.imb.ru/ -hostkey=""ssh-rsa 2048 cd:a2:5b:c8:ee:dc:92:5a:c2:4e:4d:af:ca:e1:f8:29""" ^
+								"cd ../../u01/oracle/domains/fcj10_domain/servers/FCJ/tmp/_WL_user/FCUBSApp_12.0.3.5.4/e9jdck/war/Script/JS/SYS" ^
+								"rm %FUNCTION_ID%_SYS.js" ^
+								"close" ^
+								"exit">>%LOG_FILE%
+			
+echo Files copied to FTP server %ENVIRONMENT%>>%LOG_FILE%
+			
+:skip_fcj10
+:: конец блока для SFTP FCJ12
+
+ECHO @@%FUNCTION_ID%\INC\CSTB_FID_DATA_BLOCKS__%FUNCTION_ID%.INC>%SQL_FILE%
+ECHO @@%FUNCTION_ID%\INC\CSTB_FID_DATA_SOURCES__%FUNCTION_ID%.INC>>%SQL_FILE%
+ECHO @@%FUNCTION_ID%\INC\CSTB_FID_SCR_TABS__%FUNCTION_ID%.INC>>%SQL_FILE%
+ECHO @@%FUNCTION_ID%\INC\CSTB_FID_SCREENS__%FUNCTION_ID%.INC>>%SQL_FILE%
+ECHO @@%FUNCTION_ID%\INC\CSTB_FIELD_LABELS__%FUNCTION_ID%.INC>>%SQL_FILE%
+ECHO @@%FUNCTION_ID%\INC\CSTB_OTHER_LABELS__%FUNCTION_ID%.INC>>%SQL_FILE%
+ECHO @@%FUNCTION_ID%\INC\CSTB_SUMMARY_INFO__%FUNCTION_ID%.INC>>%SQL_FILE%
+ECHO @@%FUNCTION_ID%\INC\CSTB_LOV_INFO__%FUNCTION_ID%.INC>>%SQL_FILE%
+ECHO @@%FUNCTION_ID%\INC\SMTB_FCC_FCJ_MAPPING__%FUNCTION_ID%.INC>>%SQL_FILE%
+ECHO @@%FUNCTION_ID%\INC\SMTB_FUNCTION_DESCRIPTION__%FUNCTION_ID%.INC>>%SQL_FILE%
+ECHO @@%FUNCTION_ID%\INC\SMTB_MENU__%FUNCTION_ID%.INC>>%SQL_FILE%
+ECHO @@%FUNCTION_ID%\INC\SMTB_ROLE_DETAIL__%FUNCTION_ID%.INC>>%SQL_FILE%
+ECHO @@%FUNCTION_ID%\INC\GWTB_AMEND_FIELDS__%FUNCTION_ID%.INC>>%SQL_FILE%
+ECHO @@%FUNCTION_ID%\INC\GWTB_AMEND_NODES__%FUNCTION_ID%.INC>>%SQL_FILE%
+ECHO @@%FUNCTION_ID%\INC\GWTM_AMEND_FIELDS__%FUNCTION_ID%.INC>>%SQL_FILE%
+ECHO @@%FUNCTION_ID%\INC\GWTM_AMEND_MASTER__%FUNCTION_ID%.INC>>%SQL_FILE%
+ECHO @@%FUNCTION_ID%\INC\GWTM_AMEND_NODES__%FUNCTION_ID%.INC>>%SQL_FILE%
+ECHO @@%FUNCTION_ID%\INC\STTB_AUDIT_PK_COLS__%FUNCTION_ID%.INC>>%SQL_FILE%
+ECHO @@%FUNCTION_ID%\SPC\%MODULE%pks_%FUNCTION_ID%_main.spc>>%SQL_FILE%
+ECHO @@%FUNCTION_ID%\SPC\%MODULE%pks_%FUNCTION_ID%_custom.spc>>%SQL_FILE%
+ECHO @@%FUNCTION_ID%\SQL\%MODULE%pks_%FUNCTION_ID%_custom.sql>>%SQL_FILE%
+ECHO @@%FUNCTION_ID%\SQL\%MODULE%pks_%FUNCTION_ID%_main.sql>>%SQL_FILE%
+ECHO exit>>%SQL_FILE%
+SET NLS_LANG=AMERICAN_AMERICA.AL32UTF8
+sqlplus fcj/%FCJ_PASS%@%ENVIRONMENT%.imb.ru @%SQL_FILE%>>%LOG_FILE%
+
+echo SQL scripts executed on server %ENVIRONMENT%>>%LOG_FILE%
+
+:: удаление файлов cookie;
+::RunDll32.exe InetCpl.cpl,ClearMyTracksByProcess 2
+:: очистка кэша браузера
+::RunDll32.exe InetCpl.cpl,ClearMyTracksByProcess 8
+:: очистка данных веб-форм
+::RunDll32.exe InetCpl.cpl,ClearMyTracksByProcess 16
+
+del /s /q /f %IE_CACHE_PATH%>>%LOG_FILE%
+
+echo IE cache cleared>>%LOG_FILE%
+
+:: как узнать путь? - about:cache
+
+del /s /q /f %FIREFOX_CACHE_PATH%>>%LOG_FILE%
+
+echo FireFox cache cleared>>%LOG_FILE%
+
+:skip_all
