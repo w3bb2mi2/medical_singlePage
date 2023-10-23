@@ -1,24 +1,330 @@
+CREATE OR REPLACE PACKAGE BODY stpks_stdcifac_custom AS
+     /*-----------------------------------------------------------------------------------------------------
+     **
+     ** File Name  : stpks_stdcifac_custom.sql
+     **
+     ** Module     : Static Maintenance
+     ** 
+     ** This source is part of the Oracle FLEXCUBE Software Product.
+     ** Copyright (R) 2008,2023 , Oracle and/or its affiliates.  All rights reserved
+     ** 
+     ** 
+     ** No part of this work may be reproduced, stored in a retrieval system, adopted 
+     ** or transmitted in any form or by any means, electronic, mechanical, 
+     ** photographic, graphic, optic recording or otherwise, translated in any 
+     ** language or computer language, without the prior written permission of 
+     ** Oracle and/or its affiliates. 
+     ** 
+     ** Oracle Financial Services Software Limited.
+     ** Oracle Park, Off Western Express Highway,
+     ** Goregaon (East), 
+     ** Mumbai - 400 063, India
+     ** India
+     -------------------------------------------------------------------------------------------------------
+     CHANGE HISTORY
+     
+     SFR Number         :  
+     Changed By         :  
+     Change Description :  
+     
+     -------------------------------------------------------------------------------------------------------
+     */
+     
 
-   PROCEDURE PR_Data_in_acc_tab (cust_no varchar2)
+   PROCEDURE Dbg(p_msg VARCHAR2)  IS
+      l_Msg     VARCHAR2(32767);
+   BEGIN
+      l_Msg := 'stpks_stdcifac_Custom ==>'||p_Msg;
+      Debug.Pr_Debug('ST' ,l_Msg);
+   END Dbg;
+
+   PROCEDURE Pr_Log_Error(p_Function_Id in VARCHAR2,p_Source VARCHAR2,p_Err_Code VARCHAR2, p_Err_Params VARCHAR2) IS
+   BEGIN
+      Cspks_Req_Utils.Pr_Log_Error(p_Source,p_Function_Id,p_Err_Code,p_Err_Params);
+   END Pr_Log_Error;
+   PROCEDURE Pr_Skip_Handler(p_Stage in VARCHAR2) IS
+   BEGIN
+      Dbg('In Pr_Skip_Handler..');
+   END Pr_Skip_Handler;
+   FUNCTION fn_Post_build_type_structure (p_Source    IN     VARCHAR2,
+                              p_Source_Operation  IN     VARCHAR2,
+                              p_Function_Id       IN     VARCHAR2,
+                              p_Action_Code       IN     VARCHAR2,
+      p_Child_Function    IN  VARCHAR2,
+      p_Addl_Info       IN Cspks_Req_Global.Ty_Addl_Info,
+      p_stdcifac     IN  OUT stpks_stdcifac_Main.ty_stdcifac,
+      p_Err_Code          IN OUT VARCHAR2,
+      p_Err_Params        IN OUT VARCHAR2)
+   RETURN BOOLEAN
       IS
    BEGIN
-      dbms_output.put_line(cust_no);
+
+      Dbg('In Fn_Post_Build_type_structure..');
+
+      Dbg('Returning Success From Fn_Post_Build_Type_Structure');
+      RETURN TRUE;
+   EXCEPTION
+      WHEN OTHERS THEN
+         Debug.Pr_Debug('**','In When Others Of stpks_stdcifac_Custom.Fn_Post_Build_type_structure ..');
+         Debug.Pr_Debug('**',SQLERRM);
+         p_Err_Code    := 'ST-OTHR-001';
+         p_Err_Params  := NULL;
+         RETURN FALSE;
+   END Fn_Post_Build_Type_Structure;
+
+   FUNCTION Fn_Pre_Check_Mandatory(p_Source    IN  VARCHAR2,
+                              p_Source_Operation  IN     VARCHAR2,
+                              p_Function_id       IN     VARCHAR2,
+                              p_Action_Code       IN     VARCHAR2,
+      p_Child_Function    IN  VARCHAR2,
+      p_stdcifac IN OUT  stpks_stdcifac_Main.Ty_stdcifac,
+      p_Err_Code       IN  OUT VARCHAR2,
+      p_Err_Params     IN  OUT VARCHAR2)
+   RETURN BOOLEAN
+
+      IS
+   BEGIN
+
+      Dbg('In Fn_Pre_Check_Mandatory');
+
+      Dbg('Returning Success From Fn_Pre_Check_Mandatory..');
+      RETURN TRUE;
+   EXCEPTION
+      WHEN OTHERS THEN
+         Debug.Pr_Debug('**','In When Others of stpks_stdcifac_Custom.Fn_Pre_Check_Mandatory ..');
+         Debug.Pr_Debug('**',SQLERRM);
+         p_Err_Code    := 'ST-OTHR-001';
+         p_Err_Params  := NULL;
+         RETURN FALSE;
+   END fn_pre_check_mandatory;
+
+   FUNCTION Fn_Post_Check_Mandatory(p_Source    IN  VARCHAR2,
+                              p_Source_Operation  IN     VARCHAR2,
+                              p_Function_Id       IN     VARCHAR2,
+                              p_Action_Code       IN     VARCHAR2,
+      p_Child_Function    IN  VARCHAR2,
+      p_Pk_Or_Full     IN  VARCHAR2 DEFAULT 'FULL',
+      p_stdcifac IN   stpks_stdcifac_Main.ty_stdcifac,
+      p_Err_Code       IN  OUT VARCHAR2,
+      p_Err_Params     IN  OUT VARCHAR2)
+   RETURN BOOLEAN
+
+      IS
+   BEGIN
+
+      Dbg('In Fn_Post_Check_Mandatory..');
+
+      Dbg('Returning Success From Fn_Post_Check_Mandatory..');
+      RETURN TRUE;
+   EXCEPTION
+      WHEN OTHERS THEN
+         Debug.Pr_Debug('**','In When Others of stpks_stdcifac_Custom.Fn_Post_Check_Mandatory ..');
+         Debug.Pr_Debug('**',SQLERRM);
+         p_Err_Code    := 'ST-OTHR-001';
+         p_Err_Params  := NULL;
+         RETURN FALSE;
+   END Fn_Post_Check_Mandatory;
+
+   FUNCTION Fn_Pre_Default_And_Validate (p_Source    IN  VARCHAR2,
+                              p_Source_Operation  IN     VARCHAR2,
+                              p_Function_Id       IN     VARCHAR2,
+                              p_Action_Code       IN     VARCHAR2,
+      p_Child_Function    IN  VARCHAR2,
+      p_stdcifac IN   stpks_stdcifac_Main.ty_stdcifac,
+      p_Prev_stdcifac IN OUT stpks_stdcifac_Main.ty_stdcifac,
+      p_Wrk_stdcifac IN OUT  stpks_stdcifac_Main.ty_stdcifac,
+      p_Err_Code       IN  OUT VARCHAR2,
+      p_Err_Params     IN  OUT VARCHAR2)
+   RETURN BOOLEAN
+      IS
+   BEGIN
+
+      Dbg('In Fn_Pre_Default_And_Validate..');
+
+      Dbg('Returning Success From fn_pre_default_and_validate..');
+      RETURN TRUE;
+   EXCEPTION
+      WHEN OTHERS THEN
+         Debug.Pr_Debug('**','In When Others of stpks_stdcifac_Custom.Fn_Pre_Default_And_Validate ..');
+         Debug.Pr_Debug('**',SQLERRM);
+         p_Err_Code    := 'ST-OTHR-001';
+         p_Err_Params  := NULL;
+         RETURN FALSE;
+   END Fn_Pre_Default_And_Validate;
+
+   FUNCTION Fn_Post_Default_And_Validate (p_Source    IN  VARCHAR2,
+                              p_Source_Operation  IN     VARCHAR2,
+                              p_Function_Id       IN     VARCHAR2,
+                              p_Action_Code       IN     VARCHAR2,
+      p_Child_Function    IN  VARCHAR2,
+      p_stdcifac IN   stpks_stdcifac_Main.Ty_stdcifac,
+      p_Prev_stdcifac IN OUT stpks_stdcifac_Main.Ty_stdcifac,
+      p_Wrk_stdcifac IN OUT  stpks_stdcifac_Main.Ty_stdcifac,
+      p_Err_Code       IN  OUT VARCHAR2,
+      p_Err_Params     IN  OUT VARCHAR2)
+   RETURN BOOLEAN
+      IS
+   BEGIN
+
+      Dbg('In Fn_Post_Default_And_Validate..');
+
+      Dbg('Returning Success From Fn_Post_Default_And_Validate..');
+      RETURN TRUE;
+   EXCEPTION
+      WHEN OTHERS THEN
+         Debug.Pr_Debug('**','In When Others of stpks_stdcifac_Custom.Fn_Post_Default_And_Validate ..');
+         Debug.Pr_Debug('**',SQLERRM);
+         p_Err_Code    := 'ST-OTHR-001';
+         p_Err_Params  := NULL;
+         RETURN FALSE;
+   END Fn_Post_Default_And_Validate;
+
+   FUNCTION Fn_Pre_Upload_Db (p_Source    IN  VARCHAR2,
+                              p_Source_Operation  IN     VARCHAR2,
+                              p_Function_Id       IN     VARCHAR2,
+                              p_Action_Code       IN     VARCHAR2,
+      p_Child_Function    IN  VARCHAR2,
+      p_Post_Upl_Stat    IN  VARCHAR2,
+      p_Multi_Trip_Id    IN  VARCHAR2,
+      p_stdcifac IN stpks_stdcifac_Main.Ty_stdcifac,
+      p_Prev_stdcifac IN stpks_stdcifac_Main.Ty_stdcifac,
+      p_Wrk_stdcifac IN OUT  stpks_stdcifac_Main.Ty_stdcifac,
+      p_Err_Code       IN  OUT VARCHAR2,
+      p_Err_Params     IN  OUT VARCHAR2)
+   RETURN BOOLEAN
+      IS
+   BEGIN
+
+      Dbg('In Fn_Pre_Upload_Db..');
+
+      Dbg('Returning Success From Fn_Pre_Upload_Db..');
+      RETURN TRUE;
+   EXCEPTION
+      WHEN OTHERS THEN
+         Debug.Pr_Debug('**','In When Others of stpks_stdcifac_Custom.Fn_Pre_Upload_Db ..');
+         Debug.Pr_Debug('**',SQLERRM);
+         p_Err_Code    := 'ST-OTHR-001';
+         p_Err_Params  := NULL;
+         RETURN FALSE;
+   END Fn_Pre_Upload_Db;
+
+   FUNCTION Fn_Post_Upload_Db (p_Source    IN  VARCHAR2,
+                              p_Source_Operation  IN     VARCHAR2,
+                              p_Function_Id       IN     VARCHAR2,
+                              p_Action_Code       IN     VARCHAR2,
+      p_Child_Function    IN  VARCHAR2,
+      p_Post_Upl_Stat    IN  VARCHAR2,
+      p_Multi_Trip_Id    IN  VARCHAR2,
+      p_stdcifac IN stpks_stdcifac_Main.Ty_stdcifac,
+      p_prev_stdcifac IN stpks_stdcifac_Main.Ty_stdcifac,
+      p_wrk_stdcifac IN OUT  stpks_stdcifac_Main.Ty_stdcifac,
+      p_Err_Code       IN  OUT VARCHAR2,
+      p_Err_Params     IN  OUT VARCHAR2)
+   RETURN BOOLEAN
+      IS
+   BEGIN
+
+      Dbg('In Fn_Post_Upload_Db..');
+
+      Dbg('Returning Success From Fn_Post_Upload_Db..');
+      RETURN TRUE;
+   EXCEPTION
+      WHEN OTHERS THEN
+         Debug.Pr_Debug('**','In When Others of stpks_stdcifac_Custom.Fn_Post_Upload_Db ..');
+         Debug.Pr_Debug('**',SQLERRM);
+         p_Err_Code    := 'ST-OTHR-001';
+         p_Err_Params  := NULL;
+         RETURN FALSE;
+   END Fn_Post_Upload_Db;
+
+   FUNCTION Fn_Pre_Query  ( p_Source    IN  VARCHAR2,
+                              p_Source_Operation  IN     VARCHAR2,
+                              p_Function_Id       IN     VARCHAR2,
+                              p_Action_Code       IN     VARCHAR2,
+      p_Child_Function    IN  VARCHAR2,
+      p_Full_Data     IN  VARCHAR2 DEFAULT 'Y',
+      p_With_Lock     IN  VARCHAR2 DEFAULT 'N',
+      p_QryData_Reqd IN  VARCHAR2 ,
+      p_stdcifac IN   stpks_stdcifac_Main.Ty_stdcifac,
+      p_Wrk_stdcifac IN OUT   stpks_stdcifac_Main.Ty_stdcifac,
+      p_Err_Code          IN OUT VARCHAR2,
+      p_Err_Params        IN OUT VARCHAR2)
+   RETURN BOOLEAN
+      IS
+   BEGIN
+      PR_Data_in_acc_tab  (p_stdcifac.v_sttm_customer_custom_add.customer_no);
+      Dbg('In Fn_Pre_Query..');
+
+      Dbg('Returning Success From Fn_Pre_Query..');
+      RETURN TRUE;
+   EXCEPTION
+      WHEN OTHERS THEN
+         Debug.Pr_Debug('**','In When Others of stpks_stdcifac_Custom.Fn_Pre_Query ..');
+         Debug.Pr_Debug('**',SQLERRM);
+         p_Err_Code    := 'ST-OTHR-001';
+         p_Err_Params  := NULL;
+         RETURN FALSE;
+   END Fn_Pre_Query;
+
+   FUNCTION Fn_Post_Query  ( p_Source    IN  VARCHAR2,
+                              p_Source_Operation  IN     VARCHAR2,
+                              p_Function_Id       IN     VARCHAR2,
+                              p_Action_Code       IN     VARCHAR2,
+      p_Child_Function    IN  VARCHAR2,
+      p_Full_Data     IN  VARCHAR2 DEFAULT 'Y',
+      p_With_Lock     IN  VARCHAR2 DEFAULT 'N',
+      p_QryData_Reqd IN  VARCHAR2 ,
+      p_stdcifac IN   stpks_stdcifac_Main.ty_stdcifac,
+      p_wrk_stdcifac IN OUT   stpks_stdcifac_Main.ty_stdcifac,
+      p_Err_Code          IN OUT VARCHAR2,
+      p_err_params        IN OUT VARCHAR2)
+   RETURN BOOLEAN
+      IS
+   BEGIN
+
+      Dbg('In Fn_Post_Query..');
+
+      Dbg('Returning Success From Fn_Post_Query..');
+      RETURN TRUE;
+   EXCEPTION
+      WHEN OTHERS THEN
+         Debug.Pr_Debug('**','In When others of stpks_stdcifac_Custom.Fn_Post_Query ..');
+         Debug.Pr_Debug('**',SQLERRM);
+         p_Err_Code    := 'ST-OTHR-001';
+         p_Err_Params  := NULL;
+         RETURN FALSE;
+   END Fn_Post_Query;
+
+   PROCEDURE PR_Data_in_acc_tab (CUSTOMER_NO varchar2)
+      IS
+   P_SP_ACC VARCHAR2(1);
+   BEGIN
       FOR rec in(
          select CA.BRANCH_CODE, CUST_NO, CA.CUST_AC_NO, CBR_AC_NO, RECORD_STAT
          from STTM_CUST_ACCOUNT CA
          JOIN STTM_CUST_ACCOUNT_CUSTOM CAC
          ON CA.CUST_AC_NO=CAC.CUST_AC_NO
-         WHERE CUST_NO=cust_no
+         WHERE CUST_NO=CUSTOMER_NO
          --AND RECORD_STAT='O'
       ) LOOP
-      dbms_output.put_line(cust_no);
-      dbms_output.put_line(rec.CUST_AC_NO);
-      dbms_output.put_line(rec.branch_code);
-      dbms_output.put_line(rec.CBR_AC_NO);
-      INSERT INTO STTB_STDCIFAC_ACCOUNT_INFO VALUES(
-         rec.CUST_AC_NO, rec.branch_code, rec.CBR_AC_NO, '', '', '',''
-      );
+         BEGIN
+            IF INSTR(rec.CUST_AC_NO, 'COAC1')>0 OR INSTR(rec.CUST_AC_NO, 'COAC3')>0 THEN
+               P_SP_ACC := 'Y';
+            ELSE
+               P_SP_ACC := 'N';
+            END IF;
+            INSERT INTO STTM_ACCOUNT_CUSTOM_ADD VALUES(
+               rec.CUST_AC_NO, rec.branch_code, rec.CBR_AC_NO, rec.CUST_NO, '', P_SP_ACC, '', ''
+            );
+         EXCEPTION
+            WHEN DUP_VAL_ON_INDEX THEN
+               DBMS_OUTPUT.PUT_LINE('Повторная репликация невозможна');
+               CONTINUE;
+         END;      
 
       END LOOP;
 
    END PR_Data_in_acc_tab;
+
+END stpks_stdcifac_custom;
+/
