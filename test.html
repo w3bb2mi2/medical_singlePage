@@ -1,330 +1,206 @@
-CREATE OR REPLACE PACKAGE BODY stpks_stdcifac_custom AS
-     /*-----------------------------------------------------------------------------------------------------
-     **
-     ** File Name  : stpks_stdcifac_custom.sql
-     **
-     ** Module     : Static Maintenance
-     ** 
-     ** This source is part of the Oracle FLEXCUBE Software Product.
-     ** Copyright (R) 2008,2023 , Oracle and/or its affiliates.  All rights reserved
-     ** 
-     ** 
-     ** No part of this work may be reproduced, stored in a retrieval system, adopted 
-     ** or transmitted in any form or by any means, electronic, mechanical, 
-     ** photographic, graphic, optic recording or otherwise, translated in any 
-     ** language or computer language, without the prior written permission of 
-     ** Oracle and/or its affiliates. 
-     ** 
-     ** Oracle Financial Services Software Limited.
-     ** Oracle Park, Off Western Express Highway,
-     ** Goregaon (East), 
-     ** Mumbai - 400 063, India
-     ** India
-     -------------------------------------------------------------------------------------------------------
-     CHANGE HISTORY
-     
-     SFR Number         :  
-     Changed By         :  
-     Change Description :  
-     
-     -------------------------------------------------------------------------------------------------------
-     */
-     
+function GET_LOAN_PENALTY_CALC (pLoan in varchar2, pDate in date, pComponent in varchar2, pUDE_ID in varchar2) return LOAN_PENALTY_CALC_tbl_t pipelined
+as
+    res_row          LOAN_PENALTY_CALC_row_t;
 
-   PROCEDURE Dbg(p_msg VARCHAR2)  IS
-      l_Msg     VARCHAR2(32767);
-   BEGIN
-      l_Msg := 'stpks_stdcifac_Custom ==>'||p_Msg;
-      Debug.Pr_Debug('ST' ,l_Msg);
-   END Dbg;
+    v_prev_OVD_AM         number;
+    v_prev_OVD_PAID_AM    number;
+begin
+    if pDate < v_loan_details.value_date then
+        res_row.ERROR_DESC := 'Report_date < Value_date';
+        pipe row(res_row);
+        return;
+    elsif v_loan_details.AUTH_STAT <> 'A' then
+        res_row.ERROR_DESC := 'Loan is under construction';
+        pipe row(res_row);
+    end if;
 
-   PROCEDURE Pr_Log_Error(p_Function_Id in VARCHAR2,p_Source VARCHAR2,p_Err_Code VARCHAR2, p_Err_Params VARCHAR2) IS
-   BEGIN
-      Cspks_Req_Utils.Pr_Log_Error(p_Source,p_Function_Id,p_Err_Code,p_Err_Params);
-   END Pr_Log_Error;
-   PROCEDURE Pr_Skip_Handler(p_Stage in VARCHAR2) IS
-   BEGIN
-      Dbg('In Pr_Skip_Handler..');
-   END Pr_Skip_Handler;
-   FUNCTION fn_Post_build_type_structure (p_Source    IN     VARCHAR2,
-                              p_Source_Operation  IN     VARCHAR2,
-                              p_Function_Id       IN     VARCHAR2,
-                              p_Action_Code       IN     VARCHAR2,
-      p_Child_Function    IN  VARCHAR2,
-      p_Addl_Info       IN Cspks_Req_Global.Ty_Addl_Info,
-      p_stdcifac     IN  OUT stpks_stdcifac_Main.ty_stdcifac,
-      p_Err_Code          IN OUT VARCHAR2,
-      p_Err_Params        IN OUT VARCHAR2)
-   RETURN BOOLEAN
-      IS
-   BEGIN
+    COLLECT_LOAN_DETAILS(pLoan);
+    -- Collect event_entries into variable for performance reason
+    COLLECT_EVENT_ENTRIES (pLoan);
 
-      Dbg('In Fn_Post_Build_type_structure..');
+    for i in (with d as (select from_date
+                              , date_type
+                              , sum(amt) amt
+                           from table(GET_ALL_LOANS (pLoan)) l
+                           join table(GET_PENALTY_DATES(l.account_number, pDate, pComponent, pUDE_ID)) p on 1=1
+                          where (TECH_LOAN_TYPE in ('H1','O1') and  pComponent = 'MAIN_INT')
+                             or (TECH_LOAN_TYPE in ('HA','OA') and  pComponent = 'PRINCIPAL')
+                             or (TECH_LOAN_TYPE is null)
+                          group by from_date, date_type
+                        )
+              select FROM_DATE
+                   , STSH_AMT
+                   , lead(OVD_PAID_AMT) over (order by FROM_DATE) OVD_PAID_AMT -- Поиск OVD_PAID_AM вести для дат TO _DATE, а не для дат FROM _DATE. S.Golovan, 23.04.2021
+                   , lead(FROM_DATE) over (order by FROM_DATE) TO_DATE
+                   , date_type
+                from (select FROM_DATE
+                           , sum(case when date_type='Overdue' then amt end) STSH_AMT
+                           , sum(case when date_type='Overdue payment' then amt end) OVD_PAID_AMT
+                           , LISTAGG (date_type , ', ')
+                              WITHIN GROUP (ORDER BY FROM_DATE desc) date_type
+                        from d
+                       where FROM_DATE >= (select min(FROM_DATE)
+                                             from d
+                                            where lower(date_type) like '%overdue%')
+                       group by FROM_DATE)
+               order by FROM_DATE)
+    loop
+        res_row := null;
 
-      Dbg('Returning Success From Fn_Post_Build_Type_Structure');
-      RETURN TRUE;
-   EXCEPTION
-      WHEN OTHERS THEN
-         Debug.Pr_Debug('**','In When Others Of stpks_stdcifac_Custom.Fn_Post_Build_type_structure ..');
-         Debug.Pr_Debug('**',SQLERRM);
-         p_Err_Code    := 'ST-OTHR-001';
-         p_Err_Params  := NULL;
-         RETURN FALSE;
-   END Fn_Post_Build_Type_Structure;
+        res_row.PARENT_ACCOUNT_NUMBER := pLoan;
+        res_row.FROM_DATE             := i.FROM_DATE;
+        res_row.TO_DATE               := i.TO_DATE;
+        -- Do not skip last row -- S.Golovan, 25.03.2021
+        if i.TO_DATE is null then
+            res_row.TO_DATE := nvl(pDate, v_loan_details.today);
+        end if;
+        res_row.ADD_INFO              := i.date_type;
+        res_row.STSH_AM               := i.STSH_AMT;
+        res_row.OVD_PAID_AM           := i.OVD_PAID_AMT;
 
-   FUNCTION Fn_Pre_Check_Mandatory(p_Source    IN  VARCHAR2,
-                              p_Source_Operation  IN     VARCHAR2,
-                              p_Function_id       IN     VARCHAR2,
-                              p_Action_Code       IN     VARCHAR2,
-      p_Child_Function    IN  VARCHAR2,
-      p_stdcifac IN OUT  stpks_stdcifac_Main.Ty_stdcifac,
-      p_Err_Code       IN  OUT VARCHAR2,
-      p_Err_Params     IN  OUT VARCHAR2)
-   RETURN BOOLEAN
+        if i.date_type like '%Holiday start-1%' -- Restructuring ODUE_INT->INT. S.Golovan, 14.05.21
+           and pComponent = 'MAIN_INT'
+        then
+            for i in (select * --#MULTIPLE_HOLIDAYS. D.Shatskiy, 21.04.2022
+                        from table(fn_get_all_holiday_details(pLoan))
+                       where res_row.TO_DATE between hol_start and hol_end
+                         and RES_TYPE = 'R43'
+                         and nvl(CAPITALIZATION_FLAG, '-') <> 'Y')
+            loop
+                declare
+                    v_restr_odue_int number;
+                begin
+                    select sum(amount)
+                      into v_restr_odue_int
+                      from table(v_event_entries)
+                     where account_number = pLoan
+                       and event_code = 'MLIQ'
+                       and AMOUNT_TAG = 'MAIN_INT_OLIQ'
+                       and STTL_ACC LIKE '%SALH1%' -- FCJ-683 SALH1
+                       and value_date <= i.hol_start
+                       and value_date > nvl(i.prev_hol_start, to_date('01.01.2000','dd.mm.yyyy'))
+                         ;
+                    res_row.OVD_PAID_AM := nvl(res_row.OVD_PAID_AM, 0) + nvl(v_restr_odue_int, 0);
+                    res_row.ADD_INFO := append_text(res_row.ADD_INFO, 'Restr.Odue_Int->Int:'||v_restr_odue_int);
+                    if nvl(v_restr_odue_int, 0) <> nvl(v_prev_OVD_AM,0) then
+                        res_row.error_desc := append_text(res_row.error_desc, 'Restr.Odue_Int<>OVD_AM ('||v_restr_odue_int||'<>'||v_prev_OVD_AM||')');
+                    end if;
+                end;
+            end loop;
+        end if;
 
-      IS
-   BEGIN
+        if v_prev_OVD_AM is null then -- First row
+            res_row.OVD_AM := nvl(res_row.STSH_AM,0);
+        else
+            res_row.OVD_AM := v_prev_OVD_AM + nvl(res_row.STSH_AM,0) - nvl(v_prev_OVD_PAID_AM, 0);
+        end if;
 
-      Dbg('In Fn_Pre_Check_Mandatory');
+        begin
+            SELECT UDE_VALUE
+              into res_row.PEN_RATE
+              from fcc.CLTB_ACCOUNT_UDE_VALUES u
+             WHERE ACCOUNT_NUMBER = pLoan
+               AND UDE_ID = pUDE_ID
+               and EFFECTIVE_DATE <= res_row.TO_DATE
+               and not exists (select 1
+                                 from fcc.CLTB_ACCOUNT_UDE_VALUES x
+                                where u.ACCOUNT_NUMBER = x.ACCOUNT_NUMBER
+                                  and u.UDE_ID = x.UDE_ID
+                                  and x.EFFECTIVE_DATE <= res_row.TO_DATE
+                                  and u.EFFECTIVE_DATE < x.EFFECTIVE_DATE)
+                 ;
+        exception
+            when NO_DATA_FOUND then
+                res_row.PEN_RATE := null;
+        end;
 
-      Dbg('Returning Success From Fn_Pre_Check_Mandatory..');
-      RETURN TRUE;
-   EXCEPTION
-      WHEN OTHERS THEN
-         Debug.Pr_Debug('**','In When Others of stpks_stdcifac_Custom.Fn_Pre_Check_Mandatory ..');
-         Debug.Pr_Debug('**',SQLERRM);
-         p_Err_Code    := 'ST-OTHR-001';
-         p_Err_Params  := NULL;
-         RETURN FALSE;
-   END fn_pre_check_mandatory;
+        if pUDE_ID = 'PENALTY_RATE' then
+            SELECT FIELD_CHAR_3  RATE_BASIS
+              into res_row.RATE_BASIS
+              FROM fcc.CLTB_ACCOUNT_master
+             WHERE ACCOUNT_NUMBER = pLoan
+                 ;
+        else -- INT_OVD_RATE
+            res_row.RATE_BASIS := 'ANNUAL';
 
-   FUNCTION Fn_Post_Check_Mandatory(p_Source    IN  VARCHAR2,
-                              p_Source_Operation  IN     VARCHAR2,
-                              p_Function_Id       IN     VARCHAR2,
-                              p_Action_Code       IN     VARCHAR2,
-      p_Child_Function    IN  VARCHAR2,
-      p_Pk_Or_Full     IN  VARCHAR2 DEFAULT 'FULL',
-      p_stdcifac IN   stpks_stdcifac_Main.ty_stdcifac,
-      p_Err_Code       IN  OUT VARCHAR2,
-      p_Err_Params     IN  OUT VARCHAR2)
-   RETURN BOOLEAN
+            begin -- из кредита ОА - в период каникул. S.Golovan, 23.04.2021
+                SELECT UDE_VALUE
+                  into res_row.PEN_RATE
+                  from table(fn_get_all_holiday_details(pLoan)) h                          -- #MULTIPLE_HOLIDAYS
+                  join fcc.CLTB_ACCOUNT_UDE_VALUES u on h.loan_oa = u.ACCOUNT_NUMBER
+                                                    and res_row.FROM_DATE >= h.hol_start-1 -- #MULTIPLE_HOLIDAYS
+                                                    and res_row.TO_DATE <= h.hol_end       -- #MULTIPLE_HOLIDAYS
+                 WHERE 1=1
+                   AND UDE_ID = pUDE_ID
+                   and EFFECTIVE_DATE <= res_row.TO_DATE
+                   and not exists (select 1
+                                     from fcc.CLTB_ACCOUNT_UDE_VALUES x
+                                    where u.ACCOUNT_NUMBER = x.ACCOUNT_NUMBER
+                                      and u.UDE_ID = x.UDE_ID
+                                      and x.EFFECTIVE_DATE <= res_row.TO_DATE
+                                      and u.EFFECTIVE_DATE < x.EFFECTIVE_DATE)
+                     ;
+            exception
+                when NO_DATA_FOUND then
+                    null;
+--                when TOO_MANY_ROWS then
+--                    dbms_output.put_line('res_row.FROM_DATE='||res_row.FROM_DATE||', res_row.TO_DATE='||res_row.TO_DATE||', pLoan='||pLoan||', pUDE_ID='||pUDE_ID);
+--                    raise;
+            end;
+        end if;
 
-      IS
-   BEGIN
+        res_row.AMOUNT_ACCR :=  round(res_row.OVD_AM
+                                    * res_row.PEN_RATE/100
+                                    * (res_row.TO_DATE-res_row.FROM_DATE)
+                                    / case when res_row.RATE_BASIS = 'ANNUAL' then GET_DAYS_IN_YEAR(res_row.TO_DATE)
+                                           else 1
+                                      end
+                                , 2);
 
-      Dbg('In Fn_Post_Check_Mandatory..');
+        if res_row.ADD_INFO like '%Last date%'
+        then
+            for i in (select * -- Phone call with S.Golovan, 22.04.2022
+                        from dual
+                       where not (exists (select *
+                                            from table(FCCUCB.LH_REP2361_v6.fn_get_all_holiday_details(pLoan)) h
+                                           where res_type = 'R43' and nvl(CAPITALIZATION_FLAG, '-') <> 'Y'  -- Holidays exist
+                                             and not exists(select *                                        -- But all of them R43 without capitalization
+                                                              from table(FCCUCB.LH_REP2361_v6.fn_get_all_holiday_details(pLoan)) h
+                                                             where not(res_type = 'R43' and nvl(CAPITALIZATION_FLAG, '-') <> 'Y')))
+                                  and pComponent = 'MAIN_INT'
+                                  and res_row.OVD_AM = 0))
+            loop
+                declare
+                    v_BREAKUP_odue number;
+                begin
+                    SELECT sum(balance) -- Last OVD1+Last OVD2 - S.Golovan, 27.01.2020
+                      into v_BREAKUP_odue
+                      from (select balance
+                                 , row_number() over (partition by b.account_number, STATUS_CODE order by creation_date desc) rn
+                              FROM table(GET_ALL_LOANS(pLoan)) t
+                              join fcc.CLTB_ACCOUNT_COMP_BAL_BREAKUP b on t.account_number = b.account_number
+                             WHERE STATUS_CODE IN ('OVD1', 'OVD2')
+                               AND GAAP_INDICATOR = 'AL'
+                               AND component = GET_COMPONENT(pComponent, t.tech_loan_type)
+                               AND CREATION_DATE <= res_row.TO_DATE
+                               AND (t.TECH_LOAN_TYPE is null
+                                    or (t.TECH_LOAN_TYPE in ('HA','OA') and pComponent = 'PRINCIPAL')
+                                    or (t.TECH_LOAN_TYPE in ('H1','O1') and pComponent = 'MAIN_INT')))
+                     where rn =1
+                         ;
+                    if res_row.OVD_AM <> v_BREAKUP_odue then
+                        res_row.error_desc := res_row.error_desc||'OVD_AM<>CLTB_ACCOUNT_COMP_BAL_BREAKUP.BALANCE ('||res_row.OVD_AM||'<>'||v_BREAKUP_odue||')';
+                    end if;
+                exception
+                    when NO_DATA_FOUND then
+                        res_row.error_desc := res_row.error_desc||'No CLTB_ACCOUNT_COMP_BAL_BREAKUP data';
+                end;
+            end loop;
+        end if;
 
-      Dbg('Returning Success From Fn_Post_Check_Mandatory..');
-      RETURN TRUE;
-   EXCEPTION
-      WHEN OTHERS THEN
-         Debug.Pr_Debug('**','In When Others of stpks_stdcifac_Custom.Fn_Post_Check_Mandatory ..');
-         Debug.Pr_Debug('**',SQLERRM);
-         p_Err_Code    := 'ST-OTHR-001';
-         p_Err_Params  := NULL;
-         RETURN FALSE;
-   END Fn_Post_Check_Mandatory;
+        pipe row(res_row);
 
-   FUNCTION Fn_Pre_Default_And_Validate (p_Source    IN  VARCHAR2,
-                              p_Source_Operation  IN     VARCHAR2,
-                              p_Function_Id       IN     VARCHAR2,
-                              p_Action_Code       IN     VARCHAR2,
-      p_Child_Function    IN  VARCHAR2,
-      p_stdcifac IN   stpks_stdcifac_Main.ty_stdcifac,
-      p_Prev_stdcifac IN OUT stpks_stdcifac_Main.ty_stdcifac,
-      p_Wrk_stdcifac IN OUT  stpks_stdcifac_Main.ty_stdcifac,
-      p_Err_Code       IN  OUT VARCHAR2,
-      p_Err_Params     IN  OUT VARCHAR2)
-   RETURN BOOLEAN
-      IS
-   BEGIN
-
-      Dbg('In Fn_Pre_Default_And_Validate..');
-
-      Dbg('Returning Success From fn_pre_default_and_validate..');
-      RETURN TRUE;
-   EXCEPTION
-      WHEN OTHERS THEN
-         Debug.Pr_Debug('**','In When Others of stpks_stdcifac_Custom.Fn_Pre_Default_And_Validate ..');
-         Debug.Pr_Debug('**',SQLERRM);
-         p_Err_Code    := 'ST-OTHR-001';
-         p_Err_Params  := NULL;
-         RETURN FALSE;
-   END Fn_Pre_Default_And_Validate;
-
-   FUNCTION Fn_Post_Default_And_Validate (p_Source    IN  VARCHAR2,
-                              p_Source_Operation  IN     VARCHAR2,
-                              p_Function_Id       IN     VARCHAR2,
-                              p_Action_Code       IN     VARCHAR2,
-      p_Child_Function    IN  VARCHAR2,
-      p_stdcifac IN   stpks_stdcifac_Main.Ty_stdcifac,
-      p_Prev_stdcifac IN OUT stpks_stdcifac_Main.Ty_stdcifac,
-      p_Wrk_stdcifac IN OUT  stpks_stdcifac_Main.Ty_stdcifac,
-      p_Err_Code       IN  OUT VARCHAR2,
-      p_Err_Params     IN  OUT VARCHAR2)
-   RETURN BOOLEAN
-      IS
-   BEGIN
-
-      Dbg('In Fn_Post_Default_And_Validate..');
-
-      Dbg('Returning Success From Fn_Post_Default_And_Validate..');
-      RETURN TRUE;
-   EXCEPTION
-      WHEN OTHERS THEN
-         Debug.Pr_Debug('**','In When Others of stpks_stdcifac_Custom.Fn_Post_Default_And_Validate ..');
-         Debug.Pr_Debug('**',SQLERRM);
-         p_Err_Code    := 'ST-OTHR-001';
-         p_Err_Params  := NULL;
-         RETURN FALSE;
-   END Fn_Post_Default_And_Validate;
-
-   FUNCTION Fn_Pre_Upload_Db (p_Source    IN  VARCHAR2,
-                              p_Source_Operation  IN     VARCHAR2,
-                              p_Function_Id       IN     VARCHAR2,
-                              p_Action_Code       IN     VARCHAR2,
-      p_Child_Function    IN  VARCHAR2,
-      p_Post_Upl_Stat    IN  VARCHAR2,
-      p_Multi_Trip_Id    IN  VARCHAR2,
-      p_stdcifac IN stpks_stdcifac_Main.Ty_stdcifac,
-      p_Prev_stdcifac IN stpks_stdcifac_Main.Ty_stdcifac,
-      p_Wrk_stdcifac IN OUT  stpks_stdcifac_Main.Ty_stdcifac,
-      p_Err_Code       IN  OUT VARCHAR2,
-      p_Err_Params     IN  OUT VARCHAR2)
-   RETURN BOOLEAN
-      IS
-   BEGIN
-
-      Dbg('In Fn_Pre_Upload_Db..');
-
-      Dbg('Returning Success From Fn_Pre_Upload_Db..');
-      RETURN TRUE;
-   EXCEPTION
-      WHEN OTHERS THEN
-         Debug.Pr_Debug('**','In When Others of stpks_stdcifac_Custom.Fn_Pre_Upload_Db ..');
-         Debug.Pr_Debug('**',SQLERRM);
-         p_Err_Code    := 'ST-OTHR-001';
-         p_Err_Params  := NULL;
-         RETURN FALSE;
-   END Fn_Pre_Upload_Db;
-
-   FUNCTION Fn_Post_Upload_Db (p_Source    IN  VARCHAR2,
-                              p_Source_Operation  IN     VARCHAR2,
-                              p_Function_Id       IN     VARCHAR2,
-                              p_Action_Code       IN     VARCHAR2,
-      p_Child_Function    IN  VARCHAR2,
-      p_Post_Upl_Stat    IN  VARCHAR2,
-      p_Multi_Trip_Id    IN  VARCHAR2,
-      p_stdcifac IN stpks_stdcifac_Main.Ty_stdcifac,
-      p_prev_stdcifac IN stpks_stdcifac_Main.Ty_stdcifac,
-      p_wrk_stdcifac IN OUT  stpks_stdcifac_Main.Ty_stdcifac,
-      p_Err_Code       IN  OUT VARCHAR2,
-      p_Err_Params     IN  OUT VARCHAR2)
-   RETURN BOOLEAN
-      IS
-   BEGIN
-
-      Dbg('In Fn_Post_Upload_Db..');
-
-      Dbg('Returning Success From Fn_Post_Upload_Db..');
-      RETURN TRUE;
-   EXCEPTION
-      WHEN OTHERS THEN
-         Debug.Pr_Debug('**','In When Others of stpks_stdcifac_Custom.Fn_Post_Upload_Db ..');
-         Debug.Pr_Debug('**',SQLERRM);
-         p_Err_Code    := 'ST-OTHR-001';
-         p_Err_Params  := NULL;
-         RETURN FALSE;
-   END Fn_Post_Upload_Db;
-
-   FUNCTION Fn_Pre_Query  ( p_Source    IN  VARCHAR2,
-                              p_Source_Operation  IN     VARCHAR2,
-                              p_Function_Id       IN     VARCHAR2,
-                              p_Action_Code       IN     VARCHAR2,
-      p_Child_Function    IN  VARCHAR2,
-      p_Full_Data     IN  VARCHAR2 DEFAULT 'Y',
-      p_With_Lock     IN  VARCHAR2 DEFAULT 'N',
-      p_QryData_Reqd IN  VARCHAR2 ,
-      p_stdcifac IN   stpks_stdcifac_Main.Ty_stdcifac,
-      p_Wrk_stdcifac IN OUT   stpks_stdcifac_Main.Ty_stdcifac,
-      p_Err_Code          IN OUT VARCHAR2,
-      p_Err_Params        IN OUT VARCHAR2)
-   RETURN BOOLEAN
-      IS
-   BEGIN
-      PR_Data_in_acc_tab  (p_stdcifac.v_sttm_customer_custom_add.customer_no);
-      Dbg('In Fn_Pre_Query..');
-
-      Dbg('Returning Success From Fn_Pre_Query..');
-      RETURN TRUE;
-   EXCEPTION
-      WHEN OTHERS THEN
-         Debug.Pr_Debug('**','In When Others of stpks_stdcifac_Custom.Fn_Pre_Query ..');
-         Debug.Pr_Debug('**',SQLERRM);
-         p_Err_Code    := 'ST-OTHR-001';
-         p_Err_Params  := NULL;
-         RETURN FALSE;
-   END Fn_Pre_Query;
-
-   FUNCTION Fn_Post_Query  ( p_Source    IN  VARCHAR2,
-                              p_Source_Operation  IN     VARCHAR2,
-                              p_Function_Id       IN     VARCHAR2,
-                              p_Action_Code       IN     VARCHAR2,
-      p_Child_Function    IN  VARCHAR2,
-      p_Full_Data     IN  VARCHAR2 DEFAULT 'Y',
-      p_With_Lock     IN  VARCHAR2 DEFAULT 'N',
-      p_QryData_Reqd IN  VARCHAR2 ,
-      p_stdcifac IN   stpks_stdcifac_Main.ty_stdcifac,
-      p_wrk_stdcifac IN OUT   stpks_stdcifac_Main.ty_stdcifac,
-      p_Err_Code          IN OUT VARCHAR2,
-      p_err_params        IN OUT VARCHAR2)
-   RETURN BOOLEAN
-      IS
-   BEGIN
-
-      Dbg('In Fn_Post_Query..');
-
-      Dbg('Returning Success From Fn_Post_Query..');
-      RETURN TRUE;
-   EXCEPTION
-      WHEN OTHERS THEN
-         Debug.Pr_Debug('**','In When others of stpks_stdcifac_Custom.Fn_Post_Query ..');
-         Debug.Pr_Debug('**',SQLERRM);
-         p_Err_Code    := 'ST-OTHR-001';
-         p_Err_Params  := NULL;
-         RETURN FALSE;
-   END Fn_Post_Query;
-
-   PROCEDURE PR_Data_in_acc_tab (CUSTOMER_NO varchar2)
-      IS
-   P_SP_ACC VARCHAR2(1);
-   BEGIN
-      FOR rec in(
-         select CA.BRANCH_CODE, CUST_NO, CA.CUST_AC_NO, CBR_AC_NO, RECORD_STAT
-         from STTM_CUST_ACCOUNT CA
-         JOIN STTM_CUST_ACCOUNT_CUSTOM CAC
-         ON CA.CUST_AC_NO=CAC.CUST_AC_NO
-         WHERE CUST_NO=CUSTOMER_NO
-         --AND RECORD_STAT='O'
-      ) LOOP
-         BEGIN
-            IF INSTR(rec.CUST_AC_NO, 'COAC1')>0 OR INSTR(rec.CUST_AC_NO, 'COAC3')>0 THEN
-               P_SP_ACC := 'Y';
-            ELSE
-               P_SP_ACC := 'N';
-            END IF;
-            INSERT INTO STTM_ACCOUNT_CUSTOM_ADD VALUES(
-               rec.CUST_AC_NO, rec.branch_code, rec.CBR_AC_NO, rec.CUST_NO, '', P_SP_ACC, '', ''
-            );
-         EXCEPTION
-            WHEN DUP_VAL_ON_INDEX THEN
-               DBMS_OUTPUT.PUT_LINE('Повторная репликация невозможна');
-               CONTINUE;
-         END;      
-
-      END LOOP;
-
-   END PR_Data_in_acc_tab;
-
-END stpks_stdcifac_custom;
-/
+        v_prev_OVD_AM      := res_row.OVD_AM;
+        v_prev_OVD_PAID_AM := res_row.OVD_PAID_AM;
+    end loop;
+end;
