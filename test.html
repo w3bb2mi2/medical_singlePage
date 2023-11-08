@@ -1,206 +1,30 @@
-function GET_LOAN_PENALTY_CALC (pLoan in varchar2, pDate in date, pComponent in varchar2, pUDE_ID in varchar2) return LOAN_PENALTY_CALC_tbl_t pipelined
-as
-    res_row          LOAN_PENALTY_CALC_row_t;
-
-    v_prev_OVD_AM         number;
-    v_prev_OVD_PAID_AM    number;
-begin
-    if pDate < v_loan_details.value_date then
-        res_row.ERROR_DESC := 'Report_date < Value_date';
-        pipe row(res_row);
-        return;
-    elsif v_loan_details.AUTH_STAT <> 'A' then
-        res_row.ERROR_DESC := 'Loan is under construction';
-        pipe row(res_row);
-    end if;
-
-    COLLECT_LOAN_DETAILS(pLoan);
-    -- Collect event_entries into variable for performance reason
-    COLLECT_EVENT_ENTRIES (pLoan);
-
-    for i in (with d as (select from_date
-                              , date_type
-                              , sum(amt) amt
-                           from table(GET_ALL_LOANS (pLoan)) l
-                           join table(GET_PENALTY_DATES(l.account_number, pDate, pComponent, pUDE_ID)) p on 1=1
-                          where (TECH_LOAN_TYPE in ('H1','O1') and  pComponent = 'MAIN_INT')
-                             or (TECH_LOAN_TYPE in ('HA','OA') and  pComponent = 'PRINCIPAL')
-                             or (TECH_LOAN_TYPE is null)
-                          group by from_date, date_type
-                        )
-              select FROM_DATE
-                   , STSH_AMT
-                   , lead(OVD_PAID_AMT) over (order by FROM_DATE) OVD_PAID_AMT -- Поиск OVD_PAID_AM вести для дат TO _DATE, а не для дат FROM _DATE. S.Golovan, 23.04.2021
-                   , lead(FROM_DATE) over (order by FROM_DATE) TO_DATE
-                   , date_type
-                from (select FROM_DATE
-                           , sum(case when date_type='Overdue' then amt end) STSH_AMT
-                           , sum(case when date_type='Overdue payment' then amt end) OVD_PAID_AMT
-                           , LISTAGG (date_type , ', ')
-                              WITHIN GROUP (ORDER BY FROM_DATE desc) date_type
-                        from d
-                       where FROM_DATE >= (select min(FROM_DATE)
-                                             from d
-                                            where lower(date_type) like '%overdue%')
-                       group by FROM_DATE)
-               order by FROM_DATE)
-    loop
-        res_row := null;
-
-        res_row.PARENT_ACCOUNT_NUMBER := pLoan;
-        res_row.FROM_DATE             := i.FROM_DATE;
-        res_row.TO_DATE               := i.TO_DATE;
-        -- Do not skip last row -- S.Golovan, 25.03.2021
-        if i.TO_DATE is null then
-            res_row.TO_DATE := nvl(pDate, v_loan_details.today);
-        end if;
-        res_row.ADD_INFO              := i.date_type;
-        res_row.STSH_AM               := i.STSH_AMT;
-        res_row.OVD_PAID_AM           := i.OVD_PAID_AMT;
-
-        if i.date_type like '%Holiday start-1%' -- Restructuring ODUE_INT->INT. S.Golovan, 14.05.21
-           and pComponent = 'MAIN_INT'
-        then
-            for i in (select * --#MULTIPLE_HOLIDAYS. D.Shatskiy, 21.04.2022
-                        from table(fn_get_all_holiday_details(pLoan))
-                       where res_row.TO_DATE between hol_start and hol_end
-                         and RES_TYPE = 'R43'
-                         and nvl(CAPITALIZATION_FLAG, '-') <> 'Y')
-            loop
-                declare
-                    v_restr_odue_int number;
-                begin
-                    select sum(amount)
-                      into v_restr_odue_int
-                      from table(v_event_entries)
-                     where account_number = pLoan
-                       and event_code = 'MLIQ'
-                       and AMOUNT_TAG = 'MAIN_INT_OLIQ'
-                       and STTL_ACC LIKE '%SALH1%' -- FCJ-683 SALH1
-                       and value_date <= i.hol_start
-                       and value_date > nvl(i.prev_hol_start, to_date('01.01.2000','dd.mm.yyyy'))
-                         ;
-                    res_row.OVD_PAID_AM := nvl(res_row.OVD_PAID_AM, 0) + nvl(v_restr_odue_int, 0);
-                    res_row.ADD_INFO := append_text(res_row.ADD_INFO, 'Restr.Odue_Int->Int:'||v_restr_odue_int);
-                    if nvl(v_restr_odue_int, 0) <> nvl(v_prev_OVD_AM,0) then
-                        res_row.error_desc := append_text(res_row.error_desc, 'Restr.Odue_Int<>OVD_AM ('||v_restr_odue_int||'<>'||v_prev_OVD_AM||')');
-                    end if;
-                end;
-            end loop;
-        end if;
-
-        if v_prev_OVD_AM is null then -- First row
-            res_row.OVD_AM := nvl(res_row.STSH_AM,0);
-        else
-            res_row.OVD_AM := v_prev_OVD_AM + nvl(res_row.STSH_AM,0) - nvl(v_prev_OVD_PAID_AM, 0);
-        end if;
-
-        begin
-            SELECT UDE_VALUE
-              into res_row.PEN_RATE
-              from fcc.CLTB_ACCOUNT_UDE_VALUES u
-             WHERE ACCOUNT_NUMBER = pLoan
-               AND UDE_ID = pUDE_ID
-               and EFFECTIVE_DATE <= res_row.TO_DATE
-               and not exists (select 1
-                                 from fcc.CLTB_ACCOUNT_UDE_VALUES x
-                                where u.ACCOUNT_NUMBER = x.ACCOUNT_NUMBER
-                                  and u.UDE_ID = x.UDE_ID
-                                  and x.EFFECTIVE_DATE <= res_row.TO_DATE
-                                  and u.EFFECTIVE_DATE < x.EFFECTIVE_DATE)
-                 ;
-        exception
-            when NO_DATA_FOUND then
-                res_row.PEN_RATE := null;
-        end;
-
-        if pUDE_ID = 'PENALTY_RATE' then
-            SELECT FIELD_CHAR_3  RATE_BASIS
-              into res_row.RATE_BASIS
-              FROM fcc.CLTB_ACCOUNT_master
-             WHERE ACCOUNT_NUMBER = pLoan
-                 ;
-        else -- INT_OVD_RATE
-            res_row.RATE_BASIS := 'ANNUAL';
-
-            begin -- из кредита ОА - в период каникул. S.Golovan, 23.04.2021
-                SELECT UDE_VALUE
-                  into res_row.PEN_RATE
-                  from table(fn_get_all_holiday_details(pLoan)) h                          -- #MULTIPLE_HOLIDAYS
-                  join fcc.CLTB_ACCOUNT_UDE_VALUES u on h.loan_oa = u.ACCOUNT_NUMBER
-                                                    and res_row.FROM_DATE >= h.hol_start-1 -- #MULTIPLE_HOLIDAYS
-                                                    and res_row.TO_DATE <= h.hol_end       -- #MULTIPLE_HOLIDAYS
-                 WHERE 1=1
-                   AND UDE_ID = pUDE_ID
-                   and EFFECTIVE_DATE <= res_row.TO_DATE
-                   and not exists (select 1
-                                     from fcc.CLTB_ACCOUNT_UDE_VALUES x
-                                    where u.ACCOUNT_NUMBER = x.ACCOUNT_NUMBER
-                                      and u.UDE_ID = x.UDE_ID
-                                      and x.EFFECTIVE_DATE <= res_row.TO_DATE
-                                      and u.EFFECTIVE_DATE < x.EFFECTIVE_DATE)
-                     ;
-            exception
-                when NO_DATA_FOUND then
-                    null;
---                when TOO_MANY_ROWS then
---                    dbms_output.put_line('res_row.FROM_DATE='||res_row.FROM_DATE||', res_row.TO_DATE='||res_row.TO_DATE||', pLoan='||pLoan||', pUDE_ID='||pUDE_ID);
---                    raise;
-            end;
-        end if;
-
-        res_row.AMOUNT_ACCR :=  round(res_row.OVD_AM
-                                    * res_row.PEN_RATE/100
-                                    * (res_row.TO_DATE-res_row.FROM_DATE)
-                                    / case when res_row.RATE_BASIS = 'ANNUAL' then GET_DAYS_IN_YEAR(res_row.TO_DATE)
-                                           else 1
-                                      end
-                                , 2);
-
-        if res_row.ADD_INFO like '%Last date%'
-        then
-            for i in (select * -- Phone call with S.Golovan, 22.04.2022
-                        from dual
-                       where not (exists (select *
-                                            from table(FCCUCB.LH_REP2361_v6.fn_get_all_holiday_details(pLoan)) h
-                                           where res_type = 'R43' and nvl(CAPITALIZATION_FLAG, '-') <> 'Y'  -- Holidays exist
-                                             and not exists(select *                                        -- But all of them R43 without capitalization
-                                                              from table(FCCUCB.LH_REP2361_v6.fn_get_all_holiday_details(pLoan)) h
-                                                             where not(res_type = 'R43' and nvl(CAPITALIZATION_FLAG, '-') <> 'Y')))
-                                  and pComponent = 'MAIN_INT'
-                                  and res_row.OVD_AM = 0))
-            loop
-                declare
-                    v_BREAKUP_odue number;
-                begin
-                    SELECT sum(balance) -- Last OVD1+Last OVD2 - S.Golovan, 27.01.2020
-                      into v_BREAKUP_odue
-                      from (select balance
-                                 , row_number() over (partition by b.account_number, STATUS_CODE order by creation_date desc) rn
-                              FROM table(GET_ALL_LOANS(pLoan)) t
-                              join fcc.CLTB_ACCOUNT_COMP_BAL_BREAKUP b on t.account_number = b.account_number
-                             WHERE STATUS_CODE IN ('OVD1', 'OVD2')
-                               AND GAAP_INDICATOR = 'AL'
-                               AND component = GET_COMPONENT(pComponent, t.tech_loan_type)
-                               AND CREATION_DATE <= res_row.TO_DATE
-                               AND (t.TECH_LOAN_TYPE is null
-                                    or (t.TECH_LOAN_TYPE in ('HA','OA') and pComponent = 'PRINCIPAL')
-                                    or (t.TECH_LOAN_TYPE in ('H1','O1') and pComponent = 'MAIN_INT')))
-                     where rn =1
-                         ;
-                    if res_row.OVD_AM <> v_BREAKUP_odue then
-                        res_row.error_desc := res_row.error_desc||'OVD_AM<>CLTB_ACCOUNT_COMP_BAL_BREAKUP.BALANCE ('||res_row.OVD_AM||'<>'||v_BREAKUP_odue||')';
-                    end if;
-                exception
-                    when NO_DATA_FOUND then
-                        res_row.error_desc := res_row.error_desc||'No CLTB_ACCOUNT_COMP_BAL_BREAKUP data';
-                end;
-            end loop;
-        end if;
-
-        pipe row(res_row);
-
-        v_prev_OVD_AM      := res_row.OVD_AM;
-        v_prev_OVD_PAID_AM := res_row.OVD_PAID_AM;
-    end loop;
-end;
+SCHEMA=FCJBA
+TYPE=SQL
+SCHEMA=FCJBA
+@/FCJBA/DDL/BATM_ACCOUNT_RESTR_CUSTOM_0003_rollback.ddl
+@/FCJBA/DDL/BATH_ACCOUNT_RESTR_CUSTOM_0003_rollback.ddl
+@/FCJBA/DDL/batm_initiator_dictionary_rollback.ddl
+MASTER@/FCJBA/TRG/BATR_ACCOUNT_ARREST_BU.trg
+MASTER@/FCJBA/VW/BAVW_RESTRICTIONS_SUMMARY.vw
+SCHEMA=FCJ
+@/FCJ/INC/cstb_labels_0001_rollback.inc
+@/FCJ/INC/ERTB_MSGS_0006_rollback.inc
+@/FCJ/SYN/batms_initiator_dict_custom_rollback.syn
+MASTER@/FCJ/FORMS/BADACRST/INC/CSTB_FID_DATA_BLOCKS__BADACRST.INC
+MASTER@/FCJ/FORMS/BADACRST/INC/CSTB_FID_DATA_SOURCES__BADACRST.INC
+MASTER@/FCJ/FORMS/BADACRST/INC/CSTB_FID_SCR_TABS__BADACRST.INC
+MASTER@/FCJ/FORMS/BADACRST/INC/CSTB_FID_SCREENS__BADACRST.INC
+MASTER@/FCJ/FORMS/BADACRST/INC/CSTB_FIELD_LABELS__BADACRST.INC
+MASTER@/FCJ/FORMS/BADACRST/INC/CSTB_OTHER_LABELS__BADACRST.INC
+MASTER@/FCJ/FORMS/BADACRST/INC/CSTB_SUMMARY_INFO__BADACRST.INC
+MASTER@/FCJ/FORMS/BADACRST/INC/CSTB_LOV_INFO__BADACRST.INC
+MASTER@/FCJ/FORMS/BADACRST/INC/GWTB_AMEND_FIELDS__BADACRST.INC
+MASTER@/FCJ/FORMS/BADACRST/INC/GWTB_AMEND_NODES__BADACRST.INC
+MASTER@/FCJ/FORMS/BADACRST/INC/GWTM_AMEND_FIELDS__BADACRST.INC
+MASTER@/FCJ/FORMS/BADACRST/INC/GWTM_AMEND_NODES__BADACRST.INC
+MASTER@/FCJ/FORMS/BADACRST/INC/GWTM_AMEND_MASTER__BADACRST.INC
+MASTER@/FCJ/FORMS/BADACRST/SPC/bapks_badacrst_custom.spc
+MASTER@/FCJ/FORMS/BADACRST/SPC/bapks_badacrst_main.spc
+MASTER@/FCJ/FORMS/BADACRST/SQL/bapks_badacrst_custom.sql
+MASTER@/FCJ/FORMS/BADACRST/SQL/bapks_badacrst_main.sql
+@/FCJ/FORMS/BADRINIT/BADRINIT_rollback.sql
