@@ -1,30 +1,60 @@
-SCHEMA=FCJBA
-TYPE=SQL
-SCHEMA=FCJBA
-@/FCJBA/DDL/BATM_ACCOUNT_RESTR_CUSTOM_0003_rollback.ddl
-@/FCJBA/DDL/BATH_ACCOUNT_RESTR_CUSTOM_0003_rollback.ddl
-@/FCJBA/DDL/batm_initiator_dictionary_rollback.ddl
-MASTER@/FCJBA/TRG/BATR_ACCOUNT_ARREST_BU.trg
-MASTER@/FCJBA/VW/BAVW_RESTRICTIONS_SUMMARY.vw
-SCHEMA=FCJ
-@/FCJ/INC/cstb_labels_0001_rollback.inc
-@/FCJ/INC/ERTB_MSGS_0006_rollback.inc
-@/FCJ/SYN/batms_initiator_dict_custom_rollback.syn
-MASTER@/FCJ/FORMS/BADACRST/INC/CSTB_FID_DATA_BLOCKS__BADACRST.INC
-MASTER@/FCJ/FORMS/BADACRST/INC/CSTB_FID_DATA_SOURCES__BADACRST.INC
-MASTER@/FCJ/FORMS/BADACRST/INC/CSTB_FID_SCR_TABS__BADACRST.INC
-MASTER@/FCJ/FORMS/BADACRST/INC/CSTB_FID_SCREENS__BADACRST.INC
-MASTER@/FCJ/FORMS/BADACRST/INC/CSTB_FIELD_LABELS__BADACRST.INC
-MASTER@/FCJ/FORMS/BADACRST/INC/CSTB_OTHER_LABELS__BADACRST.INC
-MASTER@/FCJ/FORMS/BADACRST/INC/CSTB_SUMMARY_INFO__BADACRST.INC
-MASTER@/FCJ/FORMS/BADACRST/INC/CSTB_LOV_INFO__BADACRST.INC
-MASTER@/FCJ/FORMS/BADACRST/INC/GWTB_AMEND_FIELDS__BADACRST.INC
-MASTER@/FCJ/FORMS/BADACRST/INC/GWTB_AMEND_NODES__BADACRST.INC
-MASTER@/FCJ/FORMS/BADACRST/INC/GWTM_AMEND_FIELDS__BADACRST.INC
-MASTER@/FCJ/FORMS/BADACRST/INC/GWTM_AMEND_NODES__BADACRST.INC
-MASTER@/FCJ/FORMS/BADACRST/INC/GWTM_AMEND_MASTER__BADACRST.INC
-MASTER@/FCJ/FORMS/BADACRST/SPC/bapks_badacrst_custom.spc
-MASTER@/FCJ/FORMS/BADACRST/SPC/bapks_badacrst_main.spc
-MASTER@/FCJ/FORMS/BADACRST/SQL/bapks_badacrst_custom.sql
-MASTER@/FCJ/FORMS/BADACRST/SQL/bapks_badacrst_main.sql
-@/FCJ/FORMS/BADRINIT/BADRINIT_rollback.sql
+import groovy.json.JsonSlurper
+import jenkins.model.* 
+
+def artifacts_list = []
+def artifactory_scheme = "https"
+def artifactory_host = "artifactory.intranet"
+def artifactory_port = ""
+
+def artifactory_url = "${artifactory_scheme}://artifactory.intranet/artifactory"
+def artifactory_api = "/api/search/artifact"
+def artifactory_repo = "buffer"
+def artifactory_search = "*.ear"
+
+def artifactory_user = ""
+def artifactory_password = ""
+def error_list = []
+def release = ""
+
+def jenkinsCredentials = com.cloudbees.plugins.credentials.CredentialsProvider.lookupCredentials(
+        com.cloudbees.plugins.credentials.Credentials.class,
+        Jenkins.instance,
+        null,
+        null
+);
+
+for (creds in jenkinsCredentials) {
+  if(creds.id == "AD Jenkins"){
+    artifactory_user = creds.username
+    artifactory_password = creds.password
+    }
+}
+
+try {
+    def http_client = new URL("${artifactory_url}${artifactory_api}?name=${artifactory_search}&repos=${artifactory_repo}").openConnection() as HttpURLConnection
+    http_client.setRequestMethod('GET')
+    http_client.setRequestProperty('User-Agent', 'jenkins-groovy')
+    http_client.setRequestProperty('Accept', 'application/json')
+    http_client.setRequestProperty('Authorization', "Basic " +
+        "${artifactory_user}:${artifactory_password}".bytes.encodeBase64().toString())
+    http_client.connect()
+    def artifactory_response = [:]
+    if (http_client.responseCode == 200) {
+        artifactory_response = new JsonSlurper().parseText(http_client.inputStream.getText('UTF-8'))
+    } else {
+        error_list.add("HTTP response error:" + " ${http_client.responseCode}") 
+        // System.exit(0)
+    }
+    artifactory_response.results.each { artifact ->
+		if (artifact.uri.contains("SW-FCC12/builds")) {
+			release = artifact.uri - "https://artifactory.intranet/artifactory/api/storage/buffer/SW-FCC12/builds/"
+			artifacts_list.add(release )
+		}
+    }
+}
+catch (Exception e) {
+    // handle exceptions like timeout, connection errors, etc.
+    error_list.add("Error:" + e)
+}
+
+return artifacts_list + error_list
