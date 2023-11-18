@@ -1,31 +1,428 @@
-create or replace package bodev.BO_HELIOS_353_PKG is
+create or replace package body bodev.BO_HELIOS_353_PKG is
+------------------------------------------------------------------------------------------------------
+-- Функция расчета начисленных процентов
+  function int_calc(in_amount number,
+                    in_interest number,
+                    start_date date,
+                    end_date date) return number is
+           V_ACCR_INT number:=0;
+  begin
+           if to_char(last_day(to_date('01.02.'||to_char(end_date,'yyyy'),'dd.mm.yyyy')),'dd')<>
+               to_char(last_day(to_date('01.02.'||to_char(start_date,'yyyy'),'dd.mm.yyyy')),'dd') then
+               -- Если дата или окончание периода попадают на разные года (т.е. один из них високосный)
+               if to_char(last_day(to_date('01.02.'||to_char(end_date,'yyyy'),'dd.mm.yyyy')),'dd')='28' then
+                  -- если период начинается в високосном, а заканчивается в не високосном
+                  V_ACCR_INT:=in_amount*in_interest*(end_date-to_date('3112'||to_char(start_date,'yyyy'),'ddmmyyyy'))/36500;
+                  V_ACCR_INT:=V_ACCR_INT+(in_amount*in_interest*(to_date('3112'||to_char(start_date,'yyyy'),'ddmmyyyy')-start_date)/36600);
+               else
+                  -- если период начинается в не високосном, а заканчивается в високосном
+                  V_ACCR_INT:=in_amount*in_interest*(end_date-to_date('3112'||to_char(start_date,'yyyy'),'ddmmyyyy'))/36600;
+                  V_ACCR_INT:=V_ACCR_INT+(in_amount*in_interest*(to_date('3112'||to_char(start_date,'yyyy'),'ddmmyyyy')-start_date)/36500);
+               end if;
+            else
+               -- Если дата или окончание периода попадают на одинаковые года (т.е. либо оба високосные либо обя обычные)
+               if to_char(last_day(to_date('01.02.'||to_char(end_date,'yyyy'),'dd.mm.yyyy')),'dd')='28' then
+                  -- если год не високосный
+                  V_ACCR_INT:=in_amount*in_interest*(end_date-start_date)/36500;
+               else
+                  -- если год високосный
+                  V_ACCR_INT:=in_amount*in_interest*(end_date-start_date)/36600;
+               end if;
+            end if;
+            return V_ACCR_INT;
+  end;
+------------------------------------------------------------------------------------------------------
+-- Функция расчета потока
+  function CASHFLOW_F(in_account_number varchar2) return table_type pipelined is
+           out_record row_type; -- объект результата
+           v_max_date date;
+           v_ACCR_INT number:=0;
+           v_SUM_ACCR_INT number:=0; -- техническая непрофильная переменная
+           v_POSTP_INT number:=0;
+           v_PREPAID_INT number:=0;
+           v_INT_DUE number:=0;
+           v_EMI_AMOUNT number;
+           v_PRPL_PREP number:=0;
+           v_PRPL_DUE number:=0;
+           v_PRPL_EXPECTED number:=0;
+           v_PRPL_INCR number:=0;
+           v_days_of_year integer:=null;
+  begin
+           -- Определение даты окончения договора
+           select MATURITY_DATE
+           into v_max_date
+           from fcc.CLTB_ACCOUNT_APPS_MASTER
+           where account_number=in_account_number;
+-- основная логика алгоритма
+           for i in (select dates.account_number,
+                            dates.from_date,
+                            dates.to_date,
+                            to_number(null) as accr_int,
+                            to_number(null) as postp_int,
+                            to_number(null) as int_due,
+                            to_number(null) as prpl_due,
+                            start_loan.prpl_expected,
+                            lead(early_repayment.prpl_prep,1,null)over(order by from_date asc) prpl_prep,
+                            lead(early_repayment.prepaid_int,1,null)over(order by from_date asc) prepaid_int,
+                            ir.ude_value as int_rate,
+                            payments.emi_amount,
+                            row_number()over(order by from_date asc) as rn,
+                            count(*)over() as cnt,
+                            lead(add_transh.prpl_incr,1,null)over(order by dates.from_date asc) prpl_incr
+                     from(select -- восстанавливаем периоды
+                                 account_number,
+                                 value_date as from_date,
+                                 lead(value_date,1,max_date)over(order by value_date asc) as to_date,
+                                 max_date
+                          from (select distinct
+                                       -- оставляем только уникальные периоды
+                                       account_number,
+                                       value_date,
+                                       v_max_date as max_date
+                                from (-- Информация о выдаче кредита
+                                      select account_number,
+                                             value_date
+                                      from fcc.cltb_event_entries
+                                      where account_number=in_account_number
+                                        and component_name='PRINCIPAL'
+                                        and event_code='DSBR'
+                                      union all
+                                      -- Информация платежей по графику
+                                      select account_number,
+                                             schedule_due_date
+                                      from fcc.cltb_account_schedules
+                                      where account_number=in_account_number
+                                        and component_name='MAIN_INT'
+                                      union all
+                                      -- Информация о досрочных погашениях
+                                      select x.account_number,
+                                             x.paid_date
+                                      from fcc.cltb_amount_paid x
+                                      where x.account_number=in_account_number
+                                        and ((x.component_name ='PRINCIPAL'
+                                             and x.due_date>=x.paid_date)
+                                                 or(x.component_name ='MAIN_INT'
+                                                    and x.due_date>x.paid_date))
+                                        and x.amount_paid>0
+                                      union all
+                                      -- Информация о дополнительных траншах кредита
+                                      select account_number,
+                                             value_date
+                                      from fcc.cltb_event_entries
+                                      where account_number=in_account_number
+                                        and amount_tag='PRINCIPAL_INCR'
+                                      group by account_number,
+                                               value_date having sum(amount)>0
+                                      union all
+                                      SELECT in_account_number,EFFECTIVE_DATE-1 FROM fcc.CLTB_ACCOUNT_UDE_VALUES
+                                      WHERE ACCOUNT_NUMBER = in_account_number
+                                      AND UDE_ID = 'INTEREST_RATE'
+                                      AND ude_value = 0)
+                               )
+                         ) dates
+                     left outer join (/*select -- Информация о выдаче кредита
+                                             account_number,
+                                             value_date,
+                                             amount as prpl_expected
+                                      from fcc.cltb_event_entries
+                                      where account_number=in_account_number
+                                        and component_name='PRINCIPAL'
+                                        and event_code='DSBR'*/
+                                        select -- Информация о выдаче кредита с учетом миграции
+                                         A.account_number,
+                                         A.value_date,
+                                         (CASE
+                                            WHEN A.amount-nvl(B.field_number_2, 0)>0 THEN A.amount
+                                            WHEN A.amount-nvl(B.field_number_2, 0)<0 THEN B.field_number_2
+                                            ELSE A.amount
+                                          END) as prpl_expected
+                                        from FCC.CLVW_EVENT_ENTRIES_ARCH A,
+                                        FCC.CLTB_ACCOUNT_APPS_MASTER B
+                                        where A.account_number=in_account_number
+                                            and B.ACCOUNT_NUMBER=A.account_number
+                                            and A.component_name='PRINCIPAL'
+                                            and A.event_code='DSBR'
+                                        ) start_loan on dates.account_number=start_loan.account_number
+                                                                         and start_loan.value_date = dates.from_date
+                     left outer join (-- Информация о досрочных погашениях
+                                      select x.account_number,
+                                             x.paid_date,
+                                             sum(decode(x.component_name,'PRINCIPAL',amount_paid,null)) as prpl_prep,
+                                             sum(decode(x.component_name,'MAIN_INT',amount_paid,null)) as prepaid_int
+                                      from fcc.cltb_amount_paid x
+                                      /*left outer join (-- Исключение дад дыдачи и платежей по графику
+                                                       select account_number,
+                                                              value_date as dt
+                                                       from fcc.cltb_event_entries
+                                                       where component_name='PRINCIPAL'
+                                                         and event_code='DSBR'
+                                                       union all
+                                                       select account_number,
+                                                              schedule_due_date as dt
+                                                       from fcc.cltb_account_schedules
+                                                       where component_name='MAIN_INT') y on x.account_number=y.account_number
+                                                                                         and x.paid_date=y.dt*/
+                                      where x.account_number=in_account_number
+                                        and ((x.component_name ='PRINCIPAL'
+                                             and x.due_date>=x.paid_date)
+                                                 or(x.component_name ='MAIN_INT'
+                                                    and x.due_date>x.paid_date))
+                                        --and x.amount_paid>0
+                                        --and y.account_number is null
+                                      group by x.account_number,
+                                               x.paid_date) early_repayment on early_repayment.account_number=dates.account_number
+                                                                           and early_repayment.paid_date = dates.from_date
+                     left outer join (-- Информация о дополнительных траншах кредита
+                                      select account_number,
+                                             value_date,
+                                             sum(amount) as prpl_INCR
+                                      from fcc.cltb_event_entries
+                                      where account_number=in_account_number
+                                        and amount_tag='PRINCIPAL_INCR'
+                                      group by account_number,
+                                               value_date having sum(amount)>0) add_transh on add_transh.account_number=dates.account_number
+                                                                                          and add_transh.value_date=dates.from_date
+                     left outer join (-- Информация платежей по графику
+                                      select account_number,
+                                             schedule_due_date,
+                                             emi_amount
+                                      from fcc.cltb_account_schedules
+                                      WHERE account_number=in_account_number
+                                        and component_name='MAIN_INT') payments on payments.account_number=dates.account_number
+                                                                            and payments.schedule_due_date=dates.to_date
+                                                                            and payments.schedule_due_date<dates.max_date
+                     left outer join (-- добавление процентных ставок
+                                      select account_number,
+                                             effective_date as start_date,
+                                             lead(effective_date-1,1,to_date('31129999','ddmmyyyy'))over(order by effective_date asc) as end_date,
+                                             ude_value
+                                        from fcc.cltb_account_ude_values
+                                        where ude_id='INTEREST_RATE'
+                                          and account_number=in_account_number) ir on dates.account_number=ir.account_number
+                                                                                     and dates.from_date+1 between ir.start_date and ir.end_date
+                     where not(dates.from_date=dates.to_date and dates.to_date=dates.max_date)) LOOP
+      -- Расчет основного долга
+      --V_PRPL_EXPECTED := case i.rn when 1 then nvl(i.prpl_expected,0)
+      --                             else round((nvl(V_PRPL_EXPECTED,0) + nvl(i.prpl_expected,0) ) - nvl(v_prpl_prep,0) + nvl(v_PRPL_INCR,0)-nvl(v_prpl_due,0),2) end;
+      V_PRPL_EXPECTED := case i.rn when 1 then i.prpl_expected
+                                   else round(V_PRPL_EXPECTED - nvl(v_prpl_prep,0) + nvl(v_PRPL_INCR,0)-nvl(v_prpl_due,0),2) end;
+      dbms_output.put_line(nvl(v_prpl_due,0));
+      -- вычисление начисленных процентов
+      V_ACCR_INT:=int_calc(V_PRPL_EXPECTED,i.int_rate,i.FROM_DATE,i.TO_DATE);
 
-  -- Author  : ALEXEY YURIN
-  -- Created : 20.07.2014 11:52:03
-  -- Purpose : For The 353FZ Project implementation
+      if i.emi_amount is not null then
+         -- если есть платеж
+         if (nvl(v_postp_int,0)+v_accr_int+v_SUM_ACCR_INT)>nvl(i.emi_amount,0)-v_PREPAID_INT then
+            -- если проценты больше платежа, то весь платеж уходит на плановые проценты
+            v_int_due:=i.emi_amount-v_PREPAID_INT;
+            -- вычисление отложенныч процентов
+            v_postp_int:=round(V_ACCR_INT+V_SUM_ACCR_INT+nvl(v_postp_int,0)-(nvl(i.emi_amount,0)-v_PREPAID_INT),2);
+         else
+            -- если проценты меньше или равныв платежу, то платеж равен сумме процентов
+            v_int_due:=round(v_accr_int+v_SUM_ACCR_INT+nvl(v_postp_int,0),2);
+            -- обнуление отложенныч процентов
+            v_postp_int:=0;
+         end if;
+         -- вычисление планового платежа по основному долгу
+         v_prpl_due:=round(i.emi_amount-v_int_due,2)-v_PREPAID_INT;
+         -- обнуление накопленныч процентов, которые возникли в периоды отсутствия платежей
+         v_SUM_ACCR_INT:=0;
+         -- Результат для отложенных процентов
+         out_record.POSTP_INT:=round(v_postp_int,2);
+      else
+         -- если нет платежа
+         v_SUM_ACCR_INT:=case when i.prepaid_int>0 then v_SUM_ACCR_INT else v_SUM_ACCR_INT+v_accr_int end;
+         -- обнуляние плановых процентов
+         v_int_due:=0;
+         -- Результат для отложенных процентов
+         out_record.POSTP_INT:=0;
+         -- обнуление планового платежа по основному долгу
+         v_prpl_due:=0;
+      end if;
 
-  -- Public type declarations
-  type row_type is record(rn number,
-                          from_date date,
-                          to_date date,
-                          INT_RATE number,
-                          ACCR_INT number,
-                          POSTP_INT number,
-                          PREPAID_INT number,
-                          INT_DUE number,
-                          EMI_AMOUNT number,
-                          PRPL_PREP number,
-                          PRPL_DUE number,
-                          PRPL_EXPECTED number,
-                          PRPL_INCR number);
+       -- вычисляем досрочное погашение основного долга
+       v_PRPL_PREP:=case when case when i.prpl_prep is null
+                         then nvl(i.prpl_prep,0)
+                         else i.prpl_prep-v_prpl_due end<0 then 0 else case when i.prpl_prep is null
+                         then nvl(i.prpl_prep,0)
+                         else i.prpl_prep-v_prpl_due end end;
 
-  type table_type is table of row_type;
+      -- Формирование результата
+      out_record.rn:=i.rn;
+      out_record.from_date:=i.from_date;
+      out_record.to_date:=i.to_date;
+      out_record.INT_RATE:=i.int_rate;
+      out_record.ACCR_INT:=round(V_ACCR_INT,2);
+      --out_record.POSTP_INT:=round(v_postp_int,2);
+      out_record.PREPAID_INT:=i.prepaid_int;
+      out_record.INT_DUE:=case i.rn when i.cnt
+                                    then round(v_ACCR_INT+v_POSTP_INT-v_PREPAID_INT,2)
+                                    else round(v_int_due,2) end;
+      out_record.EMI_AMOUNT:=case i.rn when i.cnt
+                                       then round(v_ACCR_INT+v_POSTP_INT-v_PREPAID_INT+round(V_PRPL_EXPECTED,2),2)
+                                       else i.emi_amount end;
+      out_record.PRPL_PREP:=case v_PRPL_PREP when 0 then null else v_PRPL_PREP end;
+      out_record.PRPL_DUE:=case i.rn when i.cnt
+                                     then round(V_PRPL_EXPECTED,2)
+                                     else round(v_prpl_due,2) end;
+      out_record.PRPL_EXPECTED:=round(V_PRPL_EXPECTED,2);
+      out_record.PRPL_INCR:=i.PRPL_INCR;
 
-  -- Public function and procedure declarations
-  function CASHFLOW_F(in_account_number varchar2) return table_type pipelined;
-  function get_psk (in_account_number varchar2,in_accuracy number,in_date date default null) return number;
-  function checking_amounts_f(in_account_number varchar2) return varchar2;
+      v_PRPL_INCR:=i.PRPL_INCR;
+
+      if i.emi_amount is null then
+         v_PREPAID_INT:=v_PREPAID_INT+nvl(i.prepaid_int,0);
+      else
+         v_PREPAID_INT:=nvl(i.prepaid_int,0);
+      end if;
+
+      if i.prepaid_int>0 then
+            -- обнуление отложенныч процентов если было ЧДП с гашением процентов
+         v_postp_int:=0;
+      end if;
+
+      -- выброс результата
+      pipe row(out_record);
+    END LOOP;
+  return;
+  end;
+------------------------------------------------------------------------------------------------------
+  -- расчет ПСК
+  function get_psk (in_account_number varchar2,
+                    in_accuracy number,
+                    in_date date default null) return number is
+           Result number;
+  begin
+    select x into result
+    from (select *
+          from (-- выдача
+                select from_date,
+                       -1*nvl(prpl_EXPECTED,0) as emi_amount
+                from table(CASHFLOW_F(in_account_number))where rownum=1
+                union all
+                -- все потоки кроме выдачи
+                select to_date,
+                       nvl(prpl_due,0)+nvl(int_due,0)+nvl(prpl_prep,0)-nvl(prpl_incr,0)+nvl(prepaid_int,0)
+                from table(CASHFLOW_F(in_account_number))
+                where to_date<in_date or in_date is null
+                union all
+                -- поток после ЧДП
+                select to_date,
+                       case is_principal_pay when 'Y' then nvl(emi_amount,0)+nvl(adv_repayment,0)
+                                             else nvl(adv_repayment,0) end
+                from bodev.rep_int_due_calc3
+                where to_date>=in_date and in_date is not null)
+          model dimension by (row_number()over(order by from_date asc) as rn)
+          measures(cast(0 as number) as fa,
+                   cast(0 as number) as Tfa,
+                   cast(0 as number) as fb,
+                   cast(0 as number) as Tfb,
+                   cast(0 as number) as a,
+                   cast(0.1 as number) as b,
+                   cast(0 as number) as x,
+                   cast(0 as number) as tfx,
+                   cast(0 as number) as fx,
+                   from_date,
+                   emi_amount,
+                   from_date-first_value(from_date)over(order by from_date asc) diff)
+          rules iterate(100) until(fx[1]<in_accuracy)(
+                Tfa[any]=nvl(emi_amount[cv()],0)/power(1+a[1],diff[cv()]/365),
+                fa[1]=sum(Tfa)[any],
+                Tfb[any]=nvl(emi_amount[cv()],0)/power(1+b[1],diff[cv()]/365),
+                fb[1]=sum(Tfb)[any],
+                x[1]=a[1]-fa[1]*(b[1]-a[1])/(fb[1]-fa[1]),
+                Tfx[any]=nvl(emi_amount[cv()],0)/power(1+x[1],diff[cv()]/365),
+                fx[1]=sum(Tfx)[any],
+                a[1]=case when fa[1]*fb[1]>0 then x[1] else a[1] end,
+                b[1]=case when fa[1]*fb[1]>0 then b[1] else x[1] end)
+    ) where rownum=1;
+    return Result;
+  exception when others then return 0;
+  end;
+------------------------------------------------------------------------------------------------------
+-- расчет ПСК
   function get_psk_new(in_account_number varchar2,
                        in_accuracy number,
-                       in_date date default null) return number;
+                       in_date date default null) return number is
+           Result number;
+  begin
+    select abs(zzz) into result
+    from (select *
+          from (-- выдача
+                select from_date,
+                       -1*nvl(prpl_EXPECTED,0) as emi_amount
+                from table(CASHFLOW_F(in_account_number))where rownum=1
+                union all
+                -- все потоки кроме выдачи
+                select to_date,
+                       nvl(prpl_due,0)+nvl(int_due,0)+nvl(prpl_prep,0)-nvl(prpl_incr,0)+nvl(prepaid_int,0)
+                from table(CASHFLOW_F(in_account_number))
+                where to_date<in_date or in_date is null
+                union all
+                -- поток после ЧДП
+                select to_date,
+                       case is_principal_pay when 'Y' then nvl(emi_amount,0)+nvl(adv_repayment,0)
+                                             else nvl(adv_repayment,0) end
+                from bodev.rep_int_due_calc3
+                where to_date>=in_date and in_date is not null)
+          model dimension by (row_number()over(order by from_date asc) as rn)
+          measures(cast(0 as number) as fa,
+                   cast(0 as number) as Tfa,
+                   cast(0 as number) as a,
+                   cast(1 as number) as b,
+                   cast(0 as number) as c,
+                   cast(0 as number) as Tfc,
+                   cast(0 as number) as fc,
+                   cast(0 as number) as zzz,
+                   from_date,
+                   emi_amount,
+                   (from_date-first_value(from_date)over(order by from_date asc))/(365/12) as diff,
+                   trunc((from_date-first_value(from_date)over(order by from_date asc))/(365/12)) as int_diff,
+                   (from_date-first_value(from_date)over(order by from_date asc))/(365/12)-trunc((from_date-first_value(from_date)over(order by from_date asc))/(365/12)) as e
+                   )
+          rules iterate(100) until(abs(b[1]-a[1])<in_accuracy)(
+                c[1]=(a[1]+b[1])/2,
+                Tfa[any]=nvl(emi_amount[cv()],0)/((1+e[cv()]*a[1])*(power(1+a[1],int_diff[cv()]))),
+                fa[1]=sum(Tfa)[any],
+                Tfc[any]=nvl(emi_amount[cv()],0)/((1+e[cv()]*c[1])*(power(1+c[1],int_diff[cv()]))),
+                fc[1]=sum(Tfc)[any],
+                b[1]=case when fa[1]*fc[1]<=0 then c[1] else b[1] end,
+                a[1]=case when fa[1]*fc[1]<=0 then a[1] else c[1] end,
+                zzz[1]=(a[1]+b[1])/2)) where rownum=1;
+    return Result*12;
+  exception when others then return 0;
+  end;
+------------------------------------------------------------------------------------------------------
+  function checking_amounts_f(in_account_number varchar2) return varchar2 is
+           v_branch_code VARCHAR2(35);
+           v_fact_amount number;
+           v_calc_amount number;
+  begin
+           begin
+             select branch_code
+             into v_branch_code
+             from fcc.cltb_account_master
+             where account_number=in_account_number;
+           exception when NO_DATA_FOUND then
+             --raise_application_error(-20140,'Запись с текущим account_number не найдена в cltb_account_master.');
+             return null;
+           end;
+
+           select ROUND(sum(amount_due),1)
+           into v_fact_amount
+           from fcc.cltb_account_schedules
+           where account_number=in_account_number
+             and component_name='PRINCIPAL'
+             and schedule_due_date>=(select today from fcc.sttm_dates where branch_code=v_branch_code);
+
+           select ROUND(x.PRPL_EXPECTED,1)
+           into v_calc_amount
+           from table(bo_helios_353_pkg.CASHFLOW_F(in_account_number)) x
+           where (select today from fcc.sttm_dates where branch_code=v_branch_code) between from_date+1 and to_date;
+
+           return case v_fact_amount-v_calc_amount when 0 then null else 'По кредиту выявлены расхождения в графике платежей. Текущий основной долг: расчетный - '||v_calc_amount||', в FCC - '||v_fact_amount||'. Направьте копию данного отчёта в письме на HelpDesk c информацией о вероятной ошибке по кредиту в системе FlexCube. Тема письма: "Ошибка в графике кредита ('||in_account_number||') в FCC (на 2nd appsupp fcc)". Просьба рассчитать график корректно.' end;
+  end;
+------------------------------------------------------------------------------------------------------
+begin
+  null;
 end BO_HELIOS_353_PKG;
