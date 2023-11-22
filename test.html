@@ -1,428 +1,1151 @@
-create or replace package body bodev.BO_HELIOS_353_PKG is
-------------------------------------------------------------------------------------------------------
--- Функция расчета начисленных процентов
-  function int_calc(in_amount number,
-                    in_interest number,
-                    start_date date,
-                    end_date date) return number is
-           V_ACCR_INT number:=0;
-  begin
-           if to_char(last_day(to_date('01.02.'||to_char(end_date,'yyyy'),'dd.mm.yyyy')),'dd')<>
-               to_char(last_day(to_date('01.02.'||to_char(start_date,'yyyy'),'dd.mm.yyyy')),'dd') then
-               -- Если дата или окончание периода попадают на разные года (т.е. один из них високосный)
-               if to_char(last_day(to_date('01.02.'||to_char(end_date,'yyyy'),'dd.mm.yyyy')),'dd')='28' then
-                  -- если период начинается в високосном, а заканчивается в не високосном
-                  V_ACCR_INT:=in_amount*in_interest*(end_date-to_date('3112'||to_char(start_date,'yyyy'),'ddmmyyyy'))/36500;
-                  V_ACCR_INT:=V_ACCR_INT+(in_amount*in_interest*(to_date('3112'||to_char(start_date,'yyyy'),'ddmmyyyy')-start_date)/36600);
-               else
-                  -- если период начинается в не високосном, а заканчивается в високосном
-                  V_ACCR_INT:=in_amount*in_interest*(end_date-to_date('3112'||to_char(start_date,'yyyy'),'ddmmyyyy'))/36600;
-                  V_ACCR_INT:=V_ACCR_INT+(in_amount*in_interest*(to_date('3112'||to_char(start_date,'yyyy'),'ddmmyyyy')-start_date)/36500);
-               end if;
-            else
-               -- Если дата или окончание периода попадают на одинаковые года (т.е. либо оба високосные либо обя обычные)
-               if to_char(last_day(to_date('01.02.'||to_char(end_date,'yyyy'),'dd.mm.yyyy')),'dd')='28' then
-                  -- если год не високосный
-                  V_ACCR_INT:=in_amount*in_interest*(end_date-start_date)/36500;
-               else
-                  -- если год високосный
-                  V_ACCR_INT:=in_amount*in_interest*(end_date-start_date)/36600;
-               end if;
+PROCEDURE fill_report_by_date3_SBL(pi_loan_account IN VARCHAR2,
+                                  --pi_payment_plan_date IN DATE,
+                                  --pi_ovd_close_date IN DATE,
+                                  pi_1paym_date IN DATE,
+                                  pi_1paym_sum  IN NUMBER,
+                                  pi_2paym_date IN DATE,
+                                  pi_2paym_sum  IN NUMBER,
+                                  pi_3paym_date IN DATE,
+                                  pi_3paym_sum  IN NUMBER,
+                                  pi_4paym_date IN DATE,
+                                  pi_4paym_sum  IN NUMBER,
+                                  pi_5paym_date IN DATE,
+                                  pi_5paym_sum  IN NUMBER,
+                                  pi_last_paym_sum  IN NUMBER,
+                                  pi_principal_amt IN NUMBER
+                                  )
+   IS
+   PRAGMA AUTONOMOUS_TRANSACTION;
+   lv_current_step VARCHAR2(100);
+   lc_char1 CHAR(1);
+   ld_SCH_START_DATE DATE;
+   ld_min_FROM_DATE DATE;
+   ld_max_FROM_DATE DATE;
+   ld_min_TO_DATE DATE;
+   ld_max_TO_DATE DATE;
+   ld_first_FROM_DATE DATE;
+   ld_year_last_day DATE;
+   ld_branch_day    DATE;
+   ld_branch_day2    DATE;
+   ln_curr_year_days_cnt NUMBER;
+   ln_next_year_days_cnt NUMBER;
+   ln_PRPL_EXPECTED_sum NUMBER;
+   ln_PRPL_EXPECTED_sum_last NUMBER;
+   ln_divisor NUMBER;
+   ln_INT_EXPECTED NUMBER;
+   ln_INT_DUE     NUMBER;
+   ln_principal_overdue NUMBER;
+   ln_interest_overdue NUMBER;
+   ln_int_on_ovd_p_accrued NUMBER;
+   ln_penalty_p NUMBER;
+   ln_penalty_i NUMBER;
+   lv_check_message     VARCHAR2(4000);
+   --ld_today DATE;
+   ln_INT_OVD_RATE NUMBER;
+   ln_PENALTY_RATE  NUMBER;
+   ln_row_cnt NUMBER;
+   ---
+   gv_branch_code fcc.CLTB_ACCOUNT_MASTER.Branch_code%TYPE;
+   gv_customer_no fcc.CLTB_ACCOUNT_MASTER.customer_id%TYPE;
+   gv_branch_day fcc.sttm_dates.today%TYPE;
+   gd_max_val_date fcc.CLTB_ACCOUNT_MASTER.value_date%TYPE;
+   gd_min_adv_rep_to_date DATE;
+   gd_max_adv_rep_to_date DATE;
+   gn_MIDDLE_PAYMENT NUMBER;
+   gn_is_buy_back NUMBER;
+   go_PRINCIPAL_OVERDUE NUMBER;
+   go_INTEREST_OVERDUE NUMBER;
+   go_INT_ON_OVD_P_ACCRUED NUMBER;
+   go_PENALTY_P NUMBER;
+   go_PENALTY_I NUMBER;
+   go_PRPL_EXPECTED NUMBER;
+   ln_prev_INT_EXPECTED NUMBER;
+   ln_curr_INT_EXPECTED NUMBER;
+   ln_curr_EMI_AMOUNT NUMBER;
+   ln_curr_ACCR_INT NUMBER;
+   pi_payment_plan_date DATE;
+   pi_ovd_close_date DATE;
+   ln_sum_ADV_REPAYMENT NUMBER;
+   ln_sum_hist_ADV_REPAYMENT NUMBER;
+   ln_minus_paym NUMBER;
+   ln_due_dates_on NUMBER;
+   ln_due_dates_on_rep NUMBER;
+   ln_orig_st_date NUMBER;
+   ld_maturity_date DATE;
+   ln_last2_pay_month NUMBER;
+   ln_near28_maturity_date NUMBER;
+   ln_debug NUMBER;
+   ln_prpl_expected_on_first_adv NUMBER;
+   ln_all_adv_repay_sum NUMBER;
+   ln_CALC_last_paym_sum NUMBER;
+   min_pmnt_date_after_CHDP DATE; -- add Polischuk N. PRB21747
+   BEGIN
+      lv_current_step:='Trunc result table';
+      execute immediate 'TRUNCATE TABLE REP_INT_DUE_CALC_TOTALS3';
+      execute immediate 'TRUNCATE TABLE REP_INT_DUE_CALC3';
+      execute immediate 'alter session set global_names=false';
+      --проверяем параметры
+      lv_check_message:=check_params3_SBL (pi_loan_account,
+                                           pi_payment_plan_date,
+                                           pi_1paym_date,
+                                           pi_1paym_sum,
+                                           pi_2paym_date,
+                                           pi_2paym_sum,
+                                           pi_3paym_date,
+                                           pi_3paym_sum,
+                                       pi_4paym_date,
+                                       pi_4paym_sum,
+                                       pi_5paym_date,
+                                       pi_5paym_sum,
+                                       pi_last_paym_sum,
+                                       gn_is_buy_back);
+      if lv_check_message='OK' then
+          --получаем часто используемые значения
+          --код отделения, кл. номер, максимальную дату валютирования
+          SELECT max(Branch_code), max(customer_id), max(value_date) INTO gv_branch_code, gv_customer_no, gd_max_val_date FROM fcc.CLTB_ACCOUNT_MASTER
+          WHERE ACCOUNT_NUMBER = pi_loan_account;
+          --опер день отделения
+          select today INTO gv_branch_day from fcc.sttm_dates where Branch_code = gv_branch_code;
+          pi_ovd_close_date:=gv_branch_day;
+          --записываем ФИО клиента
+          insert into rep_int_due_calc_totals3(customer_name, check_message)
+          select NAME_RUS3||' '||NAME_RUS1||' '||NAME_RUS2 as customer_name, lv_check_message as check_message
+          from fcc.STTM_CUST_PERSONAL
+          where customer_no=gv_customer_no;
+          --если параметры нормальны, то формируем данные отчета
+          lv_current_step:='Init fill FROM_DATE';
+          BEGIN
+          --определяем дату начала расписания для детального рассчета
+          --SELECT MAX(to_date) INTO ld_SCH_START_DATE FROM
+          SELECT MAX(from_date) INTO ld_SCH_START_DATE FROM
+             (SELECT a.SCHEDULE_ST_DATE from_date, a.SCHEDULE_DUE_DATE to_date, a.amount_due AM_DUE
+                FROM fcc.CLTB_ACCOUNT_SCHEDULES  a
+               WHERE a.ACCOUNT_NUMBER = pi_loan_account
+                 AND a.COMPONENT_NAME = 'PRINCIPAL'
+                 AND a.SCHEDULE_DUE_DATE < gv_branch_day)
+                 WHERE AM_DUE <> 0;
+          EXCEPTION WHEN NO_DATA_FOUND THEN
+            ld_SCH_START_DATE:=null;
+          END;
+          --end new
+          IF ld_SCH_START_DATE is null THEN
+            SELECT min(c.SCHEDULE_ST_DATE) FROM_DATE INTO ld_first_FROM_DATE
+            FROM fcc.CLTB_ACCOUNT_SCHEDULES  c
+            WHERE c.ACCOUNT_NUMBER  = pi_loan_account
+            AND C.COMPONENT_NAME = 'PRINCIPAL'
+            AND c.SCHEDULE_DUE_DATE < pi_payment_plan_date;
+            --new credit
+            --если по кредиту не было погашний ОД, то ставим дату валютирования кредита
+            IF ld_first_FROM_DATE IS NULL THEN
+                --set value date
+                ld_first_FROM_DATE:=gd_max_val_date;
+            END IF;
+            IF ld_first_FROM_DATE IS NOT NULL THEN
+                INSERT INTO REP_INT_DUE_CALC3 (FROM_DATE) VALUES (ld_first_FROM_DATE);
+            END IF;
+          END IF;
+          INSERT INTO REP_INT_DUE_CALC3 (FROM_DATE)
+            SELECT distinct c.SCHEDULE_DUE_DATE FROM_DATE
+            FROM fcc.CLTB_ACCOUNT_SCHEDULES  c
+            WHERE c.ACCOUNT_NUMBER  = pi_loan_account
+            AND C.COMPONENT_NAME = 'PRINCIPAL'
+            AND (c.SCHEDULE_DUE_DATE >= ld_SCH_START_DATE OR ld_SCH_START_DATE is null)
+            AND c.SCHEDULE_DUE_DATE <  pi_payment_plan_date;
+            COMMIT;
+           --формируем полность расписание для детального расчета
+           lv_current_step:='Add fill FROM_DATE';
+           --добавляем периоды платежей
+           SELECT min (FROM_DATE) into ld_min_FROM_DATE FROM REP_INT_DUE_CALC3;
+           IF ld_min_FROM_DATE is not null then
+                INSERT INTO REP_INT_DUE_CALC3 (FROM_DATE)
+                    SELECT distinct c.VALUE_DATE  FROM_DATE
+                    FROM fcc.CLTB_LIQ a, fcc.CLTB_ACCOUNT_EVENTS_PROCESSED b, fcc.cltb_event_entries c
+                    WHERE a.ACCOUNT_NUMBER = b.ACCOUNT_NUMBER
+                    AND a.ACCOUNT_NUMBER = c.ACCOUNT_NUMBER
+                    AND a.EVENT_SEQ_NO = b.EVENT_SEQ_NO
+                    AND a.EVENT_SEQ_NO = c.EVENT_SEQ_NO
+                    AND a.ACCOUNT_NUMBER = pi_loan_account
+                    AND a.INSTALLMENT_PAYMENT = 'N'
+                    AND a.VALUE_DATE > ld_min_FROM_DATE
+                    AND b.COMPONENT_NAME = 'PRINCIPAL'
+                    AND b.EXECUTION_STATUS = 'P'
+                    AND a.PAYMENT_STATUS = 'P'  --new
+                    AND b.EVENT_CODE = 'MLIQ'
+                    AND c.AMOUNT_TAG = 'PRINCIPAL_DLIQ'
+                    AND c.VALUE_DATE not in (SELECT FROM_DATE FROM REP_INT_DUE_CALC3);
+            lv_current_step:='Add fill FROM_DATE last date of the year';
+            --добавляем переход через год
+            FOR rec in (SELECT FROM_DATE FROM REP_INT_DUE_CALC3 WHERE FROM_DATE IS NOT NULL) LOOP
+                select add_months(trunc(rec.FROM_DATE, 'YEAR'), 12) - trunc(rec.FROM_DATE, 'YEAR') INTO ln_curr_year_days_cnt from dual;
+                select add_months(trunc(add_months(rec.FROM_DATE,12), 'YEAR'), 12) - trunc(add_months(rec.FROM_DATE,12), 'YEAR') INTO ln_next_year_days_cnt from dual;
+                IF ln_curr_year_days_cnt=366 or ln_next_year_days_cnt=366 THEN
+                    SELECT max(FROM_DATE) into ld_max_FROM_DATE FROM REP_INT_DUE_CALC3;
+                    ld_year_last_day:=least(ld_max_from_date, add_months(trunc(rec.FROM_DATE, 'YEAR'), 12)-1);
+                    BEGIN
+                        SELECT 'x' into lc_char1 FROM REP_INT_DUE_CALC3
+                        WHERE FROM_DATE=ld_year_last_day;
+                    EXCEPTION WHEN NO_DATA_FOUND THEN
+                        INSERT INTO REP_INT_DUE_CALC3 (FROM_DATE, YEAR_DIV) VALUES (ld_year_last_day,'E');
+                        COMMIT;
+                    END;
+                END IF;
+            END LOOP;
+            --промежуточные максимальная и минимальные границы расписания определены, сохраняем их в переменные
+            SELECT min (FROM_DATE), max(FROM_DATE) into ld_min_FROM_DATE, ld_max_FROM_DATE FROM REP_INT_DUE_CALC3;
+            --добавляем периоды измененения процентной ставки
+            lv_current_step:='Add fill FROM_DATE rate change dates';
+            INSERT INTO REP_INT_DUE_CALC3 (FROM_DATE/*, YEAR_DIV*/)
+            SELECT distinct EFFECTIVE_DATE /*, 'R'*/ FROM fcc.CLTB_ACCOUNT_UDE_VALUES
+            WHERE ACCOUNT_NUMBER = pi_loan_account
+            AND EFFECTIVE_DATE >= ld_min_FROM_DATE -- мин. дата FROM_DATE
+            AND EFFECTIVE_DATE <= ld_max_FROM_DATE -- макс. дата FROM_DATE
+            AND UDE_ID = 'INTEREST_RATE'
+            AND EFFECTIVE_DATE not in (SELECT FROM_DATE FROM REP_INT_DUE_CALC3);  --korn 20130322
+            COMMIT;
+            --добавляем даты планиреумых ЧДП, если они не совпадают с существующими
+            lv_current_step:='Add fill FROM_DATE adv repay params';
+            INSERT INTO REP_INT_DUE_CALC3 (FROM_DATE)
+                 SELECT distinct params.paym_date FROM
+                     (select pi_1paym_date paym_date, pi_1paym_sum paym_sum from dual
+                        union all
+                     select pi_2paym_date paym_date, pi_2paym_sum paym_sum from dual
+                        union all
+                     select pi_3paym_date paym_date, pi_3paym_sum paym_sum from dual
+                        union all
+                     select pi_4paym_date paym_date, pi_4paym_sum paym_sum from dual
+                        union all
+                     select pi_5paym_date paym_date, pi_5paym_sum paym_sum from dual) params
+                     WHERE params.paym_date is not null
+                     and nvl(params.paym_sum,0)>0
+                     and params.paym_date<pi_payment_plan_date
+                     and params.paym_date>=gv_branch_day
+                     AND params.paym_date not in (SELECT FROM_DATE FROM REP_INT_DUE_CALC3);
+      --добавляем дату транша
+            INSERT INTO REP_INT_DUE_CALC3 (FROM_DATE)
+                 select distinct VALUE_DATE VALUE_DATE from fcc.cltb_event_entries
+                                WHERE ACCOUNT_NUMBER = pi_loan_account
+                                AND EVENT_CODE = 'VAMI'
+                                AND VALUE_DATE >(SELECT min(FROM_DATE) FROM REP_INT_DUE_CALC3)
+                AND VALUE_DATE not in (SELECT FROM_DATE FROM REP_INT_DUE_CALC3);
+            COMMIT;
+            --пока не точно, но нужно скорее всего добавить дату текущего опердня в TO_DATE, ставим во FROM_DATE опердень+1
+            --INSERT INTO REP_INT_DUE_CALC3 (FROM_DATE)
+            --SELECT gv_branch_day+1 FROM DUAL
+            --WHERE gv_branch_day+1 not in (SELECT FROM_DATE FROM REP_INT_DUE_CALC3);
+            --COMMIT;
+            --заполняем границы периодов
+            lv_current_step:='Fill TO_DATE';
+            update REP_INT_DUE_CALC3 c2
+            set c2.to_date = nvl((select min(c1.from_date) from REP_INT_DUE_CALC3 c1 where c1.from_date > c2.from_date), null);
+            COMMIT;
+            update REP_INT_DUE_CALC3 c2
+            set c2.to_date = pi_payment_plan_date
+            where from_date = (select max(from_date) from REP_INT_DUE_CALC3);
+            COMMIT;
+      update REP_INT_DUE_CALC3
+            set YEAR_DIV='B'
+            where to_date in (select from_date from REP_INT_DUE_CALC3 where YEAR_DIV='E');
+      COMMIT;
+      /*update REP_INT_DUE_CALC3
+            set YEAR_DIV='V'
+            where from_date in (select to_date from REP_INT_DUE_CALC3 where YEAR_DIV='R');
+      COMMIT;*/
+            --заполняем суммы ЧДП
+            lv_current_step:='Fill sum adv repay params';
+            UPDATE REP_INT_DUE_CALC3 c2
+            SET c2.adv_repayment = (SELECT max(params.paym_sum) FROM
+                                             (select pi_1paym_date paym_date, pi_1paym_sum paym_sum from dual
+                                                union all
+                                             select pi_2paym_date paym_date, pi_2paym_sum paym_sum from dual
+                                                union all
+                                             select pi_3paym_date paym_date, pi_3paym_sum paym_sum from dual
+                                                union all
+                                             select pi_4paym_date paym_date, pi_4paym_sum paym_sum from dual
+                                                union all
+                                             select pi_5paym_date paym_date, pi_5paym_sum paym_sum from dual) params
+                                             WHERE params.paym_date = c2.to_date);
+            --окончательные максимальная и минимальные границы расписания определены, пересохраняем их в переменные
+            SELECT min (FROM_DATE), max(FROM_DATE) into ld_min_FROM_DATE, ld_max_FROM_DATE FROM REP_INT_DUE_CALC3;
+            --для начала проставим признак того, что в to_date должен быть платеж ОД
+            update REP_INT_DUE_CALC3 c set
+                    c.IS_PRINCIPAL_PAY = 'Y'
+            WHERE EXISTS (
+                SELECT 'X'
+                 FROM fcc.cltb_account_schedules
+                WHERE account_number = pi_loan_account
+                AND component_name = 'PRINCIPAL'
+                AND schedule_due_date=c.TO_DATE);
+            COMMIT;
+            --добавляем досрочно погашенные проценты
+            lv_current_step:='Fill INT_PREPAID';
+            FOR rec in (SELECT TO_DATE FROM REP_INT_DUE_CALC3 WHERE TO_DATE IS NOT NULL ORDER BY TO_DATE) LOOP
+                for cur_var in (SELECT a.VALUE_DATE VALUE_DATE, sum(c.AMOUNT) INT_PREPAID
+                                 FROM fcc.CLTB_LIQ a, fcc.CLTB_ACCOUNT_EVENTS_PROCESSED b, fcc.cltb_event_entries c
+                                 WHERE a.ACCOUNT_NUMBER = b.ACCOUNT_NUMBER
+                                 AND a.ACCOUNT_NUMBER = c.ACCOUNT_NUMBER
+                                 AND b.COMPONENT_NAME = c.COMPONENT_NAME
+                                 AND a.EVENT_SEQ_NO = b.EVENT_SEQ_NO
+                                 AND a.EVENT_SEQ_NO = c.EVENT_SEQ_NO
+                                 AND a.ACCOUNT_NUMBER = pi_loan_account
+                                 AND a.INSTALLMENT_PAYMENT = 'N'
+                                 AND a.VALUE_DATE >=rec.TO_DATE
+                                 --досрочка только между платежами
+                                 AND a.VALUE_DATE not in (select TO_DATE from REP_INT_DUE_CALC3 where IS_PRINCIPAL_PAY = 'Y')
+                                 AND b.COMPONENT_NAME ='MAIN_INT'
+                                 AND b.EXECUTION_STATUS = 'P'
+                                 AND a.PAYMENT_STATUS = 'P'  --new
+                                 AND c.AMOUNT_TAG = 'MAIN_INT_DLIQ'
+                                 AND b.EVENT_CODE = 'MLIQ'
+                                 group by a.VALUE_DATE
+                                order by VALUE_DATE) loop
+                    update REP_INT_DUE_CALC3 set INT_PREPAID = cur_var.INT_PREPAID where TO_DATE = cur_var.VALUE_DATE;
+                end loop;
+            END LOOP;
+            COMMIT;
+            --если кредит выдавался несколькими траншами, то заполняем их значения
+            lv_current_step:='Fill TRANCHE';
+            FOR rec in (SELECT TO_DATE, FROM_DATE FROM REP_INT_DUE_CALC3 WHERE FROM_DATE IS NOT NULL ORDER BY FROM_DATE) LOOP
+                for cur_var in (select VALUE_DATE VALUE_DATE, sum(AMOUNT) TRANCHE from fcc.cltb_event_entries
+                                WHERE ACCOUNT_NUMBER = pi_loan_account
+                                AND EVENT_CODE = 'VAMI'
+                                AND VALUE_DATE = rec.FROM_DATE --between rec.FROM_DATE and rec.TO_DATE
+                                group by VALUE_DATE) loop
+                    --update REP_INT_DUE_CALC3 set TRANCHE = cur_var.TRANCHE where FROM_DATE = rec.FROM_DATE; --korn20180522
+          update REP_INT_DUE_CALC3 set TRANCHE = cur_var.TRANCHE where TO_DATE = rec.FROM_DATE;
+                end loop;
+            END LOOP;
+            COMMIT;
+            --debug
+            --немного траншей для теста
+            --UPDATE REP_INT_DUE_CALC3 s
+            --SET s.tranche=100000
+            --WHERE s.from_date=to_date('05.03.2014','DD.MM.RRRR');
+            --commit;
+            --end debug
+            --заполняем периоды процентными ставками
+            lv_current_step:='Fill RATE';
+            FOR rec in (SELECT TO_DATE FROM REP_INT_DUE_CALC3 WHERE TO_DATE IS NOT NULL ORDER BY TO_DATE) LOOP
+                for cur_var in (SELECT EFFECTIVE_DATE, UDE_VALUE RATE FROM fcc.CLTB_ACCOUNT_UDE_VALUES
+                                WHERE ACCOUNT_NUMBER = pi_loan_account
+                                --AND EFFECTIVE_DATE<=rec.TO_DATE
+                AND EFFECTIVE_DATE<rec.TO_DATE --korn20180416
+                                AND UDE_ID = 'INTEREST_RATE'
+                                order by EFFECTIVE_DATE) loop
+                    update REP_INT_DUE_CALC3 set INT_RATE = cur_var.RATE where TO_DATE = rec.TO_DATE;
+                end loop;
+            END LOOP;
+            COMMIT;
+            --заполняем количество оставшихся платежей для всех периодов, пригодится для аннуитета
+            update REP_INT_DUE_CALC3 с1
+            set с1.EXP_PAY_CNT= (SELECT count(*)
+                                FROM fcc.CLTB_ACCOUNT_SCHEDULES  c
+                                WHERE c.ACCOUNT_NUMBER  = pi_loan_account
+                                AND c.COMPONENT_NAME = 'MAIN_INT'
+                                AND c.schedule_due_date > с1.TO_DATE);
+            --20140411 новая доработка для вычитания последнего платежа
+            --получаем DUE_DATES_ON
+            BEGIN
+                select due_dates_on into ln_due_dates_on from CLTB_ACCOUNT_COMP_SCH s
+                 where ACCOUNT_NUMBER = pi_loan_account
+                 and component_name = 'MAIN_INT'
+                 and sch_end_date in (select to_date from REP_INT_DUE_CALC3
+                                    where EXP_PAY_CNT=1); --предпоследний платеж
+            EXCEPTION when no_data_found THEN
+                ln_due_dates_on:=null;
+            END;
+            SELECT  nvl(ln_due_dates_on, extract(DAY from value_date)),
+                    extract(DAY from ORIGINAL_ST_DATE),
+                    maturity_date
+            INTO ln_due_dates_on, ln_orig_st_date, ld_maturity_date
+            FROM CLTB_ACCOUNT_MASTER
+            WHERE ACCOUNT_NUMBER = pi_loan_account;
+--            SELECT count(*) INTO ln_near28_maturity_date
+--                                FROM fcc.CLTB_ACCOUNT_SCHEDULES  c
+--                                WHERE c.ACCOUNT_NUMBER  = pi_loan_account
+--                                AND c.COMPONENT_NAME = 'MAIN_INT'
+--                                AND c.schedule_due_date >=ld_maturity_date-28
+--                                AND c.schedule_due_date < ld_maturity_date;
+            SELECT COUNT(DISTINCT pay_month) INTO ln_last2_pay_month
+                FROM
+                (SELECT trunc(max(c.schedule_due_date),'month') pay_month
+                                    FROM fcc.CLTB_ACCOUNT_SCHEDULES  c
+                                    WHERE c.ACCOUNT_NUMBER  = pi_loan_account
+                                    AND c.COMPONENT_NAME = 'MAIN_INT'
+                                    AND c.schedule_due_date < ld_maturity_date
+                UNION ALL
+                SELECT trunc(ld_maturity_date, 'month') pay_month FROM dual);
+            -- PRB22107 06.05.20 Вычитание последнего платежа только для случая, когда 2 последних платежа попадают на один месяц
+            if ln_last2_pay_month=1 then ln_minus_paym:=1;
+            else ln_minus_paym:=0;
             end if;
-            return V_ACCR_INT;
-  end;
-------------------------------------------------------------------------------------------------------
--- Функция расчета потока
-  function CASHFLOW_F(in_account_number varchar2) return table_type pipelined is
-           out_record row_type; -- объект результата
-           v_max_date date;
-           v_ACCR_INT number:=0;
-           v_SUM_ACCR_INT number:=0; -- техническая непрофильная переменная
-           v_POSTP_INT number:=0;
-           v_PREPAID_INT number:=0;
-           v_INT_DUE number:=0;
-           v_EMI_AMOUNT number;
-           v_PRPL_PREP number:=0;
-           v_PRPL_DUE number:=0;
-           v_PRPL_EXPECTED number:=0;
-           v_PRPL_INCR number:=0;
-           v_days_of_year integer:=null;
-  begin
-           -- Определение даты окончения договора
-           select MATURITY_DATE
-           into v_max_date
-           from fcc.CLTB_ACCOUNT_APPS_MASTER
-           where account_number=in_account_number;
--- основная логика алгоритма
-           for i in (select dates.account_number,
-                            dates.from_date,
-                            dates.to_date,
-                            to_number(null) as accr_int,
-                            to_number(null) as postp_int,
-                            to_number(null) as int_due,
-                            to_number(null) as prpl_due,
-                            start_loan.prpl_expected,
-                            lead(early_repayment.prpl_prep,1,null)over(order by from_date asc) prpl_prep,
-                            lead(early_repayment.prepaid_int,1,null)over(order by from_date asc) prepaid_int,
-                            ir.ude_value as int_rate,
-                            payments.emi_amount,
-                            row_number()over(order by from_date asc) as rn,
-                            count(*)over() as cnt,
-                            lead(add_transh.prpl_incr,1,null)over(order by dates.from_date asc) prpl_incr
-                     from(select -- восстанавливаем периоды
-                                 account_number,
-                                 value_date as from_date,
-                                 lead(value_date,1,max_date)over(order by value_date asc) as to_date,
-                                 max_date
-                          from (select distinct
-                                       -- оставляем только уникальные периоды
-                                       account_number,
-                                       value_date,
-                                       v_max_date as max_date
-                                from (-- Информация о выдаче кредита
-                                      select account_number,
-                                             value_date
-                                      from fcc.cltb_event_entries
-                                      where account_number=in_account_number
-                                        and component_name='PRINCIPAL'
-                                        and event_code='DSBR'
-                                      union all
-                                      -- Информация платежей по графику
-                                      select account_number,
-                                             schedule_due_date
-                                      from fcc.cltb_account_schedules
-                                      where account_number=in_account_number
-                                        and component_name='MAIN_INT'
-                                      union all
-                                      -- Информация о досрочных погашениях
-                                      select x.account_number,
-                                             x.paid_date
-                                      from fcc.cltb_amount_paid x
-                                      where x.account_number=in_account_number
-                                        and ((x.component_name ='PRINCIPAL'
-                                             and x.due_date>=x.paid_date)
-                                                 or(x.component_name ='MAIN_INT'
-                                                    and x.due_date>x.paid_date))
-                                        and x.amount_paid>0
-                                      union all
-                                      -- Информация о дополнительных траншах кредита
-                                      select account_number,
-                                             value_date
-                                      from fcc.cltb_event_entries
-                                      where account_number=in_account_number
-                                        and amount_tag='PRINCIPAL_INCR'
-                                      group by account_number,
-                                               value_date having sum(amount)>0
-                                      union all
-                                      SELECT in_account_number,EFFECTIVE_DATE-1 FROM fcc.CLTB_ACCOUNT_UDE_VALUES
-                                      WHERE ACCOUNT_NUMBER = in_account_number
-                                      AND UDE_ID = 'INTEREST_RATE'
-                                      AND ude_value = 0)
-                               )
-                         ) dates
-                     left outer join (/*select -- Информация о выдаче кредита
-                                             account_number,
-                                             value_date,
-                                             amount as prpl_expected
-                                      from fcc.cltb_event_entries
-                                      where account_number=in_account_number
-                                        and component_name='PRINCIPAL'
-                                        and event_code='DSBR'*/
-                                        select -- Информация о выдаче кредита с учетом миграции
-                                         A.account_number,
-                                         A.value_date,
-                                         (CASE
-                                            WHEN A.amount-nvl(B.field_number_2, 0)>0 THEN A.amount
-                                            WHEN A.amount-nvl(B.field_number_2, 0)<0 THEN B.field_number_2
-                                            ELSE A.amount
-                                          END) as prpl_expected
-                                        from FCC.CLVW_EVENT_ENTRIES_ARCH A,
-                                        FCC.CLTB_ACCOUNT_APPS_MASTER B
-                                        where A.account_number=in_account_number
-                                            and B.ACCOUNT_NUMBER=A.account_number
-                                            and A.component_name='PRINCIPAL'
-                                            and A.event_code='DSBR'
-                                        ) start_loan on dates.account_number=start_loan.account_number
-                                                                         and start_loan.value_date = dates.from_date
-                     left outer join (-- Информация о досрочных погашениях
-                                      select x.account_number,
-                                             x.paid_date,
-                                             sum(decode(x.component_name,'PRINCIPAL',amount_paid,null)) as prpl_prep,
-                                             sum(decode(x.component_name,'MAIN_INT',amount_paid,null)) as prepaid_int
-                                      from fcc.cltb_amount_paid x
-                                      /*left outer join (-- Исключение дад дыдачи и платежей по графику
-                                                       select account_number,
-                                                              value_date as dt
-                                                       from fcc.cltb_event_entries
-                                                       where component_name='PRINCIPAL'
-                                                         and event_code='DSBR'
-                                                       union all
-                                                       select account_number,
-                                                              schedule_due_date as dt
-                                                       from fcc.cltb_account_schedules
-                                                       where component_name='MAIN_INT') y on x.account_number=y.account_number
-                                                                                         and x.paid_date=y.dt*/
-                                      where x.account_number=in_account_number
-                                        and ((x.component_name ='PRINCIPAL'
-                                             and x.due_date>=x.paid_date)
-                                                 or(x.component_name ='MAIN_INT'
-                                                    and x.due_date>x.paid_date))
-                                        --and x.amount_paid>0
-                                        --and y.account_number is null
-                                      group by x.account_number,
-                                               x.paid_date) early_repayment on early_repayment.account_number=dates.account_number
-                                                                           and early_repayment.paid_date = dates.from_date
-                     left outer join (-- Информация о дополнительных траншах кредита
-                                      select account_number,
-                                             value_date,
-                                             sum(amount) as prpl_INCR
-                                      from fcc.cltb_event_entries
-                                      where account_number=in_account_number
-                                        and amount_tag='PRINCIPAL_INCR'
-                                      group by account_number,
-                                               value_date having sum(amount)>0) add_transh on add_transh.account_number=dates.account_number
-                                                                                          and add_transh.value_date=dates.from_date
-                     left outer join (-- Информация платежей по графику
-                                      select account_number,
-                                             schedule_due_date,
-                                             emi_amount
-                                      from fcc.cltb_account_schedules
-                                      WHERE account_number=in_account_number
-                                        and component_name='MAIN_INT') payments on payments.account_number=dates.account_number
-                                                                            and payments.schedule_due_date=dates.to_date
-                                                                            and payments.schedule_due_date<dates.max_date
-                     left outer join (-- добавление процентных ставок
-                                      select account_number,
-                                             effective_date as start_date,
-                                             lead(effective_date-1,1,to_date('31129999','ddmmyyyy'))over(order by effective_date asc) as end_date,
-                                             ude_value
-                                        from fcc.cltb_account_ude_values
-                                        where ude_id='INTEREST_RATE'
-                                          and account_number=in_account_number) ir on dates.account_number=ir.account_number
-                                                                                     and dates.from_date+1 between ir.start_date and ir.end_date
-                     where not(dates.from_date=dates.to_date and dates.to_date=dates.max_date)) LOOP
-      -- Расчет основного долга
-      --V_PRPL_EXPECTED := case i.rn when 1 then nvl(i.prpl_expected,0)
-      --                             else round((nvl(V_PRPL_EXPECTED,0) + nvl(i.prpl_expected,0) ) - nvl(v_prpl_prep,0) + nvl(v_PRPL_INCR,0)-nvl(v_prpl_due,0),2) end;
-      V_PRPL_EXPECTED := case i.rn when 1 then i.prpl_expected
-                                   else round(V_PRPL_EXPECTED - nvl(v_prpl_prep,0) + nvl(v_PRPL_INCR,0)-nvl(v_prpl_due,0),2) end;
-      dbms_output.put_line(nvl(v_prpl_due,0));
-      -- вычисление начисленных процентов
-      V_ACCR_INT:=int_calc(V_PRPL_EXPECTED,i.int_rate,i.FROM_DATE,i.TO_DATE);
-
-      if i.emi_amount is not null then
-         -- если есть платеж
-         if (nvl(v_postp_int,0)+v_accr_int+v_SUM_ACCR_INT)>nvl(i.emi_amount,0)-v_PREPAID_INT then
-            -- если проценты больше платежа, то весь платеж уходит на плановые проценты
-            v_int_due:=i.emi_amount-v_PREPAID_INT;
-            -- вычисление отложенныч процентов
-            v_postp_int:=round(V_ACCR_INT+V_SUM_ACCR_INT+nvl(v_postp_int,0)-(nvl(i.emi_amount,0)-v_PREPAID_INT),2);
-         else
-            -- если проценты меньше или равныв платежу, то платеж равен сумме процентов
-            v_int_due:=round(v_accr_int+v_SUM_ACCR_INT+nvl(v_postp_int,0),2);
-            -- обнуление отложенныч процентов
-            v_postp_int:=0;
-         end if;
-         -- вычисление планового платежа по основному долгу
-         v_prpl_due:=round(i.emi_amount-v_int_due,2)-v_PREPAID_INT;
-         -- обнуление накопленныч процентов, которые возникли в периоды отсутствия платежей
-         v_SUM_ACCR_INT:=0;
-         -- Результат для отложенных процентов
-         out_record.POSTP_INT:=round(v_postp_int,2);
+            --Если  DD в поле Original St. Date <= значения Due Dates On (по каким дням платить), и 2 последних платежа попадают на 1 месяц, то не учитываем последний платеж, если 2 последних платежа не попадают в 1 месяц, то платеж Maturity Date, учитывается при подсчете числа предстоящих платежей
+            --Если  DD в поле Original St. Date > значения Due Dates On (по каким дням платить) и 2 последних платежа попадают на 1 месяц, то не учитываем последний платеж, если 2 последних платежа не попадают в 1 месяц, то:
+                         --Если в течении 28 дней до даты Maturity Date, есть платеж, то платеж Maturity Date не учитывается при подсчете числа предстоящих платежей
+                         --Если в течении 28 дней до даты Maturity Date, нет платежей, то платеж Maturity Date учитывается при подсчете числа предстоящих платежей
+--            if ln_orig_st_date<=ln_due_dates_on then
+--                if ln_last2_pay_month=1 then ln_minus_paym:=1;
+--                else ln_minus_paym:=0;
+--                end if;
+--            elsif ln_orig_st_date>ln_due_dates_on then
+--                if ln_last2_pay_month=1 then ln_minus_paym:=1;
+--                else
+--                    if ln_near28_maturity_date>0 then  ln_minus_paym:=1;
+--                    else ln_minus_paym:=0;
+--                    end if;
+--                end if;
+--            else  ln_minus_paym:=0;
+--            end if;
+      BEGIN
+        select due_dates_on into ln_due_dates_on_rep from
+        (select due_dates_on from CLTB_ACCOUNT_COMP_SCH s
+                 where ACCOUNT_NUMBER = pi_loan_account
+                 and component_name = 'MAIN_INT'
+         and due_dates_on is not null
+         order by sch_end_date desc)
+        WHERE rownum=1;
+            EXCEPTION when no_data_found THEN
+                ln_due_dates_on_rep:=ln_due_dates_on;
+            END;
+      --ln_minus_paym:=0; --korn20171030
+            --end 20140411
+            --немного прервемся на расчет просроченной задолженности
+            lv_current_step:='Fill overdue info';
+            ln_principal_overdue:=0;
+            ln_interest_overdue:=0;
+            ln_int_on_ovd_p_accrued:=0;
+            ln_penalty_p:=0;
+            ln_penalty_i:=0;
+            IF pi_ovd_close_date IS NOT NULL THEN
+                SELECT   NVL (
+                             SUM(CASE
+                                     WHEN (component_name = 'PRINCIPAL'
+                                           AND schedule_due_date < pi_ovd_close_date) --до даты планового погашения просрочки
+                                     THEN
+                                         amount_due - NVL (amount_settled, 0)
+                                     ELSE
+                                         0
+                                 END),
+                             0)
+                             principal_overdue INTO ln_principal_overdue
+                  FROM   fcc.cltb_account_schedules
+                 WHERE   account_number = pi_loan_account;
+                 ---------------------------------
+                SELECT   NVL (
+                             SUM(CASE
+                                     WHEN (component_name = 'MAIN_INT'
+                                           AND schedule_due_date < pi_ovd_close_date) --до даты планового погашения просрочки
+                                     THEN
+                                         NVL (accrued_amount, 0) - NVL (amount_settled, 0)
+                                     ELSE
+                                         0
+                                 END),
+                             0)
+                             interest_overdue  INTO ln_interest_overdue
+                  FROM   fcc.cltb_account_schedules
+                 WHERE   account_number = pi_loan_account;
+                  ---------------------------------
+                SELECT   NVL (
+                             SUM(CASE
+                                     WHEN (component_name = 'INT_ON_OVD_P'
+                                           AND schedule_due_date >= gv_branch_day) --после текущего опер дня
+                                     THEN
+                                         NVL (amount_due, 0) - NVL (amount_settled, 0)
+                                     ELSE
+                                         0
+                                 END),
+                             0)
+                             int_on_ovd_p_accrued INTO ln_int_on_ovd_p_accrued
+                  FROM   fcc.cltb_account_schedules
+                 WHERE   account_number = pi_loan_account;
+                  ---------------------------------
+                SELECT   NVL (
+                             SUM(CASE
+                                     WHEN (component_name = 'PENALTY_P'
+                                           AND schedule_due_date <= pi_ovd_close_date) --до даты планового погашения просрочки
+                                     THEN
+                                         NVL (amount_due, 0) - NVL (amount_settled, 0)
+                                     ELSE
+                                         0
+                                 END),
+                             0)
+                             penalty_p INTO ln_penalty_p
+                  FROM   fcc.cltb_account_schedules
+                 WHERE   account_number = pi_loan_account;
+                  ---------------------------------
+                SELECT   NVL (
+                             SUM(CASE
+                                     WHEN (component_name = 'PENALTY_I'
+                                           AND schedule_due_date <= pi_ovd_close_date)
+                                     THEN
+                                         NVL (amount_due, 0) - NVL (amount_settled, 0)
+                                     ELSE
+                                         0
+                                 END),
+                             0)
+                             penalty_i INTO ln_penalty_i
+                  FROM   fcc.cltb_account_schedules
+                 WHERE   account_number = pi_loan_account;
+                END IF;
+            --Получаем ставки по кторым считаются штрафы
+            BEGIN
+                SELECT nvl(UDE_VALUE,0) RATE INTO ln_INT_OVD_RATE FROM fcc.CLTB_ACCOUNT_UDE_VALUES
+                                         WHERE ACCOUNT_NUMBER = pi_loan_account
+                                          AND EFFECTIVE_DATE=(SELECT max(EFFECTIVE_DATE) FROM fcc.CLTB_ACCOUNT_UDE_VALUES
+                                                               WHERE ACCOUNT_NUMBER = pi_loan_account
+                                                               AND EFFECTIVE_DATE<=pi_ovd_close_date
+                                                               AND UDE_ID = 'INT_OVD_RATE')
+                                         AND UDE_ID = 'INT_OVD_RATE';
+            EXCEPTION WHEN NO_DATA_FOUND THEN
+                ln_INT_OVD_RATE:=0;
+            END;
+            BEGIN
+                SELECT nvl(UDE_VALUE,0) RATE INTO ln_PENALTY_RATE FROM fcc.CLTB_ACCOUNT_UDE_VALUES
+                                         WHERE ACCOUNT_NUMBER = pi_loan_account
+                                          AND EFFECTIVE_DATE=(SELECT max(EFFECTIVE_DATE) FROM fcc.CLTB_ACCOUNT_UDE_VALUES
+                                                               WHERE ACCOUNT_NUMBER = pi_loan_account
+                                                               AND EFFECTIVE_DATE<=pi_ovd_close_date
+                                                               AND UDE_ID = 'PENALTY_RATE')
+                                         AND UDE_ID = 'PENALTY_RATE';
+            EXCEPTION WHEN NO_DATA_FOUND THEN
+                ln_PENALTY_RATE:=0;
+            END;
+            --посчитали просрочку для вывода в отчет
+            go_PRINCIPAL_OVERDUE:=nvl(ln_principal_overdue,0);
+            go_INTEREST_OVERDUE:=nvl(ln_interest_overdue,0);
+      --Leila K. Izmailova - 28.09.2017 13:56
+      SELECT  count(*) into ln_row_cnt FROM fcc.cltb_account_schedules
+      WHERE   account_number = pi_loan_account
+      AND component_name='INT_ON_OVD_P';
+      if ln_row_cnt=0 then
+        go_INT_ON_OVD_P_ACCRUED:=null;
       else
-         -- если нет платежа
-         v_SUM_ACCR_INT:=case when i.prepaid_int>0 then v_SUM_ACCR_INT else v_SUM_ACCR_INT+v_accr_int end;
-         -- обнуляние плановых процентов
-         v_int_due:=0;
-         -- Результат для отложенных процентов
-         out_record.POSTP_INT:=0;
-         -- обнуление планового платежа по основному долгу
-         v_prpl_due:=0;
+        go_INT_ON_OVD_P_ACCRUED:=round(nvl(ln_int_on_ovd_p_accrued,0)+nvl(ln_principal_overdue,0)*(ln_INT_OVD_RATE/(100*366))*(pi_ovd_close_date-gv_branch_day),2); -- Changed to 366 Polishchuk NA INC000635178
       end if;
-
-       -- вычисляем досрочное погашение основного долга
-       v_PRPL_PREP:=case when case when i.prpl_prep is null
-                         then nvl(i.prpl_prep,0)
-                         else i.prpl_prep-v_prpl_due end<0 then 0 else case when i.prpl_prep is null
-                         then nvl(i.prpl_prep,0)
-                         else i.prpl_prep-v_prpl_due end end;
-
-      -- Формирование результата
-      out_record.rn:=i.rn;
-      out_record.from_date:=i.from_date;
-      out_record.to_date:=i.to_date;
-      out_record.INT_RATE:=i.int_rate;
-      out_record.ACCR_INT:=round(V_ACCR_INT,2);
-      --out_record.POSTP_INT:=round(v_postp_int,2);
-      out_record.PREPAID_INT:=i.prepaid_int;
-      out_record.INT_DUE:=case i.rn when i.cnt
-                                    then round(v_ACCR_INT+v_POSTP_INT-v_PREPAID_INT,2)
-                                    else round(v_int_due,2) end;
-      out_record.EMI_AMOUNT:=case i.rn when i.cnt
-                                       then round(v_ACCR_INT+v_POSTP_INT-v_PREPAID_INT+round(V_PRPL_EXPECTED,2),2)
-                                       else i.emi_amount end;
-      out_record.PRPL_PREP:=case v_PRPL_PREP when 0 then null else v_PRPL_PREP end;
-      out_record.PRPL_DUE:=case i.rn when i.cnt
-                                     then round(V_PRPL_EXPECTED,2)
-                                     else round(v_prpl_due,2) end;
-      out_record.PRPL_EXPECTED:=round(V_PRPL_EXPECTED,2);
-      out_record.PRPL_INCR:=i.PRPL_INCR;
-
-      v_PRPL_INCR:=i.PRPL_INCR;
-
-      if i.emi_amount is null then
-         v_PREPAID_INT:=v_PREPAID_INT+nvl(i.prepaid_int,0);
+      ----------------------
+      SELECT  count(*) into ln_row_cnt FROM fcc.cltb_account_schedules
+      WHERE   account_number = pi_loan_account
+      AND component_name='PENALTY_P';
+            if ln_row_cnt=0 then
+        go_PENALTY_P:=null;
       else
-         v_PREPAID_INT:=nvl(i.prepaid_int,0);
+        go_PENALTY_P:=round(nvl(ln_penalty_p,0)+nvl(ln_principal_overdue,0)*(ln_PENALTY_RATE/100)*(pi_ovd_close_date-gv_branch_day),2);
       end if;
-
-      if i.prepaid_int>0 then
-            -- обнуление отложенныч процентов если было ЧДП с гашением процентов
-         v_postp_int:=0;
+      ----------------------
+      SELECT  count(*) into ln_row_cnt FROM fcc.cltb_account_schedules
+      WHERE   account_number = pi_loan_account
+      AND component_name='PENALTY_I';
+            if ln_row_cnt=0 then
+        go_PENALTY_I:=null;
+      else
+        go_PENALTY_I:=round(nvl(ln_penalty_i,0)+nvl(ln_interest_overdue,0)*(ln_PENALTY_RATE/100)*(pi_ovd_close_date-gv_branch_day),2);
       end if;
+      --END Leila K. Izmailova - 28.09.2017 13:56
 
-      -- выброс результата
-      pipe row(out_record);
-    END LOOP;
-  return;
-  end;
-------------------------------------------------------------------------------------------------------
-  -- расчет ПСК
-  function get_psk (in_account_number varchar2,
-                    in_accuracy number,
-                    in_date date default null) return number is
-           Result number;
-  begin
-    select x into result
-    from (select *
-          from (-- выдача
-                select from_date,
-                       -1*nvl(prpl_EXPECTED,0) as emi_amount
-                from table(CASHFLOW_F(in_account_number))where rownum=1
+            --и забыли о ней до вывода)
+            --самое сложное)
+            --вычисляем минимальную дату ЧДП
+            lv_current_step:='Fill PRINCIPAL before AVD_REP';
+            select min(TO_DATE), max(TO_DATE) into gd_min_adv_rep_to_date, gd_max_adv_rep_to_date from REP_INT_DUE_CALC3
+            where ADV_REPAYMENT>0;
+            --Для начала считаем платежи ОД для всех дат до первого ЧДП
+            lv_current_step:='Fill PRINCIPAL';
+            FOR rec in (SELECT a.TO_DATE FROM REP_INT_DUE_CALC3 a
+                        WHERE a.TO_DATE IS NOT NULL
+                        AND a.TO_DATE<=gd_min_adv_rep_to_date--gv_branch_day
+                        ORDER BY a.TO_DATE) LOOP
+                    --досрочка
+                    for cur_var in (SELECT a.VALUE_DATE VALUE_DATE, sum(c.AMOUNT) PRINCIPAL
+                                    FROM fcc.CLTB_LIQ a, fcc.CLTB_ACCOUNT_EVENTS_PROCESSED b, fcc.cltb_event_entries c
+                                    WHERE a.ACCOUNT_NUMBER = b.ACCOUNT_NUMBER
+                                    AND a.ACCOUNT_NUMBER = c.ACCOUNT_NUMBER
+                                    AND b.COMPONENT_NAME = c.COMPONENT_NAME
+                                    AND a.EVENT_SEQ_NO = b.EVENT_SEQ_NO
+                                    AND a.EVENT_SEQ_NO = c.EVENT_SEQ_NO
+                                    AND a.ACCOUNT_NUMBER = pi_loan_account
+                                    --AND a. INSTALLMENT_PAYMENT = 'N'
+                                    AND a.VALUE_DATE >= rec.TO_DATE
+                                    AND b.COMPONENT_NAME ='PRINCIPAL'
+                                    AND b.EXECUTION_STATUS = 'P'
+                                    AND a.PAYMENT_STATUS = 'P'  --new
+                                    AND c.AMOUNT_TAG = 'PRINCIPAL_DLIQ'
+                                    --AND b.EVENT_CODE = 'MLIQ'
+                                    group by a.VALUE_DATE --korn20130606
+                                    order by VALUE_DATE) loop
+                            update REP_INT_DUE_CALC3 set PRINCIPAL = cur_var.PRINCIPAL where TO_DATE = cur_var.VALUE_DATE; --korn20180522
+              --update REP_INT_DUE_CALC3 set PRINCIPAL = cur_var.PRINCIPAL where FROM_DATE = cur_var.VALUE_DATE;
+                    end loop;
+            END LOOP;
+            COMMIT;
+            commit;
+            --считаем аннуитет пока не начались ЧДП
+            lv_current_step:='Fill EMI_AMOUNT before AVD_REP';
+            FOR rec in (SELECT TO_DATE FROM REP_INT_DUE_CALC3
+                        WHERE TO_DATE<=gd_min_adv_rep_to_date --потом руками считаем
+                        ORDER BY TO_DATE) LOOP
+                    for cur_var in (SELECT a.SCHEDULE_DUE_DATE, a.EMI_AMOUNT
+                                        FROM fcc.CLTB_ACCOUNT_SCHEDULES a
+                                        WHERE a.ACCOUNT_NUMBER  = pi_loan_account
+                                        AND a.SCHEDULE_DUE_DATE >= rec.TO_DATE
+                                        AND a.SCHEDULE_DUE_DATE <= pi_payment_plan_date
+                                        AND a.COMPONENT_NAME = 'MAIN_INT'
+                                    order by a.SCHEDULE_DUE_DATE) loop
+                        update REP_INT_DUE_CALC3 set EMI_AMOUNT = cur_var.EMI_AMOUNT
+                        where TO_DATE = cur_var.SCHEDULE_DUE_DATE;
+                    end loop;
+            END LOOP;
+            COMMIT;
+            --посчитаем минимальную TO_DATE
+            SELECT min (TO_DATE), max(TO_DATE) into ld_min_TO_DATE, ld_max_TO_DATE FROM REP_INT_DUE_CALC3;
+            --потом считаем сумму ОД на дату первого ЧДП
+            lv_current_step:='Fill first PRPL_EXPECTED';
+            UPDATE REP_INT_DUE_CALC3 s
+            SET s.prpl_expected =
+              (SELECT NVL
+                         (SUM
+                             (CASE
+                                 WHEN (component_name = 'PRINCIPAL'
+                                       AND schedule_due_date >=gd_min_adv_rep_to_date
+                                      )
+                                    THEN amount_due - NVL (amount_settled, 0)
+                                 ELSE 0
+                              END
+                             ),
+                          0
+                         ) prpl_expected
+                 FROM fcc.cltb_account_schedules
+                WHERE account_number = pi_loan_account)
+            WHERE s.to_date= gd_min_adv_rep_to_date;
+            COMMIT;
+            --предупреждение о сумме ЧДП
+            --сумма всех ЧДП
+            SELECT sum(params.paym_sum) INTO ln_all_adv_repay_sum FROM
+               (select pi_1paym_date paym_date, pi_1paym_sum paym_sum from dual
                 union all
-                -- все потоки кроме выдачи
-                select to_date,
-                       nvl(prpl_due,0)+nvl(int_due,0)+nvl(prpl_prep,0)-nvl(prpl_incr,0)+nvl(prepaid_int,0)
-                from table(CASHFLOW_F(in_account_number))
-                where to_date<in_date or in_date is null
+                select pi_2paym_date paym_date, pi_2paym_sum paym_sum from dual
                 union all
-                -- поток после ЧДП
-                select to_date,
-                       case is_principal_pay when 'Y' then nvl(emi_amount,0)+nvl(adv_repayment,0)
-                                             else nvl(adv_repayment,0) end
-                from bodev.rep_int_due_calc3
-                where to_date>=in_date and in_date is not null)
-          model dimension by (row_number()over(order by from_date asc) as rn)
-          measures(cast(0 as number) as fa,
-                   cast(0 as number) as Tfa,
-                   cast(0 as number) as fb,
-                   cast(0 as number) as Tfb,
-                   cast(0 as number) as a,
-                   cast(0.1 as number) as b,
-                   cast(0 as number) as x,
-                   cast(0 as number) as tfx,
-                   cast(0 as number) as fx,
-                   from_date,
-                   emi_amount,
-                   from_date-first_value(from_date)over(order by from_date asc) diff)
-          rules iterate(100) until(fx[1]<in_accuracy)(
-                Tfa[any]=nvl(emi_amount[cv()],0)/power(1+a[1],diff[cv()]/365),
-                fa[1]=sum(Tfa)[any],
-                Tfb[any]=nvl(emi_amount[cv()],0)/power(1+b[1],diff[cv()]/365),
-                fb[1]=sum(Tfb)[any],
-                x[1]=a[1]-fa[1]*(b[1]-a[1])/(fb[1]-fa[1]),
-                Tfx[any]=nvl(emi_amount[cv()],0)/power(1+x[1],diff[cv()]/365),
-                fx[1]=sum(Tfx)[any],
-                a[1]=case when fa[1]*fb[1]>0 then x[1] else a[1] end,
-                b[1]=case when fa[1]*fb[1]>0 then b[1] else x[1] end)
-    ) where rownum=1;
-    return Result;
-  exception when others then return 0;
-  end;
-------------------------------------------------------------------------------------------------------
--- расчет ПСК
-  function get_psk_new(in_account_number varchar2,
-                       in_accuracy number,
-                       in_date date default null) return number is
-           Result number;
-  begin
-    select abs(zzz) into result
-    from (select *
-          from (-- выдача
-                select from_date,
-                       -1*nvl(prpl_EXPECTED,0) as emi_amount
-                from table(CASHFLOW_F(in_account_number))where rownum=1
+                select pi_3paym_date paym_date, pi_3paym_sum paym_sum from dual
                 union all
-                -- все потоки кроме выдачи
-                select to_date,
-                       nvl(prpl_due,0)+nvl(int_due,0)+nvl(prpl_prep,0)-nvl(prpl_incr,0)+nvl(prepaid_int,0)
-                from table(CASHFLOW_F(in_account_number))
-                where to_date<in_date or in_date is null
+                select pi_4paym_date paym_date, pi_4paym_sum paym_sum from dual
                 union all
-                -- поток после ЧДП
-                select to_date,
-                       case is_principal_pay when 'Y' then nvl(emi_amount,0)+nvl(adv_repayment,0)
-                                             else nvl(adv_repayment,0) end
-                from bodev.rep_int_due_calc3
-                where to_date>=in_date and in_date is not null)
-          model dimension by (row_number()over(order by from_date asc) as rn)
-          measures(cast(0 as number) as fa,
-                   cast(0 as number) as Tfa,
-                   cast(0 as number) as a,
-                   cast(1 as number) as b,
-                   cast(0 as number) as c,
-                   cast(0 as number) as Tfc,
-                   cast(0 as number) as fc,
-                   cast(0 as number) as zzz,
-                   from_date,
-                   emi_amount,
-                   (from_date-first_value(from_date)over(order by from_date asc))/(365/12) as diff,
-                   trunc((from_date-first_value(from_date)over(order by from_date asc))/(365/12)) as int_diff,
-                   (from_date-first_value(from_date)over(order by from_date asc))/(365/12)-trunc((from_date-first_value(from_date)over(order by from_date asc))/(365/12)) as e
-                   )
-          rules iterate(100) until(abs(b[1]-a[1])<in_accuracy)(
-                c[1]=(a[1]+b[1])/2,
-                Tfa[any]=nvl(emi_amount[cv()],0)/((1+e[cv()]*a[1])*(power(1+a[1],int_diff[cv()]))),
-                fa[1]=sum(Tfa)[any],
-                Tfc[any]=nvl(emi_amount[cv()],0)/((1+e[cv()]*c[1])*(power(1+c[1],int_diff[cv()]))),
-                fc[1]=sum(Tfc)[any],
-                b[1]=case when fa[1]*fc[1]<=0 then c[1] else b[1] end,
-                a[1]=case when fa[1]*fc[1]<=0 then a[1] else c[1] end,
-                zzz[1]=(a[1]+b[1])/2)) where rownum=1;
-    return Result*12;
-  exception when others then return 0;
-  end;
-------------------------------------------------------------------------------------------------------
-  function checking_amounts_f(in_account_number varchar2) return varchar2 is
-           v_branch_code VARCHAR2(35);
-           v_fact_amount number;
-           v_calc_amount number;
-  begin
-           begin
-             select branch_code
-             into v_branch_code
-             from fcc.cltb_account_master
-             where account_number=in_account_number;
-           exception when NO_DATA_FOUND then
-             --raise_application_error(-20140,'Запись с текущим account_number не найдена в cltb_account_master.');
-             return null;
-           end;
+                select pi_5paym_date paym_date, pi_5paym_sum paym_sum from dual) params;
+            --ОД на дату первого ЧДП
+            SELECT NVL
+                         (SUM
+                             (CASE
+                                 WHEN (    component_name = 'PRINCIPAL'
+                                       AND schedule_due_date >=gd_min_adv_rep_to_date
+                                      )
+                                    THEN amount_due - NVL (amount_settled, 0)
+                                 ELSE 0
+                              END
+                             ),
+                          0
+                         ) prpl_expected INTO ln_prpl_expected_on_first_adv
+                 FROM fcc.cltb_account_schedules
+                WHERE account_number = pi_loan_account;
+            IF nvl(ln_all_adv_repay_sum,0)>nvl(ln_prpl_expected_on_first_adv,0) THEN
+               UPDATE rep_int_due_calc_totals3
+               SET check_message='Суммы ЧДП ('||to_char(ln_all_adv_repay_sum)||') превышают остаток основной задолженности ('||ln_prpl_expected_on_first_adv||'). Повторите расчет с другими параметрами'
+               WHERE check_message is not null;
+               COMMIT;
+            END IF;
+            --для начала проставим признак того, что в to_date должен быть платеж ОД
+            /*
+            --перенес повыше
+            update REP_INT_DUE_CALC3 c set
+                    c.IS_PRINCIPAL_PAY = 'Y'
+            WHERE EXISTS (
+                SELECT 'X'
+                 FROM fcc.cltb_account_schedules
+                WHERE account_number = pi_loan_account
+                AND component_name = 'PRINCIPAL'
+                AND schedule_due_date=c.TO_DATE);
+            COMMIT;*/
+            --ВВЕРХ
+            --от первого ЧДП двигаемся вверх
+            FOR rec in (SELECT a.FROM_DATE, a.TO_DATE, a.PRINCIPAL,  a.INT_RATE, a.PRPL_EXPECTED, a.EXP_PAY_CNT, a.ADV_REPAYMENT  FROM REP_INT_DUE_CALC3 a
+                        WHERE a.TO_DATE<=gd_min_adv_rep_to_date
+                        ORDER BY a.TO_DATE desc) LOOP
+                        --ставим проценты, которые должны быть в платеже, чтобы потом узнать ОД
+                        update REP_INT_DUE_CALC3 set
+                        INT_DUE = nvl((SELECT sum(nvl(amount_due,0))
+                                        FROM fcc.CLTB_ACCOUNT_SCHEDULES a
+                                        WHERE a.ACCOUNT_NUMBER  = pi_loan_account
+                                        AND a.SCHEDULE_DUE_DATE = rec.TO_DATE
+                                        AND a.COMPONENT_NAME = 'MAIN_INT'),0)
+                        where TO_DATE = rec.TO_DATE
+                        AND IS_PRINCIPAL_PAY='Y';
+                        commit;
+                        --ставим платеж ОД
+                        update REP_INT_DUE_CALC3 set
+                        PRINCIPAL = /*nvl(PRINCIPAL,0)+*/nvl(EMI_AMOUNT,0)-nvl(INT_DUE,0)
+                        where TO_DATE = rec.TO_DATE
+                        AND IS_PRINCIPAL_PAY='Y'
+                        AND PRINCIPAL is null;
+                        commit;
+            END LOOP;
+            --еще разок вверх для расчета ОД
+            FOR rec in (SELECT a.FROM_DATE, a.TO_DATE, a.PRINCIPAL,  a.INT_RATE, a.PRPL_EXPECTED, a.EXP_PAY_CNT, a.ADV_REPAYMENT, a.TRANCHE  FROM REP_INT_DUE_CALC3 a
+                        WHERE a.TO_DATE<=gd_min_adv_rep_to_date
+                        ORDER BY a.TO_DATE desc) LOOP
+                        --ставим расчетное значение ОД
+                        update REP_INT_DUE_CALC3 set
+                        PRPL_EXPECTED = nvl((SELECT c.PRPL_EXPECTED FROM REP_INT_DUE_CALC3 c
+                                                WHERE FROM_DATE <> rec.TO_DATE
+                                                AND TO_DATE = rec.TO_DATE),0)
+                                        +nvl(PRINCIPAL,0) -nvl(TRANCHE,0)
+                        where TO_DATE = rec.FROM_DATE;
+                        commit;
+                    --считаем  начисленные проценты
+                        select add_months(trunc(rec.FROM_DATE+1, 'YEAR'), 12) - trunc(rec.FROM_DATE+1, 'YEAR') INTO ln_curr_year_days_cnt from dual;
+                        IF ln_curr_year_days_cnt=365 THEN ln_divisor:=36500;
+                        ELSE  ln_divisor:=36600;
+                        END IF;
+                        --update REP_INT_DUE_CALC3 set ACCR_INT = ROUND(PRPL_EXPECTED*INT_RATE*(TO_DATE-FROM_DATE)/ln_divisor,2) where FROM_DATE = rec.FROM_DATE;
+            --korn20180215
+            update REP_INT_DUE_CALC3 set ACCR_INT = PRPL_EXPECTED*INT_RATE*(TO_DATE-FROM_DATE)/ln_divisor where FROM_DATE = rec.FROM_DATE;
+                        COMMIT;
+            END LOOP;
+            --ВНИЗ
+            ln_prev_INT_EXPECTED:=0;
+            ln_curr_INT_EXPECTED:=0;
+            --до первого ЧДП считаем отложенные проценты
+            FOR rec in (SELECT a.FROM_DATE,
+                               a.TO_DATE,
+                               a.PRINCIPAL,
+                               a.INT_RATE,
+                               a.PRPL_EXPECTED,
+                               a.EXP_PAY_CNT,
+                               a.ADV_REPAYMENT,
+                               a.EMI_AMOUNT,
+                               a.ACCR_INT,
+                               a.INT_PREPAID  FROM REP_INT_DUE_CALC3 a
+                        WHERE a.TO_DATE<=gd_min_adv_rep_to_date
+                        ORDER BY a.TO_DATE) LOOP
+                    --считаем отложенные проценты
+                        --текущее значение=предыдущее значение+начиленные за период-аннуитет
+                        ln_curr_INT_EXPECTED:=round(ln_prev_INT_EXPECTED+nvl(rec.ACCR_INT,0)-nvl(rec.EMI_AMOUNT,0)-nvl(rec.INT_PREPAID,0),2);
+                        --если начислено больше чем аннуитет
+                        IF ln_curr_INT_EXPECTED>0 THEN
+                        --проценты равны аннуитету
+                            ln_INT_DUE:=rec.EMI_AMOUNT;
+                        ELSE
+                        --проценты равны отложенным+начисленным-досрочно погашенным
+                            ln_INT_DUE:=ln_prev_INT_EXPECTED+nvl(rec.ACCR_INT,0)-nvl(rec.INT_PREPAID,0);
+                        END IF;
+                        update REP_INT_DUE_CALC3 set INT_EXPECTED=case when ln_curr_INT_EXPECTED<0 then 0 else ln_curr_INT_EXPECTED end
+                        WHERE FROM_DATE=rec.FROM_DATE;
+            --TESTKOP2
+                        update REP_INT_DUE_CALC3 set INT_DUE=round(ln_INT_DUE,2) --korn20180215 round
+            --update REP_INT_DUE_CALC3 set INT_DUE=ln_INT_DUE
+                        WHERE FROM_DATE=rec.FROM_DATE;
+                        --если отложенные проценты больше нуля, запоминаем их для следущего шага
+                        IF ln_curr_INT_EXPECTED>0 THEN
+                            ln_prev_INT_EXPECTED:=ln_curr_INT_EXPECTED;
+                        ELSE
+                            ln_prev_INT_EXPECTED:=0;
+                        END IF;
+            END LOOP;
+            COMMIT;
+            --считаем ЧДП, которые клиент уже сделал
+            --ЧДП сделанные "задним числом"
+            SELECT
+                nvl((SELECT SUM(nvl(AMOUNT_PAID,0))
+                  FROM fcc.CLTB_AMOUNT_PAID A
+                 WHERE branch_code = gv_branch_code
+                   AND ACCOUNT_NUMBER = pi_loan_account
+                   AND COMPONENT_NAME = 'PRINCIPAL' AND PAID_STATUS = 'P'
+                   AND paid_date <=gd_min_adv_rep_to_date
+                   AND EXISTS
+                 (SELECT 1
+                          FROM fcc.cltb_liq B
+                         WHERE branch_code = A.BRANCH_CODE
+                           AND account_number = A.ACCOUNT_NUMBER
+                           AND EVENT_SEQ_NO = A.EVENT_SEQ_NO
+                           AND execution_date = gv_branch_day
+                           AND payment_status = 'P'
+                           AND auth_stat = 'A')),0)
+            --ЧДП сделанные обычным способом до опердня
+                 +nvl((select sum(nvl(chpd.chdp_amount,0)-nvl(princ.princ_amount,0)) chdp_amount_cleared
+            from
+               (SELECT a.VALUE_DATE, sum(nvl(c.AMOUNT,0)) chdp_amount
+              FROM fcc.CLTB_LIQ a, fcc.CLTB_ACCOUNT_EVENTS_PROCESSED b, fcc.cltb_event_entries c
+              WHERE a.ACCOUNT_NUMBER = b.ACCOUNT_NUMBER
+              AND a.ACCOUNT_NUMBER = c.ACCOUNT_NUMBER
+              AND a.EVENT_SEQ_NO = b.EVENT_SEQ_NO
+              AND a.EVENT_SEQ_NO = c.EVENT_SEQ_NO
+              AND a.ACCOUNT_NUMBER = pi_loan_account
+              AND a.INSTALLMENT_PAYMENT = 'N'
+              AND b.COMPONENT_NAME = 'PRINCIPAL'
+              AND b.EXECUTION_STATUS = 'P'
+              AND a.PAYMENT_STATUS = 'P'
+              AND b.EVENT_CODE = 'MLIQ'
+              AND c.AMOUNT_TAG = 'PRINCIPAL_DLIQ'
+              AND a.VALUE_DATE <gv_branch_day
+              GROUP BY a.VALUE_DATE) chpd
+            left join
+              (SELECT schedule_due_date VALUE_DATE, sum(nvl(amount_settled,0)) princ_amount
+                FROM fcc.CLTB_ACCOUNT_SCHEDULES  c
+              WHERE c.ACCOUNT_NUMBER  = pi_loan_account
+              AND c.COMPONENT_NAME = 'PRINCIPAL'
+              group by schedule_due_date) princ
+            on chpd.VALUE_DATE=princ.VALUE_DATE)
+        ,0)
+            INTO ln_sum_hist_ADV_REPAYMENT
+            FROM DUAL;
+            --двигаемся вниз по расписанию и формируем
+            --ln_prev_INT_EXPECTED:=0; --korn20140313
+            BEGIN
+                SELECT INT_EXPECTED INTO ln_prev_INT_EXPECTED
+                FROM
+                (SELECT a.INT_EXPECTED  FROM REP_INT_DUE_CALC3 a
+                            WHERE a.TO_DATE<gd_min_adv_rep_to_date
+                            ORDER BY a.TO_DATE desc) b
+                WHERE ROWNUM=1;
+            EXCEPTION WHEN NO_DATA_FOUND THEN
+                ln_prev_INT_EXPECTED:=0;
+            END;
+            ln_curr_INT_EXPECTED:=0;
+      ---korn20171215
+      if gn_is_buy_back>0 then
+          begin
+            select SUM_LAST_PAY into ln_CALC_last_paym_sum from SIEBEL.SX_O@SBLREP.IMB.RU
+             where CREDIT_NUM= pi_loan_account;
+          exception when no_data_found then
+            select amount_due into ln_CALC_last_paym_sum from
+            (SELECT amount_due
+            FROM fcc.cltb_account_schedules
+            WHERE account_number = pi_loan_account
+            and component_name = 'PRINCIPAL'
+            order by schedule_st_date desc)
+          where rownum=1;
+        end;
+      end if;
+      --end korn20171215
+            FOR rec in (SELECT a.FROM_DATE,
+                               a.TO_DATE,
+                               a.PRINCIPAL,
+                               a.INT_RATE,
+                               a.PRPL_EXPECTED,
+                               a.EXP_PAY_CNT,
+                               a.ADV_REPAYMENT,
+                               a.IS_PRINCIPAL_PAY,
+                               a.INT_EXPECTED  FROM REP_INT_DUE_CALC3 a
+                        WHERE a.TO_DATE>=gd_min_adv_rep_to_date
+                        ORDER BY a.TO_DATE) LOOP
+            --считаем остаток ОД
+            --считаем  начисленные проценты
+                        select add_months(trunc(rec.FROM_DATE+1, 'YEAR'), 12) - trunc(rec.FROM_DATE+1, 'YEAR') INTO ln_curr_year_days_cnt from dual;
+                        IF ln_curr_year_days_cnt=365 THEN ln_divisor:=36500;
+                        ELSE  ln_divisor:=36600;
+                        END IF;
+                        --update REP_INT_DUE_CALC3 set ACCR_INT = ROUND(PRPL_EXPECTED*INT_RATE*(TO_DATE-FROM_DATE)/ln_divisor,2)
+            --korn20180215
+            update REP_INT_DUE_CALC3 set ACCR_INT = PRPL_EXPECTED*INT_RATE*(TO_DATE-FROM_DATE)/ln_divisor
+                        where FROM_DATE = rec.FROM_DATE;
+                        COMMIT;
+           --считаем аннуитет
+                    --DBMS_OUTPUT.Put_Line(to_char(rec.ADV_REPAYMENT));
+               /*     if rec.ADV_REPAYMENT>0 then
+                      update REP_INT_DUE_CALC3 set EMI_AMOUNT = (SELECT calc_emi (gn_is_buy_back,
+                                                                                  c.PRPL_EXPECTED-rec.ADV_REPAYMENT-nvl(rec.PRINCIPAL,0), --korn20140313
+                                                                                  c.INT_RATE,
+                                                                                  pi_last_paym_sum,
+                                                                                  c.EXP_PAY_CNT,
+                                                                                  nvl((SELECT SUM(nvl(ADV_REPAYMENT,0)) FROM REP_INT_DUE_CALC3
+                                                                                  WHERE TO_DATE <= rec.TO_DATE),0)
+                                                                                )
+                                                                  FROM REP_INT_DUE_CALC3 c
+                                                                  WHERE FROM_DATE <> rec.TO_DATE
+                                                                  AND TO_DATE = rec.TO_DATE)
 
-           select ROUND(sum(amount_due),1)
-           into v_fact_amount
-           from fcc.cltb_account_schedules
-           where account_number=in_account_number
-             and component_name='PRINCIPAL'
-             and schedule_due_date>=(select today from fcc.sttm_dates where branch_code=v_branch_code);
+                      where FROM_DATE = rec.TO_DATE;
+                      commit;
+                    end if;*/
+           --считаем проценты, которые нужно погасить к платежу
+                    update REP_INT_DUE_CALC3 set
+                    INT_DUE = --если не было ЧДП
+          case when TO_DATE<gd_min_adv_rep_to_date or is_principal_pay='Y' then EMI_AMOUNT-PRINCIPAL--+nvl(ADV_REPAYMENT,0) --korn20180511
+                    --case when TO_DATE<gd_min_adv_rep_to_date then EMI_AMOUNT-PRINCIPAL
+                    --если были, то сумма начисленных процентов с предыдущего платежа
+          --TESTKOP
+                    /*else (SELECT round(sum(ACCR_INT),2) FROM REP_INT_DUE_CALC3 c1 --korn20180215 round
+                          WHERE c1.TO_DATE<=rec.TO_DATE
+                          AND c1.TO_DATE>(SELECT max(c2.TO_DATE) FROM REP_INT_DUE_CALC3 c2
+                                         WHERE PRINCIPAL>0
+                                         AND c2.TO_DATE<rec.TO_DATE))*/
+            else (SELECT round(sum(ACCR_INT),2) FROM REP_INT_DUE_CALC3 c1 --korn20180215 round
+                          WHERE c1.TO_DATE<=rec.TO_DATE
+                          AND c1.TO_DATE>=(SELECT min(c2.TO_DATE) FROM REP_INT_DUE_CALC3 c2
+                                         WHERE IS_PRINCIPAL_PAY is null
+                                         AND c2.TO_DATE<rec.TO_DATE))
+                    end
+                    where TO_DATE = rec.TO_DATE
+                    AND PRINCIPAL>0
+          --TESTKOP
+                    --AND INT_DUE is null
+          ;
+                    commit;
+             --считаем отложенные проценты
+                    --текущее значение=предыдущее значение+начиленные за период-аннуитет+отложенная часть посчитанная до этого
+                    SELECT ln_prev_INT_EXPECTED
+                           /*+case when c1.TO_DATE=gd_min_adv_rep_to_date then 0 else nvl(ACCR_INT,0) end --для даты первого ЧДП проценты уже учтены в отложенных
+                           -case when c1.TO_DATE=gd_min_adv_rep_to_date then 0 else decode(is_principal_pay,'Y',nvl(EMI_AMOUNT,0),0) end --для даты первого ЧДП аннуитет уже учтен в отложенных
+                           */ --korn20140313
+                           +nvl(ACCR_INT,0)-decode(is_principal_pay,'Y',nvl(EMI_AMOUNT,0),0) --отличаем реальные платежи от перерасчета аннуитета
+                           --+nvl(INT_EXPECTED,0)--korn20140313
+                           ,
+                           decode(is_principal_pay,'Y',nvl(EMI_AMOUNT,0),0),
+                           nvl(ACCR_INT,0)
+                    INTO ln_curr_INT_EXPECTED,
+                         ln_curr_EMI_AMOUNT,
+                         ln_curr_ACCR_INT
+                    FROM REP_INT_DUE_CALC3 c1
+                    WHERE c1.TO_DATE=rec.TO_DATE;
+                    DBMS_OUTPUT.Put_Line('rec.TO_DATE='||to_char(rec.TO_DATE));
+                    DBMS_OUTPUT.Put_Line('ln_curr_INT_EXPECTED='||to_char(ln_curr_INT_EXPECTED));
+                    DBMS_OUTPUT.Put_Line('ln_curr_EMI_AMOUNT='||to_char(ln_curr_EMI_AMOUNT));
+                    DBMS_OUTPUT.Put_Line('ln_curr_ACCR_INT='||to_char(ln_curr_ACCR_INT));
+                    --если начислено больше чем аннуитет
+                    IF ln_curr_INT_EXPECTED>0 THEN
+                       --проценты равны аннуитету
+                            ln_INT_DUE:=ln_curr_EMI_AMOUNT;
+                    ELSE
+                        --проценты равны отложенным+начисленным
+                            ln_INT_DUE:=ln_prev_INT_EXPECTED+ln_curr_ACCR_INT;
+                    END IF;
+                    update REP_INT_DUE_CALC3 set INT_EXPECTED=round(case when ln_curr_INT_EXPECTED<0 then 0 else ln_curr_INT_EXPECTED end,2)
+                    WHERE FROM_DATE=rec.FROM_DATE;
+          --TESTKOP
+                    update REP_INT_DUE_CALC3 set INT_DUE=round(ln_INT_DUE,2)
+          WHERE FROM_DATE=rec.FROM_DATE
+          AND TO_DATE>gd_min_adv_rep_to_date; --korn20180215 round
+                    --если отложенные проценты больше нуля, запоминаем их для следущего шага
+                    IF ln_curr_INT_EXPECTED>0 THEN
+                        ln_prev_INT_EXPECTED:=ln_curr_INT_EXPECTED;
+                    ELSE
+                        ln_prev_INT_EXPECTED:=0;
+                    END IF;
+            --ставим расчетное значение платежа ОД
+                    update REP_INT_DUE_CALC3 set
+                    PRINCIPAL = nvl(EMI_AMOUNT,0)-nvl(INT_DUE,0)--,
+                    --PRPL_EXPECTED = PRPL_EXPECTED-PRINCIPAL+nvl(EMI_AMOUNT,0)-nvl(INT_DUE,0)
+                    where TO_DATE = rec.TO_DATE
+                    and nvl(INT_DUE,0)>0;
+                    commit;
+             --следущий ОД=предыдущий ОД-предыдущий платеж ОД+транш
+                    update REP_INT_DUE_CALC3 set PRPL_EXPECTED = nvl((SELECT SUM (PRPL_EXPECTED)-SUM(nvl(PRINCIPAL,0))-SUM(nvl(ADV_REPAYMENT,0)) FROM REP_INT_DUE_CALC3 WHERE FROM_DATE <> rec.TO_DATE AND TO_DATE = rec.TO_DATE),0)
+                                                                  +nvl(TRANCHE,0)
+                    where FROM_DATE = rec.TO_DATE;
+                    COMMIT;
+             --еще раз пересчитываем следущий аннуитет
+             --korn20130318
+          -- 2 платежа в последний месяц должны объединяться не зависимо от вида кредита СЗ № 201/227 REQ000367527
+          --if gn_is_buy_back>0 then ln_minus_paym:=0; end if;
+          if rec.ADV_REPAYMENT>0 or rec.IS_PRINCIPAL_PAY='Y' then
+          --считаем только до даты последнего ЧДП включительно
+            if rec.TO_DATE<=gd_max_adv_rep_to_date then
+              DBMS_OUTPUT.Put_Line('ln_minus_paym='||to_char(ln_minus_paym));
+              update REP_INT_DUE_CALC3 c1 set EMI_AMOUNT = (SELECT calc_emi2 (gn_is_buy_back,
+                                                          --case when gn_is_buy_back>0 and rec.IS_PRINCIPAL_PAY='Y' then c1.PRPL_EXPECTED+nvl(rec.ADV_REPAYMENT,0) else c1.PRPL_EXPECTED end,---rec.ADV_REPAYMENT-nvl(c.PRINCIPAL,0), --korn20140313
+                                                                             case when nvl(pi_principal_amt,0)-nvl(pi_1paym_sum,0)>0 then
+                                                                                case when gn_is_buy_back>0
+                                                                                then nvl(pi_principal_amt,0)
+                                                                                else nvl(pi_principal_amt,0)-nvl(pi_1paym_sum,0)
+                                                                                end
+                                                                             else
+                                                                               case when gn_is_buy_back>0
+                                                                               then c1.PRPL_EXPECTED+nvl(rec.ADV_REPAYMENT,0)
+                                                                               else c1.PRPL_EXPECTED end
+                                                                             end, --korn20180813 -- PRPL_EXPECTED
+                                                                             c.INT_RATE,
+                                                                             ln_CALC_last_paym_sum, --pi_last_paym_sum,
+                                                                             --c1.EXP_PAY_CNT, --korn20140325
+                                                                             case when nvl((SELECT SUM(nvl(EXP_PAY_CNT,0)) FROM REP_INT_DUE_CALC3 WHERE TO_DATE = c1.FROM_DATE),0)-ln_minus_paym>0
+                                                                             then
+                                                                                nvl((SELECT SUM(nvl(EXP_PAY_CNT,0)) FROM REP_INT_DUE_CALC3 WHERE TO_DATE = c1.FROM_DATE),0)-ln_minus_paym
+                                                                             else
+                                                                                nvl((SELECT SUM(nvl(EXP_PAY_CNT,0)) FROM REP_INT_DUE_CALC3 WHERE TO_DATE = c1.FROM_DATE),0)
+                                                                             end, --korn20140411 --EXP_PAY_CNT
+                                                                             --ЧДП указанные в отчете
+                                                                             nvl((SELECT SUM(nvl(ADV_REPAYMENT,0)) FROM REP_INT_DUE_CALC3
+                                                                                   WHERE TO_DATE < rec.TO_DATE),0)+nvl(ln_sum_hist_ADV_REPAYMENT,0), --WHERE TO_DATE <= rec.TO_DATE),0),
+                                                                             pi_1paym_sum
+                                                                             --ЧДП до опердня
+                                                                             --+nvl(ln_sum_hist_ADV_REPAYMENT,0)
+                                                                          )
+                                                                      FROM REP_INT_DUE_CALC3 c
+                                                                      WHERE FROM_DATE <> rec.TO_DATE
+                                                                      AND TO_DATE = rec.TO_DATE)
 
-           select ROUND(x.PRPL_EXPECTED,1)
-           into v_calc_amount
-           from table(bo_helios_353_pkg.CASHFLOW_F(in_account_number)) x
-           where (select today from fcc.sttm_dates where branch_code=v_branch_code) between from_date+1 and to_date;
+                   where FROM_DATE = rec.TO_DATE;
+                   commit;
+            end if;
+          end if;
+          --потом просто копируем из предыдущего
+          IF rec.TO_DATE>gd_max_adv_rep_to_date then
+            update REP_INT_DUE_CALC3 c1 set EMI_AMOUNT = (SELECT c.EMI_AMOUNT
+                                                            FROM REP_INT_DUE_CALC3 c
+                                                           WHERE c.TO_DATE = rec.TO_DATE)
 
-           return case v_fact_amount-v_calc_amount when 0 then null else 'По кредиту выявлены расхождения в графике платежей. Текущий основной долг: расчетный - '||v_calc_amount||', в FCC - '||v_fact_amount||'. Направьте копию данного отчёта в письме на HelpDesk c информацией о вероятной ошибке по кредиту в системе FlexCube. Тема письма: "Ошибка в графике кредита ('||in_account_number||') в FCC (на 2nd appsupp fcc)". Просьба рассчитать график корректно.' end;
-  end;
-------------------------------------------------------------------------------------------------------
-begin
-  null;
-end BO_HELIOS_353_PKG;
+            where FROM_DATE = rec.TO_DATE;
+            commit;
+          end if;
+        END LOOP;
+           ---новая проверка
+               --korn20140425
+               /*UPDATE rep_int_due_calc_totals3
+               SET check_message='Суммы ЧДП превышают остаток основной задолженности. Повторите расчет с другими параметрами'
+               WHERE check_message is not null
+               AND EXISTS (SELECT 'x' FROM REP_INT_DUE_CALC3 WHERE PRPL_EXPECTED<0);*/
+               DELETE FROM REP_INT_DUE_CALC3
+               WHERE PRPL_EXPECTED<0;
+               COMMIT;
+         --korn20180215 TESTKOP
+         update REP_INT_DUE_CALC3 set ACCR_INT = round(ACCR_INT,2);
+               COMMIT;
+           -- add Polischuk N. PRB21747
+           BEGIN
+             select min(to_date) INTO min_pmnt_date_after_CHDP
+               from REP_INT_DUE_CALC3
+              where is_principal_pay='Y'
+                and to_date>pi_1paym_date;
+           EXCEPTION WHEN NO_DATA_FOUND THEN
+              min_pmnt_date_after_CHDP:=gd_max_adv_rep_to_date;
+           END;
+
+           --
+           --формируем итоги
+           INSERT INTO rep_int_due_calc_totals3
+           (account_number,
+             prpl_expected,
+             int_expected,
+             principal_overdue,
+             interest_overdue,
+             int_on_ovd_p_accrued,
+             penalty_p,
+             penalty_i,
+             exp_pay_cnt,
+             due_date_on,
+             new_emi,
+             last_paym_contr,
+             last_paym_calc)
+         VALUES
+             (pi_loan_account, --account_number
+             /*nvl((SELECT sum(nvl(PRPL_EXPECTED,0))
+                FROM REP_INT_DUE_CALC3
+                WHERE from_date=gd_max_adv_rep_to_date),0),*/ --prpl_expected
+              nvl((SELECT sum(nvl(PRPL_EXPECTED,0))
+                FROM REP_INT_DUE_CALC3
+                WHERE to_date=pi_1paym_date),0),
+             /*nvl((SELECT sum(nvl(ACCR_INT,0))
+                FROM REP_INT_DUE_CALC3
+                WHERE to_date=pi_1paym_date),0),*/
+      --korn20180215
+              nvl((select sum(nvl(INT_DUE,0)) from REP_INT_DUE_CALC3
+                    where to_date=(select min(to_date) from REP_INT_DUE_CALC3
+                  where is_principal_pay='Y'
+                  and to_date>=pi_1paym_date)
+                   ),
+              nvl((SELECT sum(nvl(ACCR_INT,0))
+                     FROM REP_INT_DUE_CALC3
+                    WHERE to_date=pi_1paym_date),0)),
+             --вместо процентов будем выподить последнюю процентную ставку
+             --nvl((SELECT max(nvl(INT_RATE,0))
+             --   FROM REP_INT_DUE_CALC3
+             --   WHERE from_date=gd_max_adv_rep_to_date/*(SELECT max(from_date) FROM REP_INT_DUE_CALC3)*/),0), --inr_rate
+             /*nvl((SELECT sum(nvl(INT_EXPECTED,0))
+                FROM REP_INT_DUE_CALC3
+                WHERE from_date=ld_max_FROM_DATE),0), --int_expected*/
+             go_PRINCIPAL_OVERDUE, --principal_overdue
+             go_INTEREST_OVERDUE, --interest_overdue
+             go_INT_ON_OVD_P_ACCRUED, --int_on_ovd_p_accrued
+             go_PENALTY_P, --penalty_p
+             go_PENALTY_I, --penalty_i
+             /*(SELECT count(*)
+                FROM fcc.CLTB_ACCOUNT_SCHEDULES  c
+                WHERE c.ACCOUNT_NUMBER  = pi_loan_account
+                AND c.COMPONENT_NAME = 'MAIN_INT'
+                AND c.schedule_due_date >= gd_max_adv_rep_to_date--pi_payment_plan_date
+                ),*/ --exp_pay_cnt
+             nvl((select exp_pay_cnt from REP_INT_DUE_CALC3
+                    where to_date=gd_max_adv_rep_to_date),0),  --exp_pay_cnt
+             ln_due_dates_on_rep,
+             nvl((SELECT sum(nvl(PRINCIPAL,0)+nvl(INT_DUE,0)) --sum(nvl(EMI_AMOUNT,0))
+                FROM REP_INT_DUE_CALC3
+                 --WHERE from_date=gd_max_adv_rep_to_date/*(SELECT max(from_date) FROM REP_INT_DUE_CALC3 WHERE nvl(EMI_AMOUNT,0)>0)*/),0), --new_emi
+                WHERE to_date = min_pmnt_date_after_CHDP),0), --new_emi -- add Polischuk N. PRB21747
+             ln_CALC_last_paym_sum, --pi_last_paym_sum, --last_paym_contr
+             null --last_paym_calc
+             );
+         COMMIT;
+         UPDATE rep_int_due_calc_totals3
+            SET TOTAL= nvl(round(PRPL_EXPECTED,2),0)+
+                        nvl(round(INT_EXPECTED,2),0)+
+                        nvl(round(PRINCIPAL_OVERDUE,2),0)+
+                        nvl(round(INTEREST_OVERDUE,2),0)+
+                        nvl(round(INT_ON_OVD_P_ACCRUED,2),0)+
+                        nvl(round(PENALTY_P,2),0)+
+                        nvl(round(PENALTY_I,2),0)
+         WHERE PRPL_EXPECTED is not null;
+         COMMIT;
+         DBMS_OUTPUT.Put_Line('gn_is_buy_back='||to_char(gn_is_buy_back));
+         /*IF gn_is_buy_back>0 THEN
+            SELECT SUM(nvl(ADV_REPAYMENT,0)) INTO ln_sum_ADV_REPAYMENT
+             FROM REP_INT_DUE_CALC3;
+             UPDATE rep_int_due_calc_totals3
+                SET LAST_PAYM_CALC= case when
+                nvl(round(PRPL_EXPECTED,2),0)>=nvl(round(LAST_PAYM_CONTR,2),0)-nvl(ln_sum_ADV_REPAYMENT,0)
+                then greatest(nvl(round(LAST_PAYM_CONTR,2),0),nvl(ln_sum_ADV_REPAYMENT,0))-nvl(ln_sum_ADV_REPAYMENT,0) --чтобы не было отрицательных значений
+                else nvl(round(PRPL_EXPECTED,2),0)
+                end
+             WHERE PRPL_EXPECTED is not null;
+             COMMIT;
+         ELSE
+            UPDATE rep_int_due_calc_totals3
+                SET LAST_PAYM_CONTR=NULL;
+             COMMIT;
+         END IF;*/
+
+         --для вывода сложим суммы
+         UPDATE REP_INT_DUE_CALC3
+         SET PRINCIPAL=nvl(PRINCIPAL,0)+nvl(ADV_REPAYMENT,0),
+             INT_DUE=case when IS_PRINCIPAL_PAY='Y' then nvl(INT_DUE,EMI_AMOUNT)  else null end
+         WHERE nvl(ADV_REPAYMENT,0)>0;
+         COMMIT;
+         --для вывода удалим отложенные проценты за даты где не было платежа
+         UPDATE REP_INT_DUE_CALC3
+         SET INT_EXPECTED=null
+         WHERE nvl(IS_PRINCIPAL_PAY,0)<>'Y';
+         COMMIT;
+         UPDATE rep_int_due_calc_totals3
+                SET customer_name=to_char(gd_max_adv_rep_to_date+1,'DD.MM.RRRR')
+         WHERE PRPL_EXPECTED is not null;
+         COMMIT;
+         --последний платеж в расписании
+         UPDATE REP_INT_DUE_CALC3
+         SET int_expected=case when nvl(int_expected,0)=0 then 0 else nvl(int_expected,0)+nvl(EMI_AMOUNT,0) end  --отложенные % в последнем платеже не гасятся аннуитетом
+         WHERE exp_pay_cnt=0;
+         UPDATE REP_INT_DUE_CALC3
+         SET PRINCIPAL=nvl(prpl_expected,0),
+             EMI_AMOUNT=nvl(prpl_expected,0)+case when nvl(int_expected,0)>0 then nvl(int_expected,0) else nvl(accr_int,0) end
+     WHERE EXP_PAY_CNT=(SELECT min(EXP_PAY_CNT) FROM REP_INT_DUE_CALC3);
+     --korn20180524
+         --WHERE exp_pay_cnt=0;
+         COMMIT;
+         UPDATE rep_int_due_calc_totals3
+                SET LAST_PAYM_CALC=(--select nvl(prpl_expected,0)+case when nvl(int_expected,0)>0 then nvl(int_expected,0) else nvl(accr_int,0) end
+                  select nvl(prpl_expected,0)+case when nvl(int_expected,0)>0 then nvl(int_expected,0) else nvl(int_due,0) end
+                                        from REP_INT_DUE_CALC3
+                                        where to_date=(select max(to_date) from REP_INT_DUE_CALC3))
+         WHERE PRPL_EXPECTED is not null;
+         COMMIT;
+         END IF;
+     ELSE
+         insert into rep_int_due_calc_totals3(account_number,check_message)
+         values(pi_loan_account, lv_check_message);
+         COMMIT;
+     end if;
+
+   COMMIT;
+   END fill_report_by_date3_SBL;
