@@ -1,11 +1,11 @@
-Эдуард, привет!
+FUNCTION fn_get_ins_premium (zero_date date, account_number varchar2) return cashflow_tab_type pipelined AS
+  v_cashfow_row cashflow_row_type;
+BEGIN
+  SELECT zero_date as from_date, INS_PREMIUM as emi_amount
+  into v_cashfow_row
+  --INTO v_loan_id, v_INS_PREMIUM, v_SUM_LAST_PAY
+  FROM SIEBEL.SX_O_CPI_LAST_PAY@SBLREP.IMB.RU where CREDIT_NUM = account_number;
+  
+  pipe row(v_cashfow_row);
 
-Вот запрос который вернет сумму страховки и последний платеж (если кредит байбэк) из Зибеля
-
-SELECT CREDIT_NUM, INS_PREMIUM, SUM_LAST_PAY 
---INTO v_loan_id, v_INS_PREMIUM, v_SUM_LAST_PAY
-FROM SIEBEL.SX_O_CPI_LAST_PAY@SBLREP.IMB.RU where CREDIT_NUM = '00445049RURRC12001';
-
-Суммы возвращаются 0 или NULL если таковых нет.
-
-Оберни, пожалуйста, этот запрос в процедуру с 2мя out параметрами INS_PREMIUM, SUM_LAST_PAY. Не забудь обработать исключение если запрос не вернул ни одной строки.
+END fn_get_ins_premium;
