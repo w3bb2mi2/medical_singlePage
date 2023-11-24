@@ -1,11 +1,48 @@
-FUNCTION fn_get_ins_premium (zero_date date, account_number varchar2) return cashflow_tab_type pipelined AS
-  v_cashfow_row cashflow_row_type;
+PROCEDURE sbl_prepay_chdp_wrap (
+    p_loan_id IN VARCHAR2,
+    p_date_chdp IN DATE,
+    p_sum_chdp IN NUMBER,
+    p_sum_last_pay IN NUMBER,
+    p_cursor OUT SYS_REFCURSOR,
+    p_schedule OUT SYS_REFCURSOR) IS
 BEGIN
-  SELECT zero_date as from_date, INS_PREMIUM as emi_amount
-  into v_cashfow_row
-  --INTO v_loan_id, v_INS_PREMIUM, v_SUM_LAST_PAY
-  FROM SIEBEL.SX_O_CPI_LAST_PAY@SBLREP.IMB.RU where CREDIT_NUM = account_number;
-  
-  pipe row(v_cashfow_row);
-
-END fn_get_ins_premium;
+  OPEN p_cursor FOR
+    SELECT account_number
+      ,prpl_expected
+      ,int_expected
+      ,principal_overdue
+      ,interest_overdue
+      ,int_on_ovd_p_accrued
+      ,penalty_p
+      ,penalty_i
+      ,exp_pay_cnt
+      ,due_date_on
+      ,new_emi
+      ,trunc(new_psk,3) new_psk
+      ,last_paym_contr
+      ,last_paym_calc
+      ,total
+      ,customer_name
+      ,check_message
+    FROM TABLE (rep_sbl_pkg.SBL_PREPAY_CHDP (p_loan_id
+                 ,p_date_chdp
+                 ,p_sum_chdp
+                 ,p_sum_last_pay
+                 ,null));
+  OPEN p_schedule FOR
+  SELECT FROM_DATE,
+      TO_DATE,
+      INT_RATE,
+      ACCR_INT,
+      INT_EXPECTED,
+      INT_PREPAID,
+      ADV_REPAYMENT,
+      INT_DUE,
+      EMI_AMOUNT,
+      IS_PRINCIPAL_PAY,
+      PRINCIPAL,
+      PRPL_EXPECTED,
+      TRANCHE,
+      EXP_PAY_CNT
+    FROM TABLE (rep_sbl_pkg.SBL_PREPAY_CHDP_SCHED(p_date_chdp));
+END sbl_prepay_chdp_wrap;
