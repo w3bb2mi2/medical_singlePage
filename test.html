@@ -1,89 +1,35 @@
-  FUNCTION SBL_PREPAY_CHDP(pi_loan_account IN VARCHAR2,
-                           pi_1paym_date IN DATE,
-                           pi_1paym_sum  IN NUMBER,
-                           pi_last_paym_sum  IN NUMBER,
-               pi_principal_amt IN NUMBER) return rep_sbl_chdp_dt_nt PIPELINED IS
-    lv_REPORT_WARN  varchar2(500);
-    --lv_REPORT_WARN2  varchar2(4000);
-    ln_PSK  number;
-   BEGIN
-      rep_sbl_pkg.fill_report_by_date3_SBL(pi_loan_account,
-                            pi_1paym_date,
-                            pi_1paym_sum,
-                            null,
-                            null,
-                            null,
-                            null,
-                            null,
-                            null,
-                            null,
-                            null,
-                            pi_last_paym_sum,
-                            pi_principal_amt);
-    lv_REPORT_WARN:=null;
---  Убрана проверка сторнирующих операций по согласованию с Завгородней Е. 06.05.20  PRB22107
---      begin
---      SELECT   CASE WHEN COUNT (*)>0 THEN 'Выполнялось сторнирование операций' ELSE null END
---        INTO lv_REPORT_WARN
---        FROM   fcc.cltb_account_events_processed
---       WHERE       account_number =pi_loan_account
---           AND event_date > (SELECT   MIN (from_date) FROM bodev.REP_INT_DUE_CALC3)
---           AND (EVENT_CODE = 'REVV' OR EVENT_CODE = 'REVP');
---      exception when no_data_found then
---      lv_REPORT_WARN:=null;
---      end;
-      ln_PSK:=get_psk(pi_loan_account,0.0001,pi_1paym_date)*100;
-      --  Убрана проверка контроля сумм остатка задолженности в FCC и расчитанной по заявке от Завгородней Е. INC000776962
-      /*begin
-      lv_REPORT_WARN2:=substr(checking_amounts_fcc(pi_loan_account),1,4000);
-      exception when others then lv_REPORT_WARN2:=null;
-      end;
-      if lv_REPORT_WARN2 is not null then
-        lv_REPORT_WARN2:='По указанному кредиту на текущую дату уже есть заявка на ЧДП';
-        lv_REPORT_WARN:=substr(trim(nvl(lv_REPORT_WARN,'')||' '||nvl(lv_REPORT_WARN2,'')),1,500);
-      end if;*/
-      for rec in (SELECT   max(decode(check_message,null,account_number,null)) account_number,
-               max(decode(check_message,null,prpl_expected,null)) prpl_expected,
-               max(decode(check_message,null,int_expected,null)) int_expected,
-                           max(decode(check_message,null,principal_overdue,null)) principal_overdue,
-               max(decode(check_message,null,interest_overdue,null)) interest_overdue,
-               max(decode(check_message,null,int_on_ovd_p_accrued,null)) int_on_ovd_p_accrued,
-                           max(decode(check_message,null,penalty_p,null)) penalty_p,
-               max(decode(check_message,null,penalty_i,null)) penalty_i,
-               max(decode(check_message,null,exp_pay_cnt,null)) exp_pay_cnt,
-               max(decode(check_message,null,due_date_on,null)) due_date_on,
-               max(decode(check_message,null,new_emi,null)) new_emi,
-                           max(decode(check_message,null,last_paym_contr,null)) last_paym_contr,
-               max(decode(check_message,null,last_paym_calc,null)) last_paym_calc,
-               max(decode(check_message,null,total,null)) total,
-               max(decode(check_message,null,null,customer_name)) customer_name,
-                           max(decode(check_message,null,null,trim(check_message))) check_message
-                          FROM rep_int_due_calc_totals3) loop
-         if rec.check_message is not null and lv_REPORT_WARN is null then
-          lv_REPORT_WARN:=rec.check_message;
-         elsif rec.check_message='OK' and lv_REPORT_WARN is not null then
-          lv_REPORT_WARN:=trim(lv_REPORT_WARN);
-         elsif rec.check_message<>'OK' and lv_REPORT_WARN is not null then
-          lv_REPORT_WARN:=trim(nvl(rec.check_message,'')||' '||nvl(lv_REPORT_WARN,''));
-         end if;
-               pipe row(rep_sbl_chdp_dt_t(rec.account_number,
-                                               rec.prpl_expected,
-                                               rec.int_expected,
-                                               rec.principal_overdue,
-                                               rec.interest_overdue,
-                                               rec.int_on_ovd_p_accrued,
-                                               rec.penalty_p,
-                                               rec.penalty_i,
-                                               rec.exp_pay_cnt,
-                         rec.due_date_on,
-                                               rec.new_emi,
-                         round(ln_PSK,5),
-                                               rec.last_paym_contr,
-                                               rec.last_paym_calc,
-                                               rec.total,
-                                               rec.customer_name,
-                                               lv_REPORT_WARN
-                         ));
-      end loop;
-      RETURN;
-   END SBL_PREPAY_CHDP;
+FUNCTION fn_get_ins_premium (v_account_number varchar2) return cashflow_tab_type pipelined AS
+  v_cashfow_row cashflow_row_type;
+  v_value_date date;
+BEGIN
+  select value_date
+    into v_value_date
+  from fcc.CLTB_ACCOUNT_APPS_MASTER
+  where account_number=v_account_number;
+   dbms_OUTPUT.put_line(v_value_date);
+
+  SELECT v_value_date as from_date, 
+         INS_PREMIUM as emi_amount
+  into v_cashfow_row
+  FROM SIEBEL.SX_O_CPI_LAST_PAY@SBLREP.IMB.RU where CREDIT_NUM = v_account_number;
+
+  DBMS_OUTPUT.PUT_LINE('' || v_cashfow_row.value_date)
+
+  If  v_cashfow_row.emi_amount is not null then  
+    pipe row(v_cashfow_row);
+  ELSE 
+    SELECT v_value_date as from_date, 
+         0 as emi_amount
+    into v_cashfow_row
+    from dual;
+    pipe row(v_cashfow_row);
+  end if;
+EXCEPTION
+  WHEN others THEN
+  dbms_OUTPUT.put_line('Произошла ошибка в функции: fn_get_ins_premium');
+  SELECT v_value_date as from_date, 
+         0 as emi_amount
+  into v_cashfow_row
+  from dual;
+  pipe row(v_cashfow_row);
+END fn_get_ins_premium;
