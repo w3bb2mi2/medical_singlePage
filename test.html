@@ -1,35 +1,11 @@
-FUNCTION fn_get_ins_premium (v_account_number varchar2) return cashflow_tab_type pipelined AS
-  v_cashfow_row cashflow_row_type;
-  v_value_date date;
-BEGIN
-  select value_date
-    into v_value_date
-  from fcc.CLTB_ACCOUNT_APPS_MASTER
-  where account_number=v_account_number;
-   dbms_OUTPUT.put_line(v_value_date);
+select  'sibel_psk_on_CHDP' as sourse, round((rep_sbl_pkg_dev.get_psk_new('00971026RURRC10005', 0.0001)), 5)*100 as PSK_rate from dual
+union all
+select  'BO_helios_353_new' as sourse, round((BO_HELIOS_353_PKG_DEV.get_psk_new('00971026RURRC10005', 0.0001)), 5)*100 as PSK_rate from dual
+union all
+select  'BO_helios_353_old' as sourse, round((BO_HELIOS_353_PKG.get_psk_new('00971026RURRC10005', 0.0001)), 5)*100 as PSK_rate from dual;
 
-  SELECT v_value_date as from_date, 
-         INS_PREMIUM as emi_amount
-  into v_cashfow_row
-  FROM SIEBEL.SX_O_CPI_LAST_PAY@SBLREP.IMB.RU where CREDIT_NUM = v_account_number;
 
-  DBMS_OUTPUT.PUT_LINE('' || v_cashfow_row.value_date)
+-- входящий поток
 
-  If  v_cashfow_row.emi_amount is not null then  
-    pipe row(v_cashfow_row);
-  ELSE 
-    SELECT v_value_date as from_date, 
-         0 as emi_amount
-    into v_cashfow_row
-    from dual;
-    pipe row(v_cashfow_row);
-  end if;
-EXCEPTION
-  WHEN others THEN
-  dbms_OUTPUT.put_line('Произошла ошибка в функции: fn_get_ins_premium');
-  SELECT v_value_date as from_date, 
-         0 as emi_amount
-  into v_cashfow_row
-  from dual;
-  pipe row(v_cashfow_row);
-END fn_get_ins_premium;
+select * 
+from table( BO_HELIOS_353_PKG_DEV.CASHFLOW_F('00971026RURRC10005'));
