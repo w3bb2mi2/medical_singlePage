@@ -1,24 +1,306 @@
-function fn_get_psk_rur(p_account_number number) return number as
-    psk_total_sum number;
-    ins_summ number;
-  begin
-    select sum(int_due)
-      into psk_total_sum
-    from CASHFLOW_F_TEMP_TAB;    
-    dbms_output.put_line('total psk summ: ' || psk_total_sum);
-    
-    select sum(emi_amount)
-      into ins_summ
-    from CASHFLOW_F_TEMP_TAB
-    where rn=0;    
-    dbms_output.put_line('ins_summ: ' || ins_summ);
-    
-    IF ins_summ > 0 THEN
-      psk_total_sum := psk_total_sum + ins_summ;
-      dbms_output.put_line('total psk summ: ' || psk_total_sum);
-    END IF;
+pipeline {
+    agent any
+    options {
+        disableConcurrentBuilds()
+        timestamps()
+    }
+  
+    environment {
+        DB_SERVER = 'fox06.IMB.RU:21567/FCC03.IMB.RU'
+        DEFAULT_ORA_SCHEMA = 'FCC'
+        DB_CREDENTIALS = credentials('oracle_proxy_user_flex12')
+        WORK_FOLDER = "${env.WORKSPACE}"
+        BRANCH_NAME = "${env.GIT_BRANCH}"
+        CHANGE_BRANCH = "${env.CHANGE_BRANCH}"
+        SLEEP_TIME = 0
+        GIT_ADDRESS = 'http://git.intranet/scm/ABS/fcc-fccba.git'
+		MASTER_BRANCH = 'master~1'
+		SONAR_SCANNER_OPTS = '-Djavax.net.ssl.keyStore=/etc/pki/java/cacerts -Djavax.net.ssl.trustStore=/etc/pki/java/cacerts'
+		ADAPTER_SERVER_LIST = 'vs97' //vs97_two_servers
+    }
+  
+    stages {
 
-    return psk_total_sum;
-    EXCEPTION
-      WHEN others THEN return -1;
-  end;
+        stage('Clear workspace') {
+            steps {
+                echo 'Clear workspace'
+                //sh 'ls | grep -v "SRC/" | grep -v "jenkins/" | grep -v ".git/" | xargs rm -rfv'
+				//find . -not -path "./SRC*" -not -path "./jenkins*" -not -path "./.git*" -delete
+                sh '''                    
+					find . -not -path "./Installers*" -not -path "./SRC*" -not -path "./jenkins*" -not -path "./.git*" -delete
+                    ls -l
+                '''
+                echo 'Workspace cleared'
+				script {
+					def now = new Date()
+					DATETIME_STR = now.format("yyMMddHHmm", TimeZone.getTimeZone('Europe/Moscow'))
+					FOLDER_NAME = "buffer/SW-FCC/builds/"
+					PATCH_NAME = "${DATETIME_STR}"
+				}
+				echo "PATCH_NAME=${PATCH_NAME}"
+				echo "FOLDER_NAME=${FOLDER_NAME}"
+				script {
+					currentBuild.displayName = "#${BUILD_NUMBER} - ${PATCH_NAME} - ${env.GIT_BRANCH}"
+				}
+				sh "printenv"
+            }
+        }
+	
+	    stage('Check branch') {
+		when { expression { env.CHANGE_ID == null }}
+		steps{
+			echo 'This is build in master. Read branch name from merge message'
+			script{
+				sh '''                    
+					git log -1 | grep "Merge in" | awk '{print $(NF-2)}' > last_branch.txt                    
+					cat last_branch.txt
+                '''								
+				CHANGE_BRANCH = readFile(file: 'last_branch.txt').split('\n')[0]
+			      }
+			echo "CHANGE_BRANCH=${CHANGE_BRANCH}"    
+			}
+			}
+		
+	
+        stage('Check install.txt') {			
+			when { changeRequest target: 'master' }
+            steps {
+//                sh '''
+//			       git diff -b remotes/upstream/master remotes/origin/$BRANCH_NAME ./SRC/install.txt 1> install_changes_flag.txt
+//                    cat install_changes_flag.txt
+//                    if [[ $(wc -c < install_changes_flag.txt) -gt 0 ]]
+//                     then
+//                      echo 'install.txt in branch and master are different'
+//                    else
+//                     echo 'install.txt in branch and master are equal'
+//                     exit 1
+//                    fi
+//             '''
+				script {
+					MASTER_BRANCH = 'master';
+				}
+            }
+        }
+		
+        stage('Checkout master') {
+            steps {
+                echo 'Checking out master'
+				
+                checkout([
+                    $class: 'GitSCM',
+                    branches:[[name: "*/$MASTER_BRANCH"]],
+                    extensions: [[$class: 'GitLFSPull'],[$class: 'RelativeTargetDirectory', relativeTargetDir: 'MASTER']],
+                    userRemoteConfigs: [[credentialsId: 'AD Jenkins', url: env.GIT_ADDRESS]]
+                ])
+                library identifier: "fcc@$BRANCH_NAME", retriever: legacySCM(scm)
+                echo 'Checked out master'
+            }
+        }
+		
+//		stage('Checkout branch') {
+//			  steps {
+//				echo 'Checking out branch'
+//				checkout([
+//					$class: 'GitSCM',
+//					branches:[[name: "*/${BRANCH_NAME}"]],
+//					extensions: [[$class: 'GitLFSPull'],[$class: 'RelativeTargetDirectory', relativeTargetDir: './']],
+//					userRemoteConfigs: [[credentialsId: 'AD Jenkins', url: env.GIT_ADDRESS]]
+//				])
+//				library identifier: "fcc@$BRANCH_NAME", retriever: legacySCM(scm)
+//				echo 'Checked out branch'
+//			  }
+//		}
+
+  
+        stage('Build patch') {
+            steps {
+                buildPatch "${PATCH_NAME}", CHANGE_BRANCH
+            }
+        }
+	
+
+		stage('Create DB backup') {
+			when { changeRequest target: 'master' }
+			steps {
+				echo 'Creating DB backup'
+				sh 'source ./jenkins/create_flashback.sh ${DB_CREDENTIALS_USR}/${DB_CREDENTIALS_PSW} ${DB_SERVER}'
+				echo 'Created DB backup'
+			}
+		}
+                
+ 
+        stage ('Commit') {
+            when { branch 'master' }
+            stages {
+                stage('Publish the artifact') {
+					environment {
+						PATCH_NAME = "${PATCH_NAME}"
+						FOLDER_NAME = "${FOLDER_NAME}"
+					}
+                    steps {
+						echo 'Checking install.txt'
+						
+//						sh '''
+//							if cmp -s "./SRC/install.txt" "./MASTER/SRC/install.txt"; then
+//								echo 'install.txt in branch and master are equal'
+//								exit 1
+//							else
+//								echo 'install.txt in branch and master are different'
+//							fi
+//						'''
+					
+                        echo 'Publishing the artifact'
+
+                        sh """
+                            rm -f ${WORK_FOLDER}/${PATCH_NAME}/install/*.log
+                            rm -f ${WORK_FOLDER}/${PATCH_NAME}/rollback/*.log
+                            cd ${WORK_FOLDER}/${PATCH_NAME}; tar -cvzf ${WORK_FOLDER}/${PATCH_NAME}.tar.gz ./*
+							cd ..
+                        """
+                        
+                        rtServer (
+                            id: 'Artfctry',
+                            url: 'https://artifactory.intranet/artifactory',
+                            credentialsId: 'AD Jenkins'
+                        )
+                        
+                        rtUpload (
+                            serverId: 'Artfctry',
+                            spec: '''{
+                                "files": [
+                                    {
+                                    "pattern": "${PATCH_NAME}.tar.gz",
+                                    "target": "${FOLDER_NAME}",
+                                    "flat": "false"
+                                    }
+                                ]
+                            }''',
+                        )
+                        echo 'Published the artifact'
+                    }
+                }
+				stage('Install SQL') {
+					steps {
+						installDB "${env.WORK_FOLDER}/${PATCH_NAME}", env.DB_CREDENTIALS_USR, env.DB_CREDENTIALS_PSW, env.DB_SERVER, env.DEFAULT_ORA_SCHEMA
+					}
+				}
+            }    
+        }
+    
+        stage('Pull request') {
+            when { changeRequest target: 'master' }
+            stages {
+                stage('Stop adapter') {
+                    steps {
+                        restartAdapter "AD_test_Jenkins", "${env.WORK_FOLDER}/${PATCH_NAME}/install/install_stop", "${env.WORK_FOLDER}/jenkins/ansible_inventory/${ADAPTER_SERVER_LIST}"
+                    }
+                }
+			
+				stage('Install SQL') {
+					steps {
+						installDB "${env.WORK_FOLDER}/${PATCH_NAME}", env.DB_CREDENTIALS_USR, env.DB_CREDENTIALS_PSW, env.DB_SERVER, env.DEFAULT_ORA_SCHEMA
+					}
+				}
+				
+                stage('Start adapter') {
+                    steps {
+                        restartAdapter "AD_test_Jenkins", "${env.WORK_FOLDER}/${PATCH_NAME}/install/install_start", "${env.WORK_FOLDER}/jenkins/ansible_inventory/${ADAPTER_SERVER_LIST}"
+                    }
+                }
+		
+                stage('Test') {
+                    failFast true
+                    parallel {
+                        stage('Test utPLSQL') {
+                            steps {
+                                echo 'Testing utPLSQL'
+                                //sh 'source utplsql.sh'
+                                echo 'Tested utPLSQL'
+                            }
+                        }
+                        
+                        stage('Test Selenium') {
+                            steps {
+                                echo 'Testing Selenium'
+                                // something something selenium plugin
+                                echo 'Tested Selenium'
+                            }
+                        }
+						
+
+						//stage('Run the analysis') {
+							//steps {
+								//script {
+									//def scannerHome = tool 'SonarQube';
+									//withSonarQubeEnv('SonarQube') {
+										//sh "${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=fcc-fccba -Dsonar.sources=./SRC"
+									//}
+								//}
+							//}
+						//}
+                    }
+                }
+				
+                stage('Rollback stop adapter') {
+                    steps {
+                        restartAdapter "AD_test_Jenkins", "${env.WORK_FOLDER}/${PATCH_NAME}/rollback/rollback_stop", "${env.WORK_FOLDER}/jenkins/ansible_inventory/${ADAPTER_SERVER_LIST}"
+                    }
+                }
+        
+				stage('Rollback SQL') {
+					steps {
+						rollbackDB "${env.WORK_FOLDER}/${PATCH_NAME}", env.DB_CREDENTIALS_USR, env.DB_CREDENTIALS_PSW, env.DB_SERVER, env.DEFAULT_ORA_SCHEMA
+					}
+				}
+				
+                stage('Rollback start adapter') {
+                    steps {
+                        restartAdapter "AD_test_Jenkins", "${env.WORK_FOLDER}/${PATCH_NAME}/rollback/rollback_start", "${env.WORK_FOLDER}/jenkins/ansible_inventory/${ADAPTER_SERVER_LIST}"
+                    }
+                }
+		
+       
+                stage('Test after rollback') {
+                    failFast true
+                    parallel {
+                        stage('Test utPLSQL') {
+                            steps {
+                                echo 'Testing utPLSQL'
+                                //sh 'source utplsql.sh'
+                                echo 'Tested utPLSQL'
+                            }
+                        }
+                        
+                        stage('Test Selenium') {
+                            steps {
+                                echo 'Testing Selenium'
+                                // something something selenium plugin
+                                echo 'Tested Selenium'
+                            }
+                        }
+                    }
+                }
+				
+				//stage("Quality Gate") {
+					//steps {
+						//timeout(time: 1, unit: 'HOURS') {
+							// Parameter indicates whether to set pipeline to UNSTABLE if Quality Gate fails
+							// true = set pipeline to UNSTABLE, false = don't
+							//waitForQualityGate abortPipeline: true
+						//}
+					//}
+				//}
+            }
+      
+            post {
+                cleanup {
+                    echo 'Restoring from backup'
+
+                    sh 'source ./jenkins/flashback.sh ${DB_CREDENTIALS_USR}/${DB_CREDENTIALS_PSW} ${DB_SERVER}'
+
+                    echo 'Restored from backup'
+                }
+            }
+        }
+    }
+}
