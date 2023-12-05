@@ -1,71 +1,24 @@
--- расчет ПСК
-  function get_psk_new(in_account_number varchar2,
-                       in_accuracy number,
-                       in_date date default null) return number is
-           pragma autonomous_transaction;
-           Result number;
-           v_err_code number;
-           v_err_message varchar2(100);
+function fn_get_psk_rur(p_account_number number) return number as
+    psk_total_sum number;
+    ins_summ number;
   begin
-    begin
-      execute immediate 'truncate table mb23005_cashflow_f_temp_tab';
-      insert into mb23005_cashflow_f_temp_tab
-      select * from table(bo_helios_353_pkg_dev.CASHFLOW_F(in_account_number));
-      -- commit;
-    end;
+    select sum(int_due)
+      into psk_total_sum
+    from CASHFLOW_F_TEMP_TAB;    
+    dbms_output.put_line('total psk summ: ' || psk_total_sum);
+    
+    select sum(emi_amount)
+      into ins_summ
+    from CASHFLOW_F_TEMP_TAB
+    where rn=0;    
+    dbms_output.put_line('ins_summ: ' || ins_summ);
+    
+    IF ins_summ > 0 THEN
+      psk_total_sum := psk_total_sum + ins_summ;
+      dbms_output.put_line('total psk summ: ' || psk_total_sum);
+    END IF;
 
-    select abs(zzz) into result
-    from (select *
-          from (-- выдача
-                select from_date,
-                       -1*nvl(prpl_EXPECTED,0) as emi_amount
-                from mb23005_cashflow_f_temp_tab where rownum=1
-                union all
-                select from_date, ins_premium
-                from table(rep_sbl_pkg.fn_get_ins_and_bb(in_account_number))
-                where ins_premium is not null and ins_premium > 0
-                union all
-                -- все потоки кроме выдачи
-                select to_date,
-                       nvl(prpl_due,0)+nvl(int_due,0)+nvl(prpl_prep,0)-nvl(prpl_incr,0)+nvl(prepaid_int,0)
-                from mb23005_cashflow_f_temp_tab
-                where to_date<in_date or in_date is null
-                union all
-                -- поток после ЧДП
-                select to_date,
-                       case is_principal_pay when 'Y' then nvl(emi_amount,0)+nvl(adv_repayment,0)
-                                             else nvl(adv_repayment,0) end
-                from bodev.rep_int_due_calc3
-                where to_date>=in_date and in_date is not null)
-          model dimension by (row_number()over(order by from_date asc) as rn)
-          measures(cast(0 as number) as fa,
-                   cast(0 as number) as Tfa,
-                   cast(0 as number) as a,
-                   cast(1 as number) as b,
-                   cast(0 as number) as c,
-                   cast(0 as number) as Tfc,
-                   cast(0 as number) as fc,
-                   cast(0 as number) as zzz,
-                   from_date,
-                   emi_amount,
-                   (from_date-first_value(from_date)over(order by from_date asc))/(365/12) as diff,
-                   trunc((from_date-first_value(from_date)over(order by from_date asc))/(365/12)) as int_diff,
-                   (from_date-first_value(from_date)over(order by from_date asc))/(365/12)-trunc((from_date-first_value(from_date)over(order by from_date asc))/(365/12)) as e
-                   )
-          rules iterate(100) until(abs(b[1]-a[1])<in_accuracy)(
-                c[1]=(a[1]+b[1])/2,
-                Tfa[any]=nvl(emi_amount[cv()],0)/((1+e[cv()]*a[1])*(power(1+a[1],int_diff[cv()]))),
-                fa[1]=sum(Tfa)[any],
-                Tfc[any]=nvl(emi_amount[cv()],0)/((1+e[cv()]*c[1])*(power(1+c[1],int_diff[cv()]))),
-                fc[1]=sum(Tfc)[any],
-                b[1]=case when fa[1]*fc[1]<=0 then c[1] else b[1] end,
-                a[1]=case when fa[1]*fc[1]<=0 then a[1] else c[1] end,
-                zzz[1]=(a[1]+b[1])/2)) where rownum=1;
-    return Result*12;
-  exception when others then 
-  v_err_code := sqlcode;
-  v_err_message := sqlerrm;
-  dbms_OUTPUT.put_line('код ошибки: ' || sqlcode);
-  dbms_OUTPUT.put_line('сообщение  ошибки: ' || sqlerrm);
-  return 2507;
+    return psk_total_sum;
+    EXCEPTION
+      WHEN others THEN return -1;
   end;
