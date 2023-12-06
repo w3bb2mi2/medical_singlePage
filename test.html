@@ -1,306 +1,241 @@
-pipeline {
-    agent any
-    options {
-        disableConcurrentBuilds()
-        timestamps()
-    }
-  
-    environment {
-        DB_SERVER = 'fox06.IMB.RU:21567/FCC03.IMB.RU'
-        DEFAULT_ORA_SCHEMA = 'FCC'
-        DB_CREDENTIALS = credentials('oracle_proxy_user_flex12')
-        WORK_FOLDER = "${env.WORKSPACE}"
-        BRANCH_NAME = "${env.GIT_BRANCH}"
-        CHANGE_BRANCH = "${env.CHANGE_BRANCH}"
-        SLEEP_TIME = 0
-        GIT_ADDRESS = 'http://git.intranet/scm/ABS/fcc-fccba.git'
-		MASTER_BRANCH = 'master~1'
-		SONAR_SCANNER_OPTS = '-Djavax.net.ssl.keyStore=/etc/pki/java/cacerts -Djavax.net.ssl.trustStore=/etc/pki/java/cacerts'
-		ADAPTER_SERVER_LIST = 'vs97' //vs97_two_servers
-    }
-  
-    stages {
+function GET_LOAN_PENALTY_CALC (pLoan in varchar2, pDate in date, pComponent in varchar2, pUDE_ID in varchar2) return LOAN_PENALTY_CALC_tbl_t pipelined
+as
+    res_row          LOAN_PENALTY_CALC_row_t;
 
-        stage('Clear workspace') {
-            steps {
-                echo 'Clear workspace'
-                //sh 'ls | grep -v "SRC/" | grep -v "jenkins/" | grep -v ".git/" | xargs rm -rfv'
-				//find . -not -path "./SRC*" -not -path "./jenkins*" -not -path "./.git*" -delete
-                sh '''                    
-					find . -not -path "./Installers*" -not -path "./SRC*" -not -path "./jenkins*" -not -path "./.git*" -delete
-                    ls -l
-                '''
-                echo 'Workspace cleared'
-				script {
-					def now = new Date()
-					DATETIME_STR = now.format("yyMMddHHmm", TimeZone.getTimeZone('Europe/Moscow'))
-					FOLDER_NAME = "buffer/SW-FCC/builds/"
-					PATCH_NAME = "${DATETIME_STR}"
-				}
-				echo "PATCH_NAME=${PATCH_NAME}"
-				echo "FOLDER_NAME=${FOLDER_NAME}"
-				script {
-					currentBuild.displayName = "#${BUILD_NUMBER} - ${PATCH_NAME} - ${env.GIT_BRANCH}"
-				}
-				sh "printenv"
-            }
-        }
-	
-	    stage('Check branch') {
-		when { expression { env.CHANGE_ID == null }}
-		steps{
-			echo 'This is build in master. Read branch name from merge message'
-			script{
-				sh '''                    
-					git log -1 | grep "Merge in" | awk '{print $(NF-2)}' > last_branch.txt                    
-					cat last_branch.txt
-                '''								
-				CHANGE_BRANCH = readFile(file: 'last_branch.txt').split('\n')[0]
-			      }
-			echo "CHANGE_BRANCH=${CHANGE_BRANCH}"    
-			}
-			}
-		
-	
-        stage('Check install.txt') {			
-			when { changeRequest target: 'master' }
-            steps {
-//                sh '''
-//			       git diff -b remotes/upstream/master remotes/origin/$BRANCH_NAME ./SRC/install.txt 1> install_changes_flag.txt
-//                    cat install_changes_flag.txt
-//                    if [[ $(wc -c < install_changes_flag.txt) -gt 0 ]]
-//                     then
-//                      echo 'install.txt in branch and master are different'
-//                    else
-//                     echo 'install.txt in branch and master are equal'
-//                     exit 1
-//                    fi
-//             '''
-				script {
-					MASTER_BRANCH = 'master';
-				}
-            }
-        }
-		
-        stage('Checkout master') {
-            steps {
-                echo 'Checking out master'
-				
-                checkout([
-                    $class: 'GitSCM',
-                    branches:[[name: "*/$MASTER_BRANCH"]],
-                    extensions: [[$class: 'GitLFSPull'],[$class: 'RelativeTargetDirectory', relativeTargetDir: 'MASTER']],
-                    userRemoteConfigs: [[credentialsId: 'AD Jenkins', url: env.GIT_ADDRESS]]
-                ])
-                library identifier: "fcc@$BRANCH_NAME", retriever: legacySCM(scm)
-                echo 'Checked out master'
-            }
-        }
-		
-//		stage('Checkout branch') {
-//			  steps {
-//				echo 'Checking out branch'
-//				checkout([
-//					$class: 'GitSCM',
-//					branches:[[name: "*/${BRANCH_NAME}"]],
-//					extensions: [[$class: 'GitLFSPull'],[$class: 'RelativeTargetDirectory', relativeTargetDir: './']],
-//					userRemoteConfigs: [[credentialsId: 'AD Jenkins', url: env.GIT_ADDRESS]]
-//				])
-//				library identifier: "fcc@$BRANCH_NAME", retriever: legacySCM(scm)
-//				echo 'Checked out branch'
-//			  }
-//		}
+    v_prev_OVD_AM         number;
+    v_prev_OVD_PAID_AM    number;
+begin
+    if pDate < v_loan_details.value_date then
+        res_row.ERROR_DESC := 'Report_date < Value_date';
+        pipe row(res_row);
+        return;
+    elsif v_loan_details.AUTH_STAT <> 'A' then
+        res_row.ERROR_DESC := 'Loan is under construction';
+        pipe row(res_row);
+    end if;
 
-  
-        stage('Build patch') {
-            steps {
-                buildPatch "${PATCH_NAME}", CHANGE_BRANCH
-            }
-        }
-	
+    COLLECT_LOAN_DETAILS(pLoan);
+    -- Collect event_entries into variable for performance reason
+    COLLECT_EVENT_ENTRIES (pLoan);
 
-		stage('Create DB backup') {
-			when { changeRequest target: 'master' }
-			steps {
-				echo 'Creating DB backup'
-				sh 'source ./jenkins/create_flashback.sh ${DB_CREDENTIALS_USR}/${DB_CREDENTIALS_PSW} ${DB_SERVER}'
-				echo 'Created DB backup'
-			}
-		}
-                
- 
-        stage ('Commit') {
-            when { branch 'master' }
-            stages {
-                stage('Publish the artifact') {
-					environment {
-						PATCH_NAME = "${PATCH_NAME}"
-						FOLDER_NAME = "${FOLDER_NAME}"
-					}
-                    steps {
-						echo 'Checking install.txt'
-						
-//						sh '''
-//							if cmp -s "./SRC/install.txt" "./MASTER/SRC/install.txt"; then
-//								echo 'install.txt in branch and master are equal'
-//								exit 1
-//							else
-//								echo 'install.txt in branch and master are different'
-//							fi
-//						'''
-					
-                        echo 'Publishing the artifact'
-
-                        sh """
-                            rm -f ${WORK_FOLDER}/${PATCH_NAME}/install/*.log
-                            rm -f ${WORK_FOLDER}/${PATCH_NAME}/rollback/*.log
-                            cd ${WORK_FOLDER}/${PATCH_NAME}; tar -cvzf ${WORK_FOLDER}/${PATCH_NAME}.tar.gz ./*
-							cd ..
-                        """
-                        
-                        rtServer (
-                            id: 'Artfctry',
-                            url: 'https://artifactory.intranet/artifactory',
-                            credentialsId: 'AD Jenkins'
+    for i in (with d as (select from_date
+                              , date_type
+                              , sum(amt) amt
+                           from table(GET_ALL_LOANS (pLoan)) l
+                           join table(GET_PENALTY_DATES(l.account_number, pDate, pComponent, pUDE_ID)) p on 1=1
+                          where (TECH_LOAN_TYPE in ('H1','O1') and  pComponent = 'MAIN_INT')
+                             or (TECH_LOAN_TYPE in ('HA','OA') and  pComponent = 'PRINCIPAL')
+                             or (TECH_LOAN_TYPE is null)
+                          group by from_date, date_type
                         )
-                        
-                        rtUpload (
-                            serverId: 'Artfctry',
-                            spec: '''{
-                                "files": [
-                                    {
-                                    "pattern": "${PATCH_NAME}.tar.gz",
-                                    "target": "${FOLDER_NAME}",
-                                    "flat": "false"
-                                    }
-                                ]
-                            }''',
-                        )
-                        echo 'Published the artifact'
-                    }
-                }
-				stage('Install SQL') {
-					steps {
-						installDB "${env.WORK_FOLDER}/${PATCH_NAME}", env.DB_CREDENTIALS_USR, env.DB_CREDENTIALS_PSW, env.DB_SERVER, env.DEFAULT_ORA_SCHEMA
-					}
-				}
-            }    
-        }
-    
-        stage('Pull request') {
-            when { changeRequest target: 'master' }
-            stages {
-                stage('Stop adapter') {
-                    steps {
-                        restartAdapter "AD_test_Jenkins", "${env.WORK_FOLDER}/${PATCH_NAME}/install/install_stop", "${env.WORK_FOLDER}/jenkins/ansible_inventory/${ADAPTER_SERVER_LIST}"
-                    }
-                }
-			
-				stage('Install SQL') {
-					steps {
-						installDB "${env.WORK_FOLDER}/${PATCH_NAME}", env.DB_CREDENTIALS_USR, env.DB_CREDENTIALS_PSW, env.DB_SERVER, env.DEFAULT_ORA_SCHEMA
-					}
-				}
-				
-                stage('Start adapter') {
-                    steps {
-                        restartAdapter "AD_test_Jenkins", "${env.WORK_FOLDER}/${PATCH_NAME}/install/install_start", "${env.WORK_FOLDER}/jenkins/ansible_inventory/${ADAPTER_SERVER_LIST}"
-                    }
-                }
-		
-                stage('Test') {
-                    failFast true
-                    parallel {
-                        stage('Test utPLSQL') {
-                            steps {
-                                echo 'Testing utPLSQL'
-                                //sh 'source utplsql.sh'
-                                echo 'Tested utPLSQL'
-                            }
-                        }
-                        
-                        stage('Test Selenium') {
-                            steps {
-                                echo 'Testing Selenium'
-                                // something something selenium plugin
-                                echo 'Tested Selenium'
-                            }
-                        }
-						
+              select FROM_DATE
+                   , STSH_AMT
+                   , lead(OVD_PAID_AMT) over (order by FROM_DATE) OVD_PAID_AMT -- Поиск OVD_PAID_AM вести для дат TO _DATE, а не для дат FROM _DATE. S.Golovan, 23.04.2021
+                   , lead(FROM_DATE) over (order by FROM_DATE) TO_DATE
+                   , date_type
+                from (select FROM_DATE
+                           , sum(case when date_type='Overdue' then amt end) STSH_AMT
+                           , sum(case when date_type='Overdue payment' then amt end) OVD_PAID_AMT
+                           , LISTAGG (date_type , ', ')
+                              WITHIN GROUP (ORDER BY FROM_DATE desc) date_type
+                        from d
+                       where FROM_DATE >= (select min(FROM_DATE)
+                                             from d
+                                            where lower(date_type) like '%overdue%')
+                       group by FROM_DATE)
+               order by FROM_DATE)
+    loop
+        res_row := null;
 
-						//stage('Run the analysis') {
-							//steps {
-								//script {
-									//def scannerHome = tool 'SonarQube';
-									//withSonarQubeEnv('SonarQube') {
-										//sh "${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=fcc-fccba -Dsonar.sources=./SRC"
-									//}
-								//}
-							//}
-						//}
-                    }
-                }
-				
-                stage('Rollback stop adapter') {
-                    steps {
-                        restartAdapter "AD_test_Jenkins", "${env.WORK_FOLDER}/${PATCH_NAME}/rollback/rollback_stop", "${env.WORK_FOLDER}/jenkins/ansible_inventory/${ADAPTER_SERVER_LIST}"
-                    }
-                }
-        
-				stage('Rollback SQL') {
-					steps {
-						rollbackDB "${env.WORK_FOLDER}/${PATCH_NAME}", env.DB_CREDENTIALS_USR, env.DB_CREDENTIALS_PSW, env.DB_SERVER, env.DEFAULT_ORA_SCHEMA
-					}
-				}
-				
-                stage('Rollback start adapter') {
-                    steps {
-                        restartAdapter "AD_test_Jenkins", "${env.WORK_FOLDER}/${PATCH_NAME}/rollback/rollback_start", "${env.WORK_FOLDER}/jenkins/ansible_inventory/${ADAPTER_SERVER_LIST}"
-                    }
-                }
-		
-       
-                stage('Test after rollback') {
-                    failFast true
-                    parallel {
-                        stage('Test utPLSQL') {
-                            steps {
-                                echo 'Testing utPLSQL'
-                                //sh 'source utplsql.sh'
-                                echo 'Tested utPLSQL'
-                            }
-                        }
-                        
-                        stage('Test Selenium') {
-                            steps {
-                                echo 'Testing Selenium'
-                                // something something selenium plugin
-                                echo 'Tested Selenium'
-                            }
-                        }
-                    }
-                }
-				
-				//stage("Quality Gate") {
-					//steps {
-						//timeout(time: 1, unit: 'HOURS') {
-							// Parameter indicates whether to set pipeline to UNSTABLE if Quality Gate fails
-							// true = set pipeline to UNSTABLE, false = don't
-							//waitForQualityGate abortPipeline: true
-						//}
-					//}
-				//}
-            }
-      
-            post {
-                cleanup {
-                    echo 'Restoring from backup'
+        res_row.PARENT_ACCOUNT_NUMBER := pLoan;
+        res_row.FROM_DATE             := i.FROM_DATE;
+        res_row.TO_DATE               := i.TO_DATE;
+        -- Do not skip last row -- S.Golovan, 25.03.2021
+        if i.TO_DATE is null then
+            res_row.TO_DATE := nvl(pDate, v_loan_details.today);
+        end if;
+        res_row.ADD_INFO              := i.date_type;
+        res_row.STSH_AM               := i.STSH_AMT;
+        res_row.OVD_PAID_AM           := i.OVD_PAID_AMT;
 
-                    sh 'source ./jenkins/flashback.sh ${DB_CREDENTIALS_USR}/${DB_CREDENTIALS_PSW} ${DB_SERVER}'
+--        if nvl(v_loan_details.tech_loan_type, '-') not like 'O%' then
+--            if res_row.STSH_AM > 0 then
+--                -- Looking for reverses. S.Golovan, 26.01.2021
+--                declare
+--                    v_REV STSH_reverse_row_t;
+--                begin
+--                    v_REV := GET_STSH_reverse(pLoan, res_row.FROM_DATE, res_row.STSH_AM, pComponent);
+--                    if nvl(v_REV.REV_AMOUNT,0) <> 0 then
+--                        res_row.STSH_AM := res_row.STSH_AM - nvl(v_REV.REV_AMOUNT,0);
+--                        res_row.ADD_INFO := APPEND_TEXT(res_row.ADD_INFO, v_REV.ADD_INFO);
+--                    end if;
+--                    res_row.error_desc := APPEND_TEXT(res_row.error_desc, v_REV.error_desc);
+--                end;
+--
+--            end if;
+--        end if;
 
-                    echo 'Restored from backup'
-                }
-            }
-        }
-    }
-}
+        if i.date_type like '%Holiday start-1%' -- Restructuring ODUE_INT->INT. S.Golovan, 14.05.21
+           and pComponent = 'MAIN_INT'
+        then
+            for i in (select * --#MULTIPLE_HOLIDAYS. D.Shatskiy, 21.04.2022
+                        from table(fn_get_all_holiday_details(pLoan))
+                       where res_row.TO_DATE between hol_start and hol_end
+                         and RES_TYPE = 'R43'
+                         and nvl(CAPITALIZATION_FLAG, '-') <> 'Y')
+            loop
+                declare
+                    v_restr_odue_int number;
+                begin
+                    select sum(amount)
+                      into v_restr_odue_int
+                      from table(v_event_entries)
+                     where account_number = pLoan
+                       and event_code = 'MLIQ'
+                       and AMOUNT_TAG = 'MAIN_INT_OLIQ'
+                       and STTL_ACC LIKE '%SALH1%' -- FCJ-683 SALH1
+                       and value_date <= i.hol_start
+                       and value_date > nvl(i.prev_hol_start, to_date('01.01.2000','dd.mm.yyyy'))
+                         ;
+                    res_row.OVD_PAID_AM := nvl(res_row.OVD_PAID_AM, 0) + nvl(v_restr_odue_int, 0);
+                    res_row.ADD_INFO := append_text(res_row.ADD_INFO, 'Restr.Odue_Int->Int:'||v_restr_odue_int);
+                    if nvl(v_restr_odue_int, 0) <> nvl(v_prev_OVD_AM,0) then
+                        res_row.error_desc := append_text(res_row.error_desc, 'Restr.Odue_Int<>OVD_AM ('||v_restr_odue_int||'<>'||v_prev_OVD_AM||')');
+                    end if;
+                end;
+            end loop;
+        end if;
+
+        if v_prev_OVD_AM is null then -- First row
+            res_row.OVD_AM := nvl(res_row.STSH_AM,0);
+        else
+            res_row.OVD_AM := v_prev_OVD_AM + nvl(res_row.STSH_AM,0) - nvl(v_prev_OVD_PAID_AM, 0);
+        end if;
+
+        begin
+            SELECT UDE_VALUE
+              into res_row.PEN_RATE
+              from fcc.CLTB_ACCOUNT_UDE_VALUES u
+             WHERE ACCOUNT_NUMBER = pLoan
+               AND UDE_ID = pUDE_ID
+               and EFFECTIVE_DATE <= res_row.TO_DATE
+               and not exists (select 1
+                                 from fcc.CLTB_ACCOUNT_UDE_VALUES x
+                                where u.ACCOUNT_NUMBER = x.ACCOUNT_NUMBER
+                                  and u.UDE_ID = x.UDE_ID
+                                  and x.EFFECTIVE_DATE <= res_row.TO_DATE
+                                  and u.EFFECTIVE_DATE < x.EFFECTIVE_DATE) ;
+
+    -- shir FCJ-764  ставка := 0 в КК
+         begin
+         select 0
+           into res_row.PEN_RATE
+           from dual
+            where exists (select 1 from   table(LH_REP2361_v6.fn_get_all_holiday_details(pLoan)) h
+             join fcc.CLTB_ACCOUNT_UDE_VALUES u on h.loan_oa = u.ACCOUNT_NUMBER
+                                                    and res_row.FROM_DATE >= h.hol_start-1
+                                                    and res_row.TO_DATE <= h.hol_end);
+         exception
+            when others then
+                 null;
+         end;
+    -- shir FCJ-764
+         exception
+            when NO_DATA_FOUND then
+                res_row.PEN_RATE := null;
+        end;
+
+        if pUDE_ID = 'PENALTY_RATE' then
+            SELECT FIELD_CHAR_3  RATE_BASIS
+              into res_row.RATE_BASIS
+              FROM fcc.CLTB_ACCOUNT_master
+             WHERE ACCOUNT_NUMBER = pLoan
+                 ;
+
+        else -- INT_OVD_RATE
+            res_row.RATE_BASIS := 'ANNUAL';
+
+            begin -- из кредита ОА - в период каникул. S.Golovan, 23.04.2021
+                SELECT UDE_VALUE
+                  into res_row.PEN_RATE
+                  from table(fn_get_all_holiday_details(pLoan)) h                          -- #MULTIPLE_HOLIDAYS
+                  join fcc.CLTB_ACCOUNT_UDE_VALUES u on h.loan_oa = u.ACCOUNT_NUMBER
+                                                    and res_row.FROM_DATE >= h.hol_start-1 -- #MULTIPLE_HOLIDAYS
+                                                    and res_row.TO_DATE <= h.hol_end       -- #MULTIPLE_HOLIDAYS
+                 WHERE 1=1
+                   AND UDE_ID = pUDE_ID
+                   and EFFECTIVE_DATE <= res_row.TO_DATE
+                   and not exists (select 1
+                                     from fcc.CLTB_ACCOUNT_UDE_VALUES x
+                                    where u.ACCOUNT_NUMBER = x.ACCOUNT_NUMBER
+                                      and u.UDE_ID = x.UDE_ID
+                                      and x.EFFECTIVE_DATE <= res_row.TO_DATE
+                                      and u.EFFECTIVE_DATE < x.EFFECTIVE_DATE)
+                     ;
+
+            exception
+                when NO_DATA_FOUND then
+                    null;
+--                when TOO_MANY_ROWS then
+--                    dbms_output.put_line('res_row.FROM_DATE='||res_row.FROM_DATE||', res_row.TO_DATE='||res_row.TO_DATE||', pLoan='||pLoan||', pUDE_ID='||pUDE_ID);
+--                    raise;
+            end;
+        end if;
+
+           res_row.AMOUNT_ACCR :=  round(res_row.OVD_AM
+                                    * res_row.PEN_RATE/100
+                                    * (res_row.TO_DATE-res_row.FROM_DATE)
+                                    / case when res_row.RATE_BASIS = 'ANNUAL' then GET_DAYS_IN_YEAR(res_row.TO_DATE)
+                                           else 1
+                                      end
+                                , 2);
+
+        if res_row.ADD_INFO like '%Last date%'
+        then
+            for i in (select * -- Phone call with S.Golovan, 22.04.2022
+                        from dual
+                       where not (exists (select *
+                                            from table(FCCUCB.LH_REP2361_v6.fn_get_all_holiday_details(pLoan)) h
+                                           where res_type = 'R43' and nvl(CAPITALIZATION_FLAG, '-') <> 'Y'  -- Holidays exist
+                                             and not exists(select *                                        -- But all of them R43 without capitalization
+                                                              from table(FCCUCB.LH_REP2361_v6.fn_get_all_holiday_details(pLoan)) h
+                                                             where not(res_type = 'R43' and nvl(CAPITALIZATION_FLAG, '-') <> 'Y')))
+                                  and pComponent = 'MAIN_INT'
+                                  and res_row.OVD_AM = 0))
+            loop
+                declare
+                    v_BREAKUP_odue number;
+                begin
+                    SELECT sum(balance) -- Last OVD1+Last OVD2 - S.Golovan, 27.01.2020
+                      into v_BREAKUP_odue
+                      from (select balance
+                                 , row_number() over (partition by b.account_number, STATUS_CODE order by creation_date desc) rn
+                              FROM table(GET_ALL_LOANS(pLoan)) t
+                              join fcc.CLTB_ACCOUNT_COMP_BAL_BREAKUP b on t.account_number = b.account_number
+                             WHERE STATUS_CODE IN ('OVD1', 'OVD2')
+                               AND GAAP_INDICATOR = 'AL'
+                               AND component = GET_COMPONENT(pComponent, t.tech_loan_type)
+                               AND CREATION_DATE <= res_row.TO_DATE
+                               AND (t.TECH_LOAN_TYPE is null
+                                    or (t.TECH_LOAN_TYPE in ('HA','OA') and pComponent = 'PRINCIPAL')
+                                    or (t.TECH_LOAN_TYPE in ('H1','O1') and pComponent = 'MAIN_INT')))
+                     where rn =1
+                         ;
+                    if res_row.OVD_AM <> v_BREAKUP_odue then
+                        res_row.error_desc := res_row.error_desc||'OVD_AM<>CLTB_ACCOUNT_COMP_BAL_BREAKUP.BALANCE ('||res_row.OVD_AM||'<>'||v_BREAKUP_odue||')';
+                    end if;
+                exception
+                    when NO_DATA_FOUND then
+                        res_row.error_desc := res_row.error_desc||'No CLTB_ACCOUNT_COMP_BAL_BREAKUP data';
+                end;
+            end loop;
+        end if;
+
+        pipe row(res_row);
+
+        v_prev_OVD_AM      := res_row.OVD_AM;
+        v_prev_OVD_PAID_AM := res_row.OVD_PAID_AM;
+    end loop;
+
+
+end;
