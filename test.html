@@ -1,124 +1,22 @@
-pipeline {
-	agent any
+def call(String patchName) {
+    echo 'Generating scripts'
 
-	options {
-		disableConcurrentBuilds()
-		timestamps()
-	}
+    sh """
+        if [ -f ./Installers/${branchName}/install.txt ]
+        then
+           cp ./Installers/${branchName}/* ./SRC/
+		else
+           echo 'install.txt not exists in ./Installers/${branchName} folder'
+           exit 1		
+        fi
+        rm -f install_db_*
+        source ./jenkins/generate_installer.sh ${patchName}
+        rm -f rollback_db_*
+        source ./jenkins/generate_rollbacker.sh ${patchName}
+        rm -rf ${patchName}
+        source ./patchScript.sh
+		echo ${patchName} > ${patchName}/buildname.txt
+    """
 
-	environment {
-		BRANCH_NAME = "${env.BRANCH_NAME}"
-		WORK_FOLDER = "${env.WORKSPACE}"
-		GIT_ADDRESS = 'http://git.intranet/scm/ABS/fcc-fccba.git'
-		PATCH_NAME = "PATCH_0"
-		DEFAULT_ORA_SCHEMA = 'FCC'
-		SLEEP_TIME = 0
-		ENV_FILE = "${WORK_FOLDER}/jenkins/env/${env.ENVIRONMENT}"
-		//DB_CRED_NAME = "ORA_DB_USER_${env.ENVIRONMENT}"
-		DB_CREDENTIALS = credentials('oracle_proxy_user_flex12')
-		DB_CREDENTIALS_PSW = "${env.DB_PASSWORD == '' ? env.DB_CREDENTIALS_PSW : env.DB_PASSWORD}" // Get password first from parameter, next from credentials
-	}
-
-	stages {
-		stage('Clear workspace') {
-			steps {
-			    script {
-                       currentBuild.displayName = "#${BUILD_NUMBER} - ${BRANCH_NAME} - ${env.ENVIRONMENT}"
-                       }
-				deleteDir()
-			}
-		}
-		
-		stage('Checkout branch') {
-			  steps {
-				echo 'Checking out branch'
-				checkout([
-					$class: 'GitSCM',
-					branches:[[name: "*/${BRANCH_NAME}"]],
-					extensions: [[$class: 'GitLFSPull'],[$class: 'RelativeTargetDirectory', relativeTargetDir: './']],
-					userRemoteConfigs: [[credentialsId: 'AD Jenkins', url: env.GIT_ADDRESS]]
-				])
-				library identifier: "fcc@$BRANCH_NAME", retriever: legacySCM(scm)
-				echo 'Checked out branch'
-			  }
-		}
-		
-		stage('Validate config') {
-			steps {
-				validateEnvironmentConfig env.ENV_FILE
-				
-				withEnv(readFile(env.ENV_FILE).split('\n') as List) {
-					wrap([$class: 'MaskPasswordsBuildWrapper', varPasswordPairs: [[var: 'PASS', password: DB_CREDENTIALS_PSW]], varMaskRegexes: []]) {
-						sh "source ${env.WORK_FOLDER}/jenkins/check_db.sh ${DB_CREDENTIALS_USR} ${DB_CREDENTIALS_PSW} ${DB_SERVER}"
-					}
-				}
-			}			
-		}
-		
-		stage('Checkout master') {
-		  steps {
-			echo 'Checking out master'
-
-			checkout([
-				$class: 'GitSCM',
-				branches:[[name: '*/master']],
-				extensions: [[$class: 'GitLFSPull'],[$class: 'RelativeTargetDirectory', relativeTargetDir: 'MASTER']],
-				userRemoteConfigs: [[credentialsId: 'AD Jenkins', url: env.GIT_ADDRESS]]
-			])
-
-			echo 'Checked out master'
-		  }
-		}
-		
-		stage('Build patch') {
-			steps {
-				withEnv(readFile(env.ENV_FILE).split('\n') as List) {
-					wrap([$class: 'MaskPasswordsBuildWrapper', varPasswordPairs: [[var: 'PASS', password: DB_CREDENTIALS_PSW]], varMaskRegexes: []]) {
-						buildPatch PATCH_NAME, BRANCH_NAME						
-					}
-				}
-			}
-		}
-		
-		stage('Stop adapter') {
-			steps {
-				withEnv(readFile(env.ENV_FILE).split('\n') as List) {
-					restartAdapter "AD_test_Jenkins", "${env.WORK_FOLDER}/${PATCH_NAME}/install/install_stop", "${env.WORK_FOLDER}/jenkins/ansible_inventory/${env.ADAPTER_SERVER}"
-				}
-			}
-		}
-
-		stage('Install SQL') {
-			steps {
-				withEnv(readFile(env.ENV_FILE).split('\n') as List) {
-					wrap([$class: 'MaskPasswordsBuildWrapper', varPasswordPairs: [[var: 'PASS', password: DB_CREDENTIALS_PSW]], varMaskRegexes: []]) {
-						installDB "${env.WORK_FOLDER}/${env.PATCH_NAME}", env.DB_CREDENTIALS_USR, env.DB_CREDENTIALS_PSW, env.DB_SERVER, env.DEFAULT_ORA_SCHEMA
-					}
-				}
-			}
-			post { 
-				failure {
-					input (message: "Installation failed. Examine the logs to see if auto rollback might work", ok: "Apply rollback")
-					echo "Applying Rollback"
-					withEnv(readFile(env.ENV_FILE).split('\n') as List) {
-						restartAdapter "AD_test_Jenkins", "${env.WORK_FOLDER}/${PATCH_NAME}/install/rollback_stop", "${env.WORK_FOLDER}/jenkins/ansible_inventory/${env.ADAPTER_SERVER}"
-						wrap([$class: 'MaskPasswordsBuildWrapper', varPasswordPairs: [[var: 'PASS', password: DB_CREDENTIALS_PSW]], varMaskRegexes: []]) {
-							rollbackDB "${env.WORK_FOLDER}/${env.PATCH_NAME}", env.DB_CREDENTIALS_USR, env.DB_CREDENTIALS_PSW, env.DB_SERVER, env.DEFAULT_ORA_SCHEMA
-						}
-						restartAdapter "AD_test_Jenkins", "${env.WORK_FOLDER}/${PATCH_NAME}/install/rollback_start", "${env.WORK_FOLDER}/jenkins/ansible_inventory/${env.ADAPTER_SERVER}"
-					}
-				}
-				success {
-					echo "Success!"
-				}
-			}
-		}
-		stage('Start adapter') {
-			steps {
-				withEnv(readFile(env.ENV_FILE).split('\n') as List) {
-					restartAdapter "AD_test_Jenkins", "${env.WORK_FOLDER}/${PATCH_NAME}/install/install_start", "${env.WORK_FOLDER}/jenkins/ansible_inventory/${env.ADAPTER_SERVER}"
-				}
-			}
-		}
-	}
+    echo 'Collected the patch'
 }
