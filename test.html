@@ -1,148 +1,26 @@
-pipeline {
-	agent {
-		kubernetes {
-			inheritFrom 'jflex_loadjava'
-			defaultContainer 'loadjava'
-		}
-	}
+def call(String envFile) {
+    withEnv(readFile(envFile).split('\n') as List) {
+        sh """
+if [[ -z "\${DB_SERVER}" ]]; then
+    echo "DB_SERVER is undefined in ${envFile}"
+    exit 1
+else
+    echo "DB_SERVER=\${DB_SERVER}"
+fi
 
-	options {
-		disableConcurrentBuilds()
-		timestamps()
-	}
+if [[ -z "\${APP_SERVER}" ]]; then
+    echo "APP_SERVER is undefined in ${envFile}"
+    exit 1
+else
+  echo "APP_SERVER=\${APP_SERVER}"
+fi
 
-	environment {
-		BRANCH_NAME = "${env.BRANCH_NAME}"
-		WORK_FOLDER = "${env.WORKSPACE}"
-		GIT_ADDRESS = 'http://git.intranet/scm/ABS/fcj-fcjba.git'
-		PATCH_NAME = "PATCH_0"
-		DEFAULT_ORA_SCHEMA = 'FCJ'
-		SLEEP_TIME = 0
-		ENV_FILE = "${WORK_FOLDER}/jenkins/env/${env.ENVIRONMENT}"
-		APP_USER = "srvjflex"
-		//DB_CRED_NAME = "ORA_DB_USER_${env.ENVIRONMENT}"
-		DB_CREDENTIALS = credentials('oracle_proxy_user_flex12')
-		DB_CREDENTIALS_PSW = "${env.DB_PASSWORD == '' ? env.DB_CREDENTIALS_PSW : env.DB_PASSWORD}" // Get password first from parameter, next from credentials
-	}
-
-	stages {
-		stage('Clear workspace') {
-			steps {
-				deleteDir()
-				script {
-					currentBuild.displayName = "#${BUILD_NUMBER} - ${BRANCH_NAME} - ${env.ENVIRONMENT}"
-				}
-			}
-		}
-		
-		stage('Checkout branch') {
-			  steps {
-				echo 'Checking out branch'
-				checkout([
-					$class: 'GitSCM',
-					branches:[[name: "*/${BRANCH_NAME}"]],
-					extensions: [[$class: 'GitLFSPull'],[$class: 'RelativeTargetDirectory', relativeTargetDir: './']],
-					userRemoteConfigs: [[credentialsId: 'AD Jenkins', url: env.GIT_ADDRESS]]
-				])
-				library identifier: "fcj@$BRANCH_NAME", retriever: legacySCM(scm)
-				echo 'Checked out branch'
-			  }
-		}
-		
-		stage('Validate config') {
-			steps {
-				validateEnvironmentConfig env.ENV_FILE
-			}			
-		}
-		
-		stage('Checkout master') {
-		  steps {
-			echo 'Checking out master'
-
-			checkout([
-				$class: 'GitSCM',
-				branches:[[name: '*/master']],
-				extensions: [[$class: 'GitLFSPull'],[$class: 'RelativeTargetDirectory', relativeTargetDir: 'MASTER']],
-				userRemoteConfigs: [[credentialsId: 'AD Jenkins', url: env.GIT_ADDRESS]]
-			])
-
-			echo 'Checked out master'
-		  }
-		}
-		
-		stage('Build patch') {
-			steps {
-				withEnv(readFile(env.ENV_FILE).split('\n') as List) {
-					wrap([$class: 'MaskPasswordsBuildWrapper', varPasswordPairs: [[var: 'PASS', password: DB_CREDENTIALS_PSW]], varMaskRegexes: []]) {
-						buildPatch env.PATCH_NAME, BRANCH_NAME
-					}
-				}
-			}
-		}
-		
-		stage('Stop adapter') {
-			steps {
-				withEnv(readFile(env.ENV_FILE).split('\n') as List) {
-					restartAdapter "AD_test_Jenkins", "${env.WORK_FOLDER}/${PATCH_NAME}/install/install_stop", "${env.WORK_FOLDER}/jenkins/ansible_inventory/${env.ADAPTER_SERVER}"
-				}
-			}
-		}
-
-		stage('Install') {
-			environment {
-				//DB_CREDENTIALS = credentials("$DB_CRED_NAME")
-				APP_USER = 'srvjflex'
-			}
-			failFast true
-			parallel {
-				stage('Install SQL') {
-					steps {
-						withEnv(readFile(env.ENV_FILE).split('\n') as List) {
-							wrap([$class: 'MaskPasswordsBuildWrapper', varPasswordPairs: [[var: 'PASS', password: DB_CREDENTIALS_PSW]], varMaskRegexes: []]) {
-								installDB "${env.WORK_FOLDER}/${env.PATCH_NAME}", env.DB_CREDENTIALS_USR, env.DB_CREDENTIALS_PSW, env.DB_SERVER, env.DEFAULT_ORA_SCHEMA
-							}
-						}
-					}
-				}
-
-				stage('Install EAR/forms') {
-					steps {
-						withEnv(readFile(env.ENV_FILE).split('\n') as List) {
-							installApp "${env.WORK_FOLDER}/${env.PATCH_NAME}", env.APP_USER, env.APP_SERVER, env.APP_FOLDER
-						}
-					}
-				}
-			}
-
-			post { 
-				failure {
-					input (message: "Installation failed. Examine the logs to see if auto rollback might work", ok: "Apply rollback")
-					echo "Applying Rollback"
-					withEnv(readFile(env.ENV_FILE).split('\n') as List) {
-						restartAdapter "AD Jenkins", "${env.WORK_FOLDER}/${PATCH_NAME}/install/rollback_stop", "${env.WORK_FOLDER}/jenkins/ansible_inventory/${env.ADAPTER_SERVER}"
-						wrap([$class: 'MaskPasswordsBuildWrapper', varPasswordPairs: [[var: 'PASS', password: DB_CREDENTIALS_PSW]], varMaskRegexes: []]) {
-							rollbackDB "${env.WORK_FOLDER}/${env.PATCH_NAME}", env.DB_CREDENTIALS_USR, env.DB_CREDENTIALS_PSW, env.DB_SERVER, env.DEFAULT_ORA_SCHEMA
-						}
-						rollbackApp "${env.WORK_FOLDER}/${env.PATCH_NAME}", env.APP_USER, env.APP_SERVER, env.APP_FOLDER
-						restartAdapter "AD Jenkins", "${env.WORK_FOLDER}/${PATCH_NAME}/install/rollback_start", "${env.WORK_FOLDER}/jenkins/ansible_inventory/${env.ADAPTER_SERVER}"
-					}
-				}
-				success {
-					echo "Success!"
-				}
-				//cleanup {
-				//	withEnv(readFile(env.ENV_FILE).split('\n') as List) {
-				//		restartApp "${env.WORK_FOLDER}/${env.PATCH_NAME}/install/installRestartAppScript.sh", env.APP_USER, env.APP_SERVER, env.RESTART_APP_SCRIPT_PATH
-				//	}
-				//}
-			}
-		}
-		stage('Start adapter') {
-			steps {
-				withEnv(readFile(env.ENV_FILE).split('\n') as List) {
-					restartAdapter "AD_test_Jenkins", "${env.WORK_FOLDER}/${PATCH_NAME}/install/install_start", "${env.WORK_FOLDER}/jenkins/ansible_inventory/${env.ADAPTER_SERVER}"
-				}
-			}
-		}
-	}
+if [[ -z "\${APP_FOLDER}" ]]; then
+    echo "APP_FOLDER is undefined in ${envFile}"
+    exit 1
+else
+    echo "APP_FOLDER=\${APP_FOLDER}"
+fi
+        """
+    }
 }
