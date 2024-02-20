@@ -1,169 +1,148 @@
-16:27:39  Started by user LI, Eduard V. (UniCredit Bank - RUS)
-16:27:39  Checking out git https://git.intranet/scm/abs/fcj-fcjba.git into /var/jenkins_home/workspace/FCJ/NEW_PIPELINE_TESTING@script/c92203531356f2c202c2a1176e6d1057412002d67b3c7e3c910c56672574bf98 to read jenkins/test_job.Jenkinsfile
-16:27:39  The recommended git tool is: git
-16:27:39  using credential FCJ12_SSH
-16:27:39   > git rev-parse --resolve-git-dir /var/jenkins_home/workspace/FCJ/NEW_PIPELINE_TESTING@script/c92203531356f2c202c2a1176e6d1057412002d67b3c7e3c910c56672574bf98/.git # timeout=10
-16:27:39  Fetching changes from the remote Git repository
-16:27:39   > git config remote.origin.url https://git.intranet/scm/abs/fcj-fcjba.git # timeout=10
-16:27:39  Fetching upstream changes from https://git.intranet/scm/abs/fcj-fcjba.git
-16:27:39   > git --version # timeout=10
-16:27:39   > git --version # 'git version 2.27.0'
-16:27:39  using GIT_SSH to set credentials 
-16:27:39  [INFO] Currently running in a labeled security context
-16:27:39   > /usr/bin/chcon --type=ssh_home_t /var/jenkins_home/workspace/FCJ/NEW_PIPELINE_TESTING@script/c92203531356f2c202c2a1176e6d1057412002d67b3c7e3c910c56672574bf98@tmp/jenkins-gitclient-ssh17716518330632061282.key
-16:27:39  Verifying host key using known hosts file
-16:27:39   > git fetch --tags --force --progress -- https://git.intranet/scm/abs/fcj-fcjba.git +refs/heads/*:refs/remotes/origin/* # timeout=10
-16:27:40   > git rev-parse refs/remotes/origin/for_testing_jenkins^{commit} # timeout=10
-16:27:40  Checking out Revision 883123f0bcb736137bbe4671007bac0baec89188 (refs/remotes/origin/for_testing_jenkins)
-16:27:40   > git config core.sparsecheckout # timeout=10
-16:27:40   > git checkout -f 883123f0bcb736137bbe4671007bac0baec89188 # timeout=10
-16:27:41  Commit message: "some changes in env"
-16:27:41   > git rev-list --no-walk 6c108d6b0cd56dafc3d001193986e2b0aa0c43d8 # timeout=10
-16:27:41  [Pipeline] Start of Pipeline
-16:27:41  [Pipeline] podTemplate
-16:27:41  [Pipeline] {
-16:27:42  [Pipeline] node
-16:27:43  Created Pod: kubernetes jflex/fcj-new-pipeline-testing-13-6m7j7-h0s2b-303zx
-16:27:46  Agent fcj-new-pipeline-testing-13-6m7j7-h0s2b-303zx is provisioned from template FCJ_NEW_PIPELINE_TESTING_13-6m7j7-h0s2b
-16:27:46  ---
-16:27:46  apiVersion: "v1"
-16:27:46  kind: "Pod"
-16:27:46  metadata:
-16:27:46    annotations:
-16:27:46      buildUrl: "https://jflex.devops.intranet/job/FCJ/job/NEW_PIPELINE_TESTING/13/"
-16:27:46      runUrl: "job/FCJ/job/NEW_PIPELINE_TESTING/13/"
-16:27:46    labels:
-16:27:46      jenkins: "slave"
-16:27:46      jenkins/label-digest: "953a4d5320905d14decadb9afab7f9a854dcaa8d"
-16:27:46      jenkins/label: "FCJ_NEW_PIPELINE_TESTING_13-6m7j7"
-16:27:46    name: "fcj-new-pipeline-testing-13-6m7j7-h0s2b-303zx"
-16:27:46    namespace: "jflex"
-16:27:46  spec:
-16:27:46    containers:
-16:27:46    - args:
-16:27:46      - "9999999"
-16:27:46      command:
-16:27:46      - "sleep"
-16:27:46      image: "docker.intranet/isd_mnd/jenkins_flex/workers/jflex_loadjava:1.1.4"
-16:27:46      imagePullPolicy: "Always"
-16:27:46      name: "loadjava"
-16:27:46      resources:
-16:27:46        limits:
-16:27:46          memory: "3Gi"
-16:27:46        requests:
-16:27:46          memory: "1Gi"
-16:27:46      tty: false
-16:27:46      volumeMounts:
-16:27:46      - mountPath: "/var/jenkins_home"
-16:27:46        name: "volume-0"
-16:27:46        readOnly: false
-16:27:46      - mountPath: "/home/jenkins/agent"
-16:27:46        name: "workspace-volume"
-16:27:46        readOnly: false
-16:27:46      workingDir: "/home/jenkins/agent"
-16:27:46    - command:
-16:27:46      - "jenkins-agent"
-16:27:46      env:
-16:27:46      - name: "JENKINS_SECRET"
-16:27:46        value: "********"
-16:27:46      - name: "JENKINS_TUNNEL"
-16:27:46        value: "jflex-agent.jflex.svc.cluster.local:50000"
-16:27:46      - name: "JENKINS_AGENT_NAME"
-16:27:46        value: "fcj-new-pipeline-testing-13-6m7j7-h0s2b-303zx"
-16:27:46      - name: "JENKINS_NAME"
-16:27:46        value: "fcj-new-pipeline-testing-13-6m7j7-h0s2b-303zx"
-16:27:46      - name: "JENKINS_AGENT_WORKDIR"
-16:27:46        value: "/home/jenkins/agent"
-16:27:46      - name: "JENKINS_URL"
-16:27:46        value: "https://jflex.devops.intranet/"
-16:27:46      image: "docker.intranet/isd_mnd/inbound-agent:jdk11.v3"
-16:27:46      imagePullPolicy: "Always"
-16:27:46      name: "jnlp"
-16:27:46      resources:
-16:27:46        limits:
-16:27:46          memory: "3Gi"
-16:27:46        requests:
-16:27:46          memory: "1Gi"
-16:27:46      tty: false
-16:27:46      volumeMounts:
-16:27:46      - mountPath: "/var/jenkins_home"
-16:27:46        name: "volume-0"
-16:27:46        readOnly: false
-16:27:46      - mountPath: "/home/jenkins/agent"
-16:27:46        name: "workspace-volume"
-16:27:46        readOnly: false
-16:27:46      workingDir: "/home/jenkins/agent"
-16:27:46    hostNetwork: false
-16:27:46    nodeSelector:
-16:27:46      kubernetes.io/os: "linux"
-16:27:46    restartPolicy: "Never"
-16:27:46    securityContext:
-16:27:46      runAsUser: 1000
-16:27:46    volumes:
-16:27:46    - name: "volume-0"
-16:27:46      persistentVolumeClaim:
-16:27:46        claimName: "jenkins-home-jflex-0"
-16:27:46        readOnly: false
-16:27:46    - emptyDir:
-16:27:46        medium: ""
-16:27:46      name: "workspace-volume"
-16:27:46  
-16:27:46  Running on fcj-new-pipeline-testing-13-6m7j7-h0s2b-303zx in /home/jenkins/agent/workspace/FCJ/NEW_PIPELINE_TESTING
-16:27:47  [Pipeline] {
-16:27:47  [Pipeline] stage
-16:27:47  [Pipeline] { (Declarative: Checkout SCM)
-16:27:47  [Pipeline] checkout
-16:27:47  The recommended git tool is: git
-16:27:49  using credential FCJ12_SSH
-16:27:49  Cloning the remote Git repository
-16:27:50  ERROR: Error cloning remote repo 'origin'
-16:27:50  hudson.plugins.git.GitException: Command "git fetch --tags --force --progress -- https://git.intranet/scm/abs/fcj-fcjba.git +refs/heads/*:refs/remotes/origin/*" returned status code 128:
-16:27:50  stdout: 
-16:27:50  stderr: fatal: Authentication failed for 'https://git.intranet/scm/abs/fcj-fcjba.git/'
-16:27:50  
-16:27:50  	at org.jenkinsci.plugins.gitclient.CliGitAPIImpl.launchCommandIn(CliGitAPIImpl.java:2697)
-16:27:50  	at org.jenkinsci.plugins.gitclient.CliGitAPIImpl.launchCommandWithCredentials(CliGitAPIImpl.java:2111)
-16:27:50  	at org.jenkinsci.plugins.gitclient.CliGitAPIImpl.access$500(CliGitAPIImpl.java:87)
-16:27:50  	at org.jenkinsci.plugins.gitclient.CliGitAPIImpl$1.execute(CliGitAPIImpl.java:623)
-16:27:50  	at org.jenkinsci.plugins.gitclient.CliGitAPIImpl$2.execute(CliGitAPIImpl.java:852)
-16:27:50  	at org.jenkinsci.plugins.gitclient.RemoteGitImpl$CommandInvocationHandler$GitCommandMasterToSlaveCallable.call(RemoteGitImpl.java:158)
-16:27:50  	at org.jenkinsci.plugins.gitclient.RemoteGitImpl$CommandInvocationHandler$GitCommandMasterToSlaveCallable.call(RemoteGitImpl.java:151)
-16:27:50  	at hudson.remoting.UserRequest.perform(UserRequest.java:211)
-16:27:50  	at hudson.remoting.UserRequest.perform(UserRequest.java:54)
-16:27:50  	at hudson.remoting.Request$2.run(Request.java:376)
-16:27:50  	at hudson.remoting.InterceptingExecutorService.lambda$wrap$0(InterceptingExecutorService.java:78)
-16:27:50  	at java.base/java.util.concurrent.FutureTask.run(Unknown Source)
-16:27:50  	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(Unknown Source)
-16:27:50  	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(Unknown Source)
-16:27:50  	at hudson.remoting.Engine$1.lambda$newThread$0(Engine.java:122)
-16:27:50  	at java.base/java.lang.Thread.run(Unknown Source)
-16:27:50  	Suppressed: hudson.remoting.Channel$CallSiteStackTrace: Remote call to JNLP4-connect connection from 192.168.30.223/192.168.30.223:44826
-16:27:50  		at hudson.remoting.Channel.attachCallSiteStackTrace(Channel.java:1784)
-16:27:50  		at hudson.remoting.UserRequest$ExceptionResponse.retrieve(UserRequest.java:356)
-16:27:50  		at hudson.remoting.Channel.call(Channel.java:1000)
-16:27:50  		at org.jenkinsci.plugins.gitclient.RemoteGitImpl$CommandInvocationHandler.execute(RemoteGitImpl.java:143)
-16:27:50  		at jdk.internal.reflect.GeneratedMethodAccessor1604.invoke(Unknown Source)
-16:27:50  		at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
-16:27:50  		at java.base/java.lang.reflect.Method.invoke(Method.java:566)
-16:27:50  		at org.jenkinsci.plugins.gitclient.RemoteGitImpl$CommandInvocationHandler.invoke(RemoteGitImpl.java:129)
-16:27:50  		at com.sun.proxy.$Proxy211.execute(Unknown Source)
-16:27:50  		at hudson.plugins.git.GitSCM.retrieveChanges(GitSCM.java:1229)
-16:27:50  		at hudson.plugins.git.GitSCM.checkout(GitSCM.java:1312)
-16:27:50  		at org.jenkinsci.plugins.workflow.steps.scm.SCMStep.checkout(SCMStep.java:129)
-16:27:50  		at org.jenkinsci.plugins.workflow.steps.scm.SCMStep$StepExecutionImpl.run(SCMStep.java:97)
-16:27:50  		at org.jenkinsci.plugins.workflow.steps.scm.SCMStep$StepExecutionImpl.run(SCMStep.java:84)
-16:27:50  		at org.jenkinsci.plugins.workflow.steps.SynchronousNonBlockingStepExecution.lambda$start$0(SynchronousNonBlockingStepExecution.java:47)
-16:27:50  		at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:515)
-16:27:50  		at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
-16:27:50  		at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1128)
-16:27:50  		at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:628)
-16:27:50  		at java.base/java.lang.Thread.run(Thread.java:829)
-16:27:50  [Pipeline] }
-16:27:50  [Pipeline] // stage
-16:27:50  [Pipeline] }
-16:27:50  [Pipeline] // node
-16:27:50  [Pipeline] }
-16:27:50  [Pipeline] // podTemplate
-16:27:50  [Pipeline] End of Pipeline
-16:27:50  ERROR: Error cloning remote repo 'origin'
-16:27:50  Finished: FAILURE
+pipeline {
+	agent {
+		kubernetes {
+			inheritFrom 'jflex_loadjava'
+			defaultContainer 'loadjava'
+		}
+	}
+
+	options {
+		disableConcurrentBuilds()
+		timestamps()
+	}
+
+	environment {
+		BRANCH_NAME = "${env.BRANCH_NAME}"
+		WORK_FOLDER = "${env.WORKSPACE}"
+		GIT_ADDRESS = 'http://git.intranet/scm/ABS/fcj-fcjba.git'
+		PATCH_NAME = "PATCH_0"
+		DEFAULT_ORA_SCHEMA = 'FCJ'
+		SLEEP_TIME = 0
+		ENV_FILE = "${WORK_FOLDER}/jenkins/env/${env.ENVIRONMENT}"
+		APP_USER = "srvjflex"
+		//DB_CRED_NAME = "ORA_DB_USER_${env.ENVIRONMENT}"
+		DB_CREDENTIALS = credentials('oracle_proxy_user_flex12')
+		DB_CREDENTIALS_PSW = "${env.DB_PASSWORD == '' ? env.DB_CREDENTIALS_PSW : env.DB_PASSWORD}" // Get password first from parameter, next from credentials
+	}
+
+	stages {
+		stage('Clear workspace') {
+			steps {
+				deleteDir()
+				script {
+					currentBuild.displayName = "#${BUILD_NUMBER} - ${BRANCH_NAME} - ${env.ENVIRONMENT}"
+				}
+			}
+		}
+		
+		stage('Checkout branch') {
+			  steps {
+				echo 'Checking out branch'
+				checkout([
+					$class: 'GitSCM',
+					branches:[[name: "*/${BRANCH_NAME}"]],
+					extensions: [[$class: 'GitLFSPull'],[$class: 'RelativeTargetDirectory', relativeTargetDir: './']],
+					userRemoteConfigs: [[credentialsId: 'AD Jenkins', url: env.GIT_ADDRESS]]
+				])
+				library identifier: "fcj@$BRANCH_NAME", retriever: legacySCM(scm)
+				echo 'Checked out branch'
+			  }
+		}
+		
+		stage('Validate config') {
+			steps {
+				validateEnvironmentConfig env.ENV_FILE
+			}			
+		}
+		
+		stage('Checkout master') {
+		  steps {
+			echo 'Checking out master'
+
+			checkout([
+				$class: 'GitSCM',
+				branches:[[name: '*/master']],
+				extensions: [[$class: 'GitLFSPull'],[$class: 'RelativeTargetDirectory', relativeTargetDir: 'MASTER']],
+				userRemoteConfigs: [[credentialsId: 'AD Jenkins', url: env.GIT_ADDRESS]]
+			])
+
+			echo 'Checked out master'
+		  }
+		}
+		
+		stage('Build patch') {
+			steps {
+				withEnv(readFile(env.ENV_FILE).split('\n') as List) {
+					wrap([$class: 'MaskPasswordsBuildWrapper', varPasswordPairs: [[var: 'PASS', password: DB_CREDENTIALS_PSW]], varMaskRegexes: []]) {
+						buildPatch env.PATCH_NAME, BRANCH_NAME
+					}
+				}
+			}
+		}
+		
+		stage('Stop adapter') {
+			steps {
+				withEnv(readFile(env.ENV_FILE).split('\n') as List) {
+					restartAdapter "AD_test_Jenkins", "${env.WORK_FOLDER}/${PATCH_NAME}/install/install_stop", "${env.WORK_FOLDER}/jenkins/ansible_inventory/${env.ADAPTER_SERVER}"
+				}
+			}
+		}
+
+		stage('Install') {
+			environment {
+				//DB_CREDENTIALS = credentials("$DB_CRED_NAME")
+				APP_USER = 'srvjflex'
+			}
+			failFast true
+			parallel {
+				stage('Install SQL') {
+					steps {
+						withEnv(readFile(env.ENV_FILE).split('\n') as List) {
+							wrap([$class: 'MaskPasswordsBuildWrapper', varPasswordPairs: [[var: 'PASS', password: DB_CREDENTIALS_PSW]], varMaskRegexes: []]) {
+								installDB "${env.WORK_FOLDER}/${env.PATCH_NAME}", env.DB_CREDENTIALS_USR, env.DB_CREDENTIALS_PSW, env.DB_SERVER, env.DEFAULT_ORA_SCHEMA
+							}
+						}
+					}
+				}
+
+				stage('Install EAR/forms') {
+					steps {
+						withEnv(readFile(env.ENV_FILE).split('\n') as List) {
+							installApp "${env.WORK_FOLDER}/${env.PATCH_NAME}", env.APP_USER, env.APP_SERVER, env.APP_FOLDER
+						}
+					}
+				}
+			}
+
+			post { 
+				failure {
+					input (message: "Installation failed. Examine the logs to see if auto rollback might work", ok: "Apply rollback")
+					echo "Applying Rollback"
+					withEnv(readFile(env.ENV_FILE).split('\n') as List) {
+						restartAdapter "AD Jenkins", "${env.WORK_FOLDER}/${PATCH_NAME}/install/rollback_stop", "${env.WORK_FOLDER}/jenkins/ansible_inventory/${env.ADAPTER_SERVER}"
+						wrap([$class: 'MaskPasswordsBuildWrapper', varPasswordPairs: [[var: 'PASS', password: DB_CREDENTIALS_PSW]], varMaskRegexes: []]) {
+							rollbackDB "${env.WORK_FOLDER}/${env.PATCH_NAME}", env.DB_CREDENTIALS_USR, env.DB_CREDENTIALS_PSW, env.DB_SERVER, env.DEFAULT_ORA_SCHEMA
+						}
+						rollbackApp "${env.WORK_FOLDER}/${env.PATCH_NAME}", env.APP_USER, env.APP_SERVER, env.APP_FOLDER
+						restartAdapter "AD Jenkins", "${env.WORK_FOLDER}/${PATCH_NAME}/install/rollback_start", "${env.WORK_FOLDER}/jenkins/ansible_inventory/${env.ADAPTER_SERVER}"
+					}
+				}
+				success {
+					echo "Success!"
+				}
+				//cleanup {
+				//	withEnv(readFile(env.ENV_FILE).split('\n') as List) {
+				//		restartApp "${env.WORK_FOLDER}/${env.PATCH_NAME}/install/installRestartAppScript.sh", env.APP_USER, env.APP_SERVER, env.RESTART_APP_SCRIPT_PATH
+				//	}
+				//}
+			}
+		}
+		stage('Start adapter') {
+			steps {
+				withEnv(readFile(env.ENV_FILE).split('\n') as List) {
+					restartAdapter "AD_test_Jenkins", "${env.WORK_FOLDER}/${PATCH_NAME}/install/install_start", "${env.WORK_FOLDER}/jenkins/ansible_inventory/${env.ADAPTER_SERVER}"
+				}
+			}
+		}
+	}
+}
