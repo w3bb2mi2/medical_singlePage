@@ -1,26 +1,338 @@
-def call(String envFile) {
-    withEnv(readFile(envFile).split('\n') as List) {
-        sh """
-if [[ -z "\${DB_SERVER}" ]]; then
-    echo "DB_SERVER is undefined in ${envFile}"
-    exit 1
-else
-    echo "DB_SERVER=\${DB_SERVER}"
-fi
-
-if [[ -z "\${APP_SERVER}" ]]; then
-    echo "APP_SERVER is undefined in ${envFile}"
-    exit 1
-else
-  echo "APP_SERVER=\${APP_SERVER}"
-fi
-
-if [[ -z "\${APP_FOLDER}" ]]; then
-    echo "APP_FOLDER is undefined in ${envFile}"
-    exit 1
-else
-    echo "APP_FOLDER=\${APP_FOLDER}"
-fi
-        """
-    }
-}
+09:48:43  Running on fcj-new-pipeline-testing-36-074j7-2nmq0-sbq8j in /home/jenkins/agent/workspace/FCJ/NEW_PIPELINE_TESTING
+09:48:43  [Pipeline] {
+09:48:43  [Pipeline] stage
+09:48:43  [Pipeline] { (Declarative: Checkout SCM)
+09:48:43  [Pipeline] checkout
+09:48:43  The recommended git tool is: git
+09:48:46  using credential AD Jenkins
+09:48:46  Cloning the remote Git repository
+09:48:46  Cloning repository https://git.intranet/scm/abs/fcj-fcjba.git
+09:48:46   > git init /home/jenkins/agent/workspace/FCJ/NEW_PIPELINE_TESTING # timeout=10
+09:48:46  Fetching upstream changes from https://git.intranet/scm/abs/fcj-fcjba.git
+09:48:46   > git --version # timeout=10
+09:48:46   > git --version # 'git version 2.30.2'
+09:48:46  using GIT_ASKPASS to set credentials AD Jenkins user
+09:48:46   > git fetch --tags --force --progress -- https://git.intranet/scm/abs/fcj-fcjba.git +refs/heads/*:refs/remotes/origin/* # timeout=10
+09:48:49  Avoid second fetch
+09:48:49  Checking out Revision 8005690fc5a186ac29bb2b8840fecf02d2907f46 (refs/remotes/origin/for_testing_jenkins)
+09:48:49  Enabling Git LFS pull
+09:48:48   > git config remote.origin.url https://git.intranet/scm/abs/fcj-fcjba.git # timeout=10
+09:48:48   > git config --add remote.origin.fetch +refs/heads/*:refs/remotes/origin/* # timeout=10
+09:48:49   > git rev-parse refs/remotes/origin/for_testing_jenkins^{commit} # timeout=10
+09:48:49   > git config core.sparsecheckout # timeout=10
+09:48:49   > git checkout -f 8005690fc5a186ac29bb2b8840fecf02d2907f46 # timeout=10
+09:48:50   > git config --get remote.origin.url # timeout=10
+09:48:50  using GIT_ASKPASS to set credentials AD Jenkins user
+09:48:50   > git lfs pull origin # timeout=10
+09:48:52  Commit message: "with default checkout"
+09:48:52  [Pipeline] }
+09:48:52  [Pipeline] // stage
+09:48:52  [Pipeline] withEnv
+09:48:52  [Pipeline] {
+09:48:53  [Pipeline] container
+09:48:53  [Pipeline] {
+09:48:53  [Pipeline] withCredentials
+09:48:53  Masking supported pattern matches of $DB_CREDENTIALS or $DB_CREDENTIALS_PSW
+09:48:53  [Pipeline] {
+09:48:53  [Pipeline] withEnv
+09:48:53  Warning: A secret was passed to "withEnv" using Groovy String interpolation, which is insecure.
+09:48:53  		 Affected argument(s) used the following variable(s): [DB_CREDENTIALS_PSW]
+09:48:53  		 See https://****.io/redirect/groovy-string-interpolation for details.
+09:48:53  [Pipeline] {
+09:48:53  [Pipeline] timestamps
+09:48:53  The timestamps step is unnecessary when timestamps are enabled for all Pipeline builds.
+09:48:53  [Pipeline] {
+09:48:53  [Pipeline] stage
+09:48:53  [Pipeline] { (Clear workspace)
+09:48:53  [Pipeline] deleteDir
+09:48:53  [Pipeline] script
+09:48:53  [Pipeline] {
+09:48:53  [Pipeline] }
+09:48:53  [Pipeline] // script
+09:48:53  [Pipeline] }
+09:48:53  [Pipeline] // stage
+09:48:53  [Pipeline] stage
+09:48:53  [Pipeline] { (Checkout branch)
+09:48:53  [Pipeline] echo
+09:48:53  Checking out branch
+09:48:53  [Pipeline] checkout
+09:48:53  The recommended git tool is: NONE
+09:48:53  using credential AD Jenkins
+09:48:53  Warning: JENKINS-30600: special launcher org.csanchez.****.plugins.kubernetes.pipeline.ContainerExecDecorator$1@55d86a89; decorates RemoteLauncher[hudson.remoting.Channel@67c89c4e:JNLP4-connect connection from 192.168.30.228/192.168.30.228:38276] will be ignored (a typical symptom is the Git executable not being run inside a designated container)
+09:48:53  Cloning the remote Git repository
+09:48:53  Cloning repository http://git.intranet/scm/ABS/fcj-fcjba.git
+09:48:53   > git init /home/****/agent/workspace/FCJ/NEW_PIPELINE_TESTING # timeout=10
+09:48:53  Fetching upstream changes from http://git.intranet/scm/ABS/fcj-fcjba.git
+09:48:53   > git --version # timeout=10
+09:48:53   > git --version # 'git version 2.30.2'
+09:48:53  using GIT_ASKPASS to set credentials AD Jenkins user
+09:48:53   > git fetch --tags --force --progress -- http://git.intranet/scm/ABS/fcj-fcjba.git +refs/heads/*:refs/remotes/origin/* # timeout=10
+09:48:54  Avoid second fetch
+09:48:55  Checking out Revision 8005690fc5a186ac29bb2b8840fecf02d2907f46 (refs/remotes/origin/for_testing_****)
+09:48:55  Enabling Git LFS pull
+09:48:54   > git config remote.origin.url http://git.intranet/scm/ABS/fcj-fcjba.git # timeout=10
+09:48:54   > git config --add remote.origin.fetch +refs/heads/*:refs/remotes/origin/* # timeout=10
+09:48:54   > git rev-parse refs/remotes/origin/for_testing_****^{commit} # timeout=10
+09:48:55   > git config core.sparsecheckout # timeout=10
+09:48:55   > git checkout -f 8005690fc5a186ac29bb2b8840fecf02d2907f46 # timeout=10
+09:48:55   > git config --get remote.origin.url # timeout=10
+09:48:55  using GIT_ASKPASS to set credentials AD Jenkins user
+09:48:55   > git lfs pull origin # timeout=10
+09:49:06  Commit message: "with default checkout"
+09:49:06   > git rev-list --no-walk 6c502fe496f4cc2d8f0f171bd78f36a80c589c14 # timeout=10
+09:49:06  [Pipeline] library
+09:49:06  Loading library fcj@for_testing_****
+09:49:06  The recommended git tool is: git
+09:49:06  using credential AD Jenkins
+09:49:06   > git rev-parse --resolve-git-dir /var/****_home/workspace/FCJ/NEW_PIPELINE_TESTING@libs/fcj/.git # timeout=10
+09:49:06  Fetching changes from the remote Git repository
+09:49:06   > git config remote.origin.url https://git.intranet/scm/abs/fcj-fcjba.git # timeout=10
+09:49:06  Fetching upstream changes from https://git.intranet/scm/abs/fcj-fcjba.git
+09:49:06   > git --version # timeout=10
+09:49:06   > git --version # 'git version 2.27.0'
+09:49:06  using GIT_ASKPASS to set credentials AD Jenkins user
+09:49:06   > git fetch --tags --force --progress -- https://git.intranet/scm/abs/fcj-fcjba.git +refs/heads/*:refs/remotes/origin/* # timeout=10
+09:49:07   > git rev-parse refs/remotes/origin/for_testing_****^{commit} # timeout=10
+09:49:07  Checking out Revision 8005690fc5a186ac29bb2b8840fecf02d2907f46 (refs/remotes/origin/for_testing_****)
+09:49:07  Enabling Git LFS pull
+09:49:07   > git config core.sparsecheckout # timeout=10
+09:49:07   > git checkout -f 8005690fc5a186ac29bb2b8840fecf02d2907f46 # timeout=10
+09:49:07   > git config --get remote.origin.url # timeout=10
+09:49:07  using GIT_ASKPASS to set credentials AD Jenkins user
+09:49:07   > git lfs pull origin # timeout=10
+09:49:07  Commit message: "with default checkout"
+09:49:07  [Pipeline] echo
+09:49:07  Checked out branch
+09:49:07  [Pipeline] }
+09:49:07  [Pipeline] // stage
+09:49:07  [Pipeline] stage
+09:49:07  [Pipeline] { (print_env)
+09:49:07  [Pipeline] script
+09:49:07  [Pipeline] {
+09:49:08  [Pipeline] echo
+09:49:08  /home/****/agent/workspace/FCJ/NEW_PIPELINE_TESTING
+09:49:08  [Pipeline] sh
+09:49:08  + printenv
+09:49:08  BRANCH_NAME=for_testing_****
+09:49:08  JFLEX_AGENT_PORT_50000_TCP_ADDR=10.100.235.151
+09:49:08  GIT_COMMIT=8005690fc5a186ac29bb2b8840fecf02d2907f46
+09:49:08  RUN_DISPLAY_URL=https://jflex.devops.intranet/job/FCJ/job/NEW_PIPELINE_TESTING/36/display/redirect
+09:49:08  JENKINS_SLAVE_AGENT_PORT=50000
+09:49:08  JENKINS_URL=https://jflex.devops.intranet/
+09:49:08  EXECUTOR_NUMBER=0
+09:49:08  JFLEX_AGENT_SERVICE_HOST=10.100.235.151
+09:49:08  JENKINS_FLEX_JENKINS_PROD_PORT_8080_TCP_PORT=8080
+09:49:08  JENKINS_FLEX_JENKINS_PROD_AGENT_SERVICE_HOST=10.107.104.115
+09:49:08  _=/usr/bin/printenv
+09:49:08  JENKINS_FLEX_JENKINS_PROD_PORT_8080_TCP_PROTO=tcp
+09:49:08  LANG=en_US.UTF-8
+09:49:08  TZ=Europe/Moscow
+09:49:08  JENKINS_FLEX_JENKINS_PROD_AGENT_SERVICE_PORT=50000
+09:49:08  BUILD_ID=36
+09:49:08  POD_LABEL=FCJ_NEW_PIPELINE_TESTING_36-074j7
+09:49:08  ORACLE_HOME=/var/app/product/11.2.0/client_1/
+09:49:08  HOSTNAME=fcj-new-pipeline-testing-36-074j7-2nmq0-sbq8j
+09:49:08  OLDPWD=/home/****/agent
+09:49:08  RUN_CHANGES_DISPLAY_URL=https://jflex.devops.intranet/job/FCJ/job/NEW_PIPELINE_TESTING/36/display/redirect?page=changes
+09:49:08  JENKINS_UC=https://artifactory.intranet/artifactory/****-plugins-local/stable
+09:49:08  JENKINS_NODE_COOKIE=12797557-678e-42d6-aad3-c871508cf174
+09:49:08  JAVA_OPTS=-Djava.net.preferIPv4Stack=true -Dhudson.model.DownloadService.noSignatureCheck=true -Dhudson.plugins.active_directory.ActiveDirectorySecurityRealm.forceLdaps=true -Djava.util.logging.config.file=/etc/****/logging.properties -Dfile.encoding=UTF-8 -Djavax.net.ssl.trustStore=/etc/pki/java/cacerts
+09:49:08  DEFAULT_ORA_SCHEMA=FCJ
+09:49:08  JOB_BASE_NAME=NEW_PIPELINE_TESTING
+09:49:08  WORKSPACE_TMP=/home/****/agent/workspace/FCJ/NEW_PIPELINE_TESTING@tmp
+09:49:08  JFLEX_PORT=tcp://10.100.48.137:8080
+09:49:08  JFLEX_AGENT_SERVICE_PORT_JFLEX_AGENT_PORT=50000
+09:49:08  JFLEX_AGENT_SERVICE_PORT=50000
+09:49:08  JFLEX_PORT_8080_TCP_ADDR=10.100.48.137
+09:49:08  KUBERNETES_PORT_443_TCP_PROTO=tcp
+09:49:08  CI=true
+09:49:08  GIT_URL=https://git.intranet/scm/abs/fcj-fcjba.git
+09:49:08  CLASSPATH=
+09:49:08  KUBERNETES_PORT_443_TCP_ADDR=10.96.0.1
+09:49:08  DB_CREDENTIALS_PSW=null
+09:49:08  JENKINS_FLEX_JENKINS_PROD_PORT=tcp://10.96.160.189:8080
+09:49:08  POD_CONTAINER=loadjava
+09:49:08  BUILD_NUMBER=36
+09:49:08  KUBERNETES_PORT=tcp://10.96.0.1:443
+09:49:08  WORKSPACE=/home/****/agent/workspace/FCJ/NEW_PIPELINE_TESTING
+09:49:08  JFLEX_PORT_8080_TCP=tcp://10.100.48.137:8080
+09:49:08  PWD=/home/****/agent/workspace/FCJ/NEW_PIPELINE_TESTING
+09:49:08  HUDSON_URL=https://jflex.devops.intranet/
+09:49:08  JENKINS_PLUGIN_INFO=https://artifactory.intranet/artifactory/****-plugins-local/current/plugin-versions.json
+09:49:08  HOME=/var/****_home
+09:49:08  DB_CREDENTIALS=****
+09:49:08  NODE_NAME=fcj-new-pipeline-testing-36-074j7-2nmq0-sbq8j
+09:49:08  JENKINS_FLEX_JENKINS_PROD_AGENT_PORT_50000_TCP_ADDR=10.107.104.115
+09:49:08  HUDSON_SERVER_COOKIE=c8520ef153c84fa4
+09:49:08  JENKINS_FLEX_JENKINS_PROD_AGENT_PORT=tcp://10.107.104.115:50000
+09:49:08  COPY_REFERENCE_FILE_LOG=/var/****_home/copy_reference_file.log
+09:49:08  GIT_ADDRESS=http://git.intranet/scm/ABS/fcj-fcjba.git
+09:49:08  JENKINS_HOME=/var/****_home
+09:49:08  ENV_FILE=/home/****/agent/workspace/FCJ/NEW_PIPELINE_TESTING/****/env/FCJ16
+09:49:08  JOB_NAME=FCJ/NEW_PIPELINE_TESTING
+09:49:08  RUN_TESTS_DISPLAY_URL=https://jflex.devops.intranet/job/FCJ/job/NEW_PIPELINE_TESTING/36/display/redirect?page=tests
+09:49:08  REF=/usr/share/****/ref
+09:49:08  KUBERNETES_SERVICE_PORT_HTTPS=443
+09:49:08  JFLEX_AGENT_PORT_50000_TCP_PROTO=tcp
+09:49:08  KUBERNETES_PORT_443_TCP_PORT=443
+09:49:08  GIT_PREVIOUS_COMMIT=115f4dd26fa8cd7465f8c8abb9cf8206b01521ac
+09:49:08  JENKINS_FLEX_JENKINS_PROD_AGENT_PORT_50000_TCP_PORT=50000
+09:49:08  HUDSON_HOME=/var/****_home
+09:49:08  JOB_DISPLAY_URL=https://jflex.devops.intranet/job/FCJ/job/NEW_PIPELINE_TESTING/display/redirect
+09:49:08  JENKINS_FLEX_JENKINS_PROD_SERVICE_HOST=10.96.160.189
+09:49:08  JENKINS_FLEX_JENKINS_PROD_AGENT_PORT_50000_TCP=tcp://10.107.104.115:50000
+09:49:08  WORK_FOLDER=/home/****/agent/workspace/FCJ/NEW_PIPELINE_TESTING
+09:49:08  JENKINS_FLEX_JENKINS_PROD_PORT_8080_TCP=tcp://10.96.160.189:8080
+09:49:08  JFLEX_PORT_8080_TCP_PORT=8080
+09:49:08  KUBERNETES_PORT_443_TCP=tcp://10.96.0.1:443
+09:49:08  RUN_ARTIFACTS_DISPLAY_URL=https://jflex.devops.intranet/job/FCJ/job/NEW_PIPELINE_TESTING/36/display/redirect?page=artifacts
+09:49:08  JENKINS_FLEX_JENKINS_PROD_AGENT_PORT_50000_TCP_PROTO=tcp
+09:49:08  JENKINS_UC_DOWNLOAD=https://artifactory.intranet/artifactory/****-plugins/download
+09:49:08  JFLEX_AGENT_PORT_50000_TCP_PORT=50000
+09:49:08  BUILD_URL=https://jflex.devops.intranet/job/FCJ/job/NEW_PIPELINE_TESTING/36/
+09:49:08  TERM=xterm
+09:49:08  STAGE_NAME=print_env
+09:49:08  JOB_URL=https://jflex.devops.intranet/job/FCJ/job/NEW_PIPELINE_TESTING/
+09:49:08  JENKINS_FLEX_JENKINS_PROD_SERVICE_PORT_HTTP=8080
+09:49:08  JENKINS_FLEX_JENKINS_PROD_AGENT_SERVICE_PORT_AGENT_LISTENER=50000
+09:49:08  APP_USER=srvjflex
+09:49:08  JENKINS_FLEX_JENKINS_PROD_SERVICE_PORT=8080
+09:49:08  BUILD_DISPLAY_NAME=#36 - for_testing_**** - null
+09:49:08  JFLEX_SERVICE_PORT_WEB=8080
+09:49:08  JENKINS_INCREMENTALS_REPO_MIRROR=https://repo.****-ci.org/incrementals
+09:49:08  PATCH_NAME=PATCH_0
+09:49:08  JENKINS_FLEX_JENKINS_PROD_PORT_8080_TCP_ADDR=10.96.160.189
+09:49:08  JFLEX_AGENT_PORT_50000_TCP=tcp://10.100.235.151:50000
+09:49:08  SHLVL=3
+09:49:08  GIT_BRANCH=origin/for_testing_****
+09:49:08  BUILD_TAG=****-FCJ-NEW_PIPELINE_TESTING-36
+09:49:08  KUBERNETES_SERVICE_PORT=443
+09:49:08  CASC_JENKINS_CONFIG=/etc/****/casc
+09:49:08  JENKINS_UC_EXPERIMENTAL=https://artifactory.intranet/artifactory/****-plugins/experimental
+09:49:08  NODE_LABELS=FCJ_NEW_PIPELINE_TESTING_36-074j7 fcj-new-pipeline-testing-36-074j7-2nmq0-sbq8j
+09:49:08  DB_CREDENTIALS_USR=****
+09:49:08  JFLEX_SERVICE_PORT=8080
+09:49:08  PATH=/var/app/product/11.2.0/client_1/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+09:49:08  GIT_PREVIOUS_SUCCESSFUL_COMMIT=115f4dd26fa8cd7465f8c8abb9cf8206b01521ac
+09:49:08  JFLEX_AGENT_PORT=tcp://10.100.235.151:50000
+09:49:08  JFLEX_PORT_8080_TCP_PROTO=tcp
+09:49:08  JENKINS_VERSION=2.289.3
+09:49:08  JFLEX_SERVICE_HOST=10.100.48.137
+09:49:08  KUBERNETES_SERVICE_HOST=10.96.0.1
+09:49:08  SLEEP_TIME=0
+09:49:08  JENKINS_SERVER_COOKIE=durable-7a506b60c80803ddb9002073abf283ad0d587aa48c9bcb52c203fdeebf28124b
+09:49:08  + cd ./****/env
+09:49:08  + ls -la
+09:49:08  total 60
+09:49:08  drwxr-xr-x. 2 **** ****  187 Feb 21 09:48 .
+09:49:08  drwxr-xr-x. 6 **** **** 4096 Feb 21 09:48 ..
+09:49:08  -rw-r--r--. 1 **** ****  211 Feb 21 09:48 FCJ01
+09:49:08  -rw-r--r--. 1 **** ****  209 Feb 21 09:48 FCJ02
+09:49:08  -rw-r--r--. 1 **** ****  208 Feb 21 09:48 FCJ03
+09:49:08  -rw-r--r--. 1 **** ****  210 Feb 21 09:48 FCJ04
+09:49:08  -rw-r--r--. 1 **** ****  207 Feb 21 09:48 FCJ05
+09:49:08  -rw-r--r--. 1 **** ****  208 Feb 21 09:48 FCJ06
+09:49:08  -rw-r--r--. 1 **** ****  207 Feb 21 09:48 FCJ07
+09:49:08  -rw-r--r--. 1 **** ****  207 Feb 21 09:48 FCJ08
+09:49:08  -rw-r--r--. 1 **** ****  207 Feb 21 09:48 FCJ09
+09:49:08  -rw-r--r--. 1 **** ****  208 Feb 21 09:48 FCJ10
+09:49:08  -rw-r--r--. 1 **** ****  208 Feb 21 09:48 FCJ11
+09:49:08  -rw-r--r--. 1 **** ****  210 Feb 21 09:48 FCJ16
+09:49:08  -rw-r--r--. 1 **** ****  208 Feb 21 09:48 FCJ17
+09:49:08  -rw-r--r--. 1 **** ****  197 Feb 21 09:48 PROD
+09:49:08  + git branch
+09:49:09  * (HEAD detached at 8005690f)
+09:49:09  [Pipeline] }
+09:49:09  [Pipeline] // script
+09:49:09  [Pipeline] }
+09:49:09  [Pipeline] // stage
+09:49:09  [Pipeline] stage
+09:49:09  [Pipeline] { (validate_config)
+09:49:09  [Pipeline] readFile
+09:49:09  [Pipeline] withEnv
+09:49:09  [Pipeline] {
+09:49:09  [Pipeline] sh
+09:49:10  + [[ -z bravo17.imb.ru:21609/FCJ16.IMB.RU ]]
+09:49:10  + echo DB_SERVER=bravo17.imb.ru:21609/FCJ16.IMB.RU
+09:49:10  DB_SERVER=bravo17.imb.ru:21609/FCJ16.IMB.RU
+09:49:10  + [[ -z vs945.imb.ru ]]
+09:49:10  + echo APP_SERVER=vs945.imb.ru
+09:49:10  APP_SERVER=vs945.imb.ru
+09:49:10  + [[ -z /oracle/u01/domains/fcj16_domain ]]
+09:49:10  + echo APP_FOLDER=/oracle/u01/domains/fcj16_domain
+09:49:10  APP_FOLDER=/oracle/u01/domains/fcj16_domain
+09:49:10  [Pipeline] }
+09:49:10  [Pipeline] // withEnv
+09:49:10  [Pipeline] }
+09:49:10  [Pipeline] // stage
+09:49:10  [Pipeline] stage
+09:49:10  [Pipeline] { (Checkout master)
+09:49:10  [Pipeline] echo
+09:49:10  Checking out master
+09:49:10  [Pipeline] checkout
+09:49:10  The recommended git tool is: NONE
+09:49:10  using credential AD Jenkins
+09:49:10  Warning: JENKINS-30600: special launcher org.csanchez.****.plugins.kubernetes.pipeline.ContainerExecDecorator$1@7dd4a1da; decorates RemoteLauncher[hudson.remoting.Channel@67c89c4e:JNLP4-connect connection from 192.168.30.228/192.168.30.228:38276] will be ignored (a typical symptom is the Git executable not being run inside a designated container)
+09:49:10  Cloning the remote Git repository
+09:49:10  Cloning repository http://git.intranet/scm/ABS/fcj-fcjba.git
+09:49:10   > git init /home/****/agent/workspace/FCJ/NEW_PIPELINE_TESTING/MASTER # timeout=10
+09:49:10  Fetching upstream changes from http://git.intranet/scm/ABS/fcj-fcjba.git
+09:49:10   > git --version # timeout=10
+09:49:10   > git --version # 'git version 2.30.2'
+09:49:10  using GIT_ASKPASS to set credentials AD Jenkins user
+09:49:10   > git fetch --tags --force --progress -- http://git.intranet/scm/ABS/fcj-fcjba.git +refs/heads/*:refs/remotes/origin/* # timeout=10
+09:49:12  Avoid second fetch
+09:49:12  Checking out Revision 6aced99a351ad5477099aebc9c02930255f08f01 (refs/remotes/origin/master)
+09:49:12  Enabling Git LFS pull
+09:49:12   > git config remote.origin.url http://git.intranet/scm/ABS/fcj-fcjba.git # timeout=10
+09:49:12   > git config --add remote.origin.fetch +refs/heads/*:refs/remotes/origin/* # timeout=10
+09:49:12   > git rev-parse refs/remotes/origin/master^{commit} # timeout=10
+09:49:12   > git config core.sparsecheckout # timeout=10
+09:49:12   > git checkout -f 6aced99a351ad5477099aebc9c02930255f08f01 # timeout=10
+09:49:12   > git config --get remote.origin.url # timeout=10
+09:49:12  using GIT_ASKPASS to set credentials AD Jenkins user
+09:49:12   > git lfs pull origin # timeout=10
+09:49:24  Commit message: "Pull request #619: technical release"
+09:49:24   > git rev-list --no-walk 6aced99a351ad5477099aebc9c02930255f08f01 # timeout=10
+09:49:24  [Pipeline] echo
+09:49:24  Checked out master
+09:49:24  [Pipeline] }
+09:49:24  [Pipeline] // stage
+09:49:24  [Pipeline] stage
+09:49:24  [Pipeline] { (check branch)
+09:49:24  [Pipeline] sh
+09:49:25  + ls -la
+09:49:25  total 36
+09:49:25  drwxr-xr-x. 10 **** ****  174 Feb 21 09:49 .
+09:49:25  drwxr-xr-x.  4 **** ****   66 Feb 21 09:48 ..
+09:49:25  drwxr-xr-x.  2 **** **** 4096 Feb 21 09:48 DOC
+09:49:25  drwxr-xr-x.  9 **** ****  173 Feb 21 09:49 .git
+09:49:25  -rw-r--r--.  1 **** ****  549 Feb 21 09:48 .gitattributes
+09:49:25  -rw-r--r--.  1 **** ****    8 Feb 21 09:48 .gitignore
+09:49:25  drwxr-xr-x. 17 **** **** 4096 Feb 21 09:48 Installers
+09:49:25  drwxr-xr-x.  6 **** **** 4096 Feb 21 09:48 ****
+09:49:25  drwxr-xr-x.  8 **** ****  142 Feb 21 09:49 MASTER
+09:49:25  drwxr-xr-x.  2 **** ****    6 Feb 21 09:49 MASTER@tmp
+09:49:25  -rw-r--r--.  1 **** ****   42 Feb 21 09:48 README.md
+09:49:25  drwxr-xr-x. 13 **** **** 4096 Feb 21 09:48 SRC
+09:49:25  drwxr-xr-x.  2 **** **** 4096 Feb 21 09:48 vars
+09:49:25  + git branch
+09:49:25  * (HEAD detached at 8005690f)
+09:49:25  [Pipeline] }
+09:49:25  [Pipeline] // stage
+09:49:25  [Pipeline] }
+09:49:25  [Pipeline] // timestamps
+09:49:25  [Pipeline] }
+09:49:25  [Pipeline] // withEnv
+09:49:25  [Pipeline] }
+09:49:25  [Pipeline] // withCredentials
+09:49:25  [Pipeline] }
+09:49:25  [Pipeline] // container
+09:49:25  [Pipeline] }
+09:49:25  [Pipeline] // withEnv
+09:49:25  [Pipeline] }
+09:49:25  [Pipeline] // node
+09:49:25  [Pipeline] }
+09:49:25  [Pipeline] // podTemplate
+09:49:25  [Pipeline] End of Pipeline
+09:49:25  Finished: SUCCESS
