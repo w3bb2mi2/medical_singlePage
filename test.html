@@ -1,23 +1,10 @@
 def call(String patchName, String branchName) {
-    echo 'Generating scripts'
+    echo 'checking restart adapters'
+    //echo "Входящий параметр branchName: ${branchName}"
 
     sh """
-        if [ -f ./Installers/${branchName}/install.txt ]
-        then
-           cp ./Installers/${branchName}/* ./SRC/
-		else
-           echo 'install.txt not exists in ./Installers/${branchName} folder'
-           exit 1		
-        fi
-        rm -f install_db_*
-        source ./jenkins/generate_installer.sh ${patchName}
-        rm -f rollback_db_*
-        source ./jenkins/generate_rollbacker.sh ${patchName}
-        rm -rf ${patchName}
-        source ./patchScript.sh
-        echo ${patchName} > ${patchName}/buildname.txt
-        echo "BUILD_URL=${BUILD_URL}" >> ${patchName}/buildname.txt
+        echo "Входящий параметр branchName: ${branchName}"
+        content=`cat ./Installers/${branchName}/install.txt`
+        echo "$content"
     """
-
-    echo 'Collected the patch'
 }
