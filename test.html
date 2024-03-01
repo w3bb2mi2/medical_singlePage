@@ -1,11 +1,15 @@
-def call(String patchName, String branchName) {
-    echo 'checking restart adapters'
-    //echo "Входящий параметр branchName: ${branchName}"
-
-    sh """
-        echo "Входящий параметр branchName: ${branchName}"
-        cd ./Installers/${branchName}
-        content=`cat install.txt`
-        echo "$content"
-    """
-}
+14:14:19  
+14:14:19  SQL*Plus: Release 11.2.0.1.0 Production on Fri Mar 1 14:14:19 2024
+14:14:19  
+14:14:19  Copyright (c) 1982, 2009, Oracle.  All rights reserved.
+14:14:19  
+14:14:19  
+14:14:19  Connected to:
+14:14:19  Oracle Database 11g Enterprise Edition Release 11.2.0.4.0 - 64bit Production
+14:14:19  With the Partitioning, Oracle Label Security, OLAP, Data Mining
+14:14:19  and Real Application Testing options
+14:14:19  
+14:14:19  string beginning "TYPE=SQLSC..." is too long. maximum size is 239 characters.
+14:14:19  SQL> Disconnected from Oracle Database 11g Enterprise Edition Release 11.2.0.4.0 - 64bit Production
+14:14:19  With the Partitioning, Oracle Label Security, OLAP, Data Mining
+14:14:19  and Real Application Testing options
