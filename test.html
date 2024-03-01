@@ -1,8 +1,1 @@
-#!/bin/bash
-
-arguments=$(paste -s -d ' ' ./Installers/${1}/install.txt)
-
-text="select schema_name from table(fcjucb.check_restart_adapters.fn_parse_install_txt('$arguments'));"
-echo $text > check.txt
-echo exit | sqlplus fcjucb/fcjucb@bravo17.imb.ru:21580/FCJ02.IMB.RU @check.txt > result.txt
-cat ./result.txt
+regexp varchar2(300) := '@/{0,}(\/\w+){0,}\/[^.]+\.(SQL|SPC|SEQ|PRC|FNC|DDL|TRG|TYP|VW)'; --убери inc, syn, gr, miki
