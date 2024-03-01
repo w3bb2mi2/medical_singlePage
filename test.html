@@ -1,15 +1,26 @@
-14:14:19  
-14:14:19  SQL*Plus: Release 11.2.0.1.0 Production on Fri Mar 1 14:14:19 2024
-14:14:19  
-14:14:19  Copyright (c) 1982, 2009, Oracle.  All rights reserved.
-14:14:19  
-14:14:19  
-14:14:19  Connected to:
-14:14:19  Oracle Database 11g Enterprise Edition Release 11.2.0.4.0 - 64bit Production
-14:14:19  With the Partitioning, Oracle Label Security, OLAP, Data Mining
-14:14:19  and Real Application Testing options
-14:14:19  
-14:14:19  string beginning "TYPE=SQLSC..." is too long. maximum size is 239 characters.
-14:14:19  SQL> Disconnected from Oracle Database 11g Enterprise Edition Release 11.2.0.4.0 - 64bit Production
-14:14:19  With the Partitioning, Oracle Label Security, OLAP, Data Mining
-14:14:19  and Real Application Testing options
+#!/bin/bash
+
+echo "input variable: ${1}"
+echo "input variable: ${2}"
+
+
+
+cd ./Installers/${2}
+
+arguments=$(paste -s -d '' install.txt)
+cd ../../
+
+ls -l
+
+cat << 'EOF' >> check.sql
+select * from table(fcjucb.check_restart_adapters.fn_parse_install_txt($arguments));
+/
+EOF
+
+cat ./check.sql
+
+#echo exit | sqlplus fcj/fcjfcj16@bravo17.imb.ru:21609/FCJ16.IMB.RU @check.txt > result.txt
+echo exit | sqlplus fcjucb/fcjucb@bravo17.imb.ru:21580/FCJ02.IMB.RU @check.txt > result.txt
+
+ls -l
+cat ./result.txt
