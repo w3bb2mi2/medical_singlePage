@@ -1,26 +1,8 @@
 #!/bin/bash
 
-echo "input variable: ${1}"
-echo "input variable: ${2}"
+arguments=$(paste -s -d ' ' ./Installers/${1}/install.txt)
 
-
-
-cd ./Installers/${2}
-
-arguments=$(paste -s -d '' install.txt)
-cd ../../
-
-ls -l
-
-cat << 'EOF' >> check.sql
-select * from table(fcjucb.check_restart_adapters.fn_parse_install_txt($arguments));
-/
-EOF
-
-cat ./check.sql
-
-#echo exit | sqlplus fcj/fcjfcj16@bravo17.imb.ru:21609/FCJ16.IMB.RU @check.txt > result.txt
+text="select schema_name from table(fcjucb.check_restart_adapters.fn_parse_install_txt('$arguments'));"
+echo $text > check.txt
 echo exit | sqlplus fcjucb/fcjucb@bravo17.imb.ru:21580/FCJ02.IMB.RU @check.txt > result.txt
-
-ls -l
 cat ./result.txt
