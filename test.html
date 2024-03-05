@@ -1,1 +1,59 @@
-regexp varchar2(300) := '@/{0,}(\/\w+){0,}\/[^.]+\.(SQL|SPC|SEQ|PRC|FNC|DDL|TRG|TYP|VW)'; --убери inc, syn, gr, miki
+FUNCTION fn_int_ovd_p_scheme(p_account_number varchar2, p_date varchar2) return calc_table3 pipelined is
+        v_calc_row2 calc_row3;
+        row_CLTB_ACCOUNT_SCHEDULES fcc.CLTB_ACCOUNT_SCHEDULES%rowtype;
+        tab_row_CLTB_ACCOUNT_SCHEDULES table of row_CLTB_ACCOUNT_SCHEDULES;
+        v_value_date date := to_date(p_date, 'dd.mm.yyyy');
+
+        Cursor c_ovd_schedule is select *
+                                 from table(rep_overdue_bki.get_ovd_schedule(p_account_number, v_value_date, 'PRINCIPAL'));
+    begin
+        -- вычисляемая часть --
+        for rec in c_ovd_schedule loop
+            v_calc_row2.ACCOUNT_NUMBER:=rec.ACCOUNT_NUMBER;
+            v_calc_row2.BRANCH:=rec.BRANCH;
+            v_calc_row2.AMOUNT_DUE:=rec.AMOUNT_DUE;
+            v_calc_row2.SCHEDULE_DUE_DATE:=rec.SCHEDULE_DUE_DATE;
+            v_calc_row2.REST_SUM:=rec.REST_SUM;
+            v_calc_row2.START_DATE:=rec.START_DATE;
+            v_calc_row2.PAID_DATE:=rec.PAID_DATE;
+            v_calc_row2.amount_paid:=rec.amount_paid;
+
+            declare
+                int_ovd_p number :=0;
+                v_start date:= v_calc_row2.START_DATE;
+                v_end   date:=  v_calc_row2.PAID_DATE;
+                v_days_in_year number;
+                v_dayly_int_ovd_p number :=0;
+                v_int_ovd_p_sum number :=0;
+                v_current_rate number;
+                v_current date:= v_start + 1;
+            begin
+                if v_start < v_end then
+                    while v_current <= v_end loop
+                        v_current_rate := get_current_rate(v_calc_row2.ACCOUNT_NUMBER, v_current, 'INT_OVD_RATE');
+                        v_days_in_year := lh_rep2361_v6.GET_DAYS_IN_YEAR(v_current);
+
+                        v_dayly_int_ovd_p := v_calc_row2.REST_SUM * v_current_rate/100/v_days_in_year;
+                        v_dayly_int_ovd_p := round(v_dayly_int_ovd_p, 5);
+                        v_int_ovd_p_sum := v_int_ovd_p_sum + v_dayly_int_ovd_p;
+                        v_current := v_current + 1;
+                    end loop;
+
+                end if;
+                v_calc_row2.int_ovd_p_1 := round(v_int_ovd_p_sum, 2);
+
+            exception
+                when others then
+                    dbms_output.put_line('TEXT: '||SQLERRM);
+                    dbms_output.put_line('CODE: '||SQLCODE);
+                    dbms_output.put_line('ERROR HAPPEND fn_int_ovd_p_scheme in for');
+            end;
+            pipe row(v_calc_row2);
+        end loop;
+
+    exception
+        when others then
+            dbms_output.put_line('TEXT: '||SQLERRM);
+            dbms_output.put_line('CODE: '||SQLCODE);
+            dbms_output.put_line('ERROR HAPPEND in fn_int_ovd_p_scheme');
+    end;
