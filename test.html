@@ -4,23 +4,23 @@ FUNCTION get_principal (p_account_number varchar2) return get_principal_tab pipe
     v_COMP_BALANCES_table_table CLVS_ACC_COMP_BALANCES_table;
 
 
-    TYPE credit_array is TABLE of varchar2(20);
+    TYPE credit_array IS TABLE of varchar2(20);
     v_credit_array credit_array;
 
     row_item get_principal_row;
 
     BEGIN
         select child_loan
-        into v_credit_array
+            bulk collect into v_credit_array
         from FCC.CLTB_PARENT_CHILD_MAPPING
         where parent_loan=p_account_number;
+
         select *
             bulk collect into v_COMP_BALANCES_table_table
         from fcc.CLVS_ACC_COMP_BALANCES
 --        where account_number in ('02524135RURRA15001');
-        where account_number in (select child_loan
-                                   from FCC.CLTB_PARENT_CHILD_MAPPING
-                                   where parent_loan=p_account_number);
+        where account_number in v_credit_array;
+
 
 --        For i in 1..all_credit.count loop
 --            dbms_output.put_line('all_credit(i): ' || all_credit(i));
