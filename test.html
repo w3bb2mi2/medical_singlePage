@@ -1,51 +1,7 @@
-FUNCTION get_principal (p_account_number varchar2) return get_principal_tab pipelined is
+Я, ________________________________________________________________
+(Фамилия, Имя, Отчество)
+Ознакомлен(а) с Правилами внутреннего трудового распорядка Акционерного общества «ЮниКредит Банк», утв. решением Правления (Протокол № 10/2024 от 19.03.2024 г.)
 
-    row_item get_principal_row;
 
-    TYPE credit_array IS table of varchar2(20);
-    v_credit_array credit_array;
-
-    total_expected number:=0;
-
-    BEGIN
-        select child_loan
-            bulk collect into v_credit_array
-        from FCC.CLTB_PARENT_CHILD_MAPPING
-        where parent_loan=p_account_number;
-
-        v_credit_array.extend;
-        v_credit_array(v_credit_array.count):=p_account_number;
-
-        For i in 1..v_credit_array.count loop
-            For rec in (select *
-                        from fcc.CLVS_ACC_COMP_BALANCES
-                        where account_number = v_credit_array(i) and component_name = 'PRINCIPAL') loop
-                row_item.account_number := rec.account_number;
-                row_item.branch := rec.branch_code;
-                row_item.component_name := rec.component_name;
-                row_item.expected := rec.expected;
-                row_item.overdue := rec.overdue;
-                row_item.outstanding := rec.outstanding;
-                row_item.advance := rec.outstanding;
-
-                total_expected:=total_expected + rec.expected;
-
-                row_item.account_number := 'RESULT';
-                row_item.branch := null;
-                row_item.component_name := null;
-                row_item.expected := null;
-                row_item.overdue := null;
-                row_item.outstanding := null;
-                row_item.advance := null;
-
-                pipe row(row_item);
-            end loop;
-        end loop;
-
-        pipe row(row_item);
-    exception
-        when others then
-            dbms_output.put_line('TEXT: '||SQLERRM);
-            dbms_output.put_line('CODE: '||SQLCODE);
-            dbms_output.put_line('ERROR HAPPEND in get_principal');
-    END get_principal;
+_______________		________________		________________
+      (Дата)				(Подпись)			(Расшифровка подписи)
