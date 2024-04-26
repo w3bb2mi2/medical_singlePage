@@ -1,1 +1,57 @@
-TYPE=SQL SCHEMA=FCC @/pre_install_db_fcc.chk @FCC/DDL/Sttm_ac_stat_change_001.DDL @FCC/DDL/CATM_AMOUNT_BLOCKS_0003.DDL @FCC/DDL/Dim_amount_blocks_001.DDL @FCC/DDL/DIM_ACCT_INFO_HIST_002.DDL @FCC/DDL/DIM_ACCOUNT_INFO_003.DDL @FCC/DDL/DIM_COLLAT_OPS_0001.DDL @FCC/INC/FLX6-858_INC/Error_Codes.INC @FCC/INC/FLX6-858_INC/Static_Maint.INC @FCC/PRC/pr_ac_closure.prc @FCC/SQL/dxpks_extract_cbr1.sql @FCC/VW/DXVW_DIM_ACCOUNT_INFO_001.VW @/patch_tracker.chlog
+var btn_restr_type = document.getElementById('BLK_MAIN__RESTR_TYPE').nextSibling
+
+function fn_process_RT_Change() {
+    const sem_inn = '7707210781'
+	if (document.getElementById("BLK_MAIN__RESTR_TYPE").value == 'BAILIFF') {
+		fnEnableElement(document.getElementById("BLK_MAIN__INITIATOR"));
+		fnEnableElement(document.getElementById("BLK_MAIN__INN_INITIATOR"));
+		fnEnableElement(document.getElementById("BLK_MAIN__CODE_BALLIFF_OFFICE"));
+		fnEnableElement(document.getElementById("BLK_MAIN__EXEC_PROC_NUMBER"));
+		fnEnableElement(document.getElementById("BLK_MAIN__INN_INITIATOR_ND"));
+		fnEnableElement(document.getElementById("BLK_MAIN__CODE_BALLIFF_OFFICE_ND"));
+		fnEnableElement(document.getElementById("BLK_MAIN__EXEC_PROC_NUMBER_ND"));
+		fnEnableElement(document.getElementById("BLK_MAIN__DOC_NUMBER_ND"));
+		
+		if (document.getElementById("BLK_MAIN__INITIATOR").value != 'Иное') {
+		    document.getElementById("BLK_MAIN__INN_INITIATOR").value = '';
+			fnDisableElement(document.getElementById("BLK_MAIN__INN_INITIATOR"));
+			fnDisableElement(document.getElementById("BLK_MAIN__INN_INITIATOR_ND"));
+		}
+		
+	} else {
+		fnDisableElement(document.getElementById("BLK_MAIN__INITIATOR"));
+		fnDisableElement(document.getElementById("BLK_MAIN__INN_INITIATOR"));
+		fnDisableElement(document.getElementById("BLK_MAIN__CODE_BALLIFF_OFFICE"));
+		fnDisableElement(document.getElementById("BLK_MAIN__EXEC_PROC_NUMBER"));
+		fnDisableElement(document.getElementById("BLK_MAIN__INN_INITIATOR_ND"));
+		fnDisableElement(document.getElementById("BLK_MAIN__CODE_BALLIFF_OFFICE_ND"));
+		fnDisableElement(document.getElementById("BLK_MAIN__EXEC_PROC_NUMBER_ND"));
+		fnDisableElement(document.getElementById("BLK_MAIN__DOC_NUMBER_ND"));
+
+		document.getElementById("BLK_MAIN__INITIATOR").value = '';
+		document.getElementById("BLK_MAIN__INN_INITIATOR").value = '';
+		document.getElementById("BLK_MAIN__CODE_BALLIFF_OFFICE").value = '';
+		document.getElementById("BLK_MAIN__EXEC_PROC_NUMBER").value = '';
+		document.getElementById("BLK_MAIN__INN_INITIATOR_ND").checked = false;
+		document.getElementById("BLK_MAIN__CODE_BALLIFF_OFFICE_ND").checked = false;
+		document.getElementById("BLK_MAIN__EXEC_PROC_NUMBER_ND").checked = false;
+		document.getElementById("BLK_MAIN__DOC_NUMBER_ND").checked = false;
+
+	    if (document.getElementById("BLK_MAIN__RESTR_TYPE").value == 'SEM') document.getElementById("BLK_MAIN__INN_INITIATOR").value = sem_inn
+	}
+	return true;
+}
+
+function fn_process_RT_Change_Event () {
+    var config = { childList: true, subtree: true }
+    var targetNode = document.getElementById('Div_ChildWin')
+    var observer = new MutationObserver (function (mutations) {
+        mutations.forEach(function(mutation){
+            console.log('Запуск функции fn_process_RT_Change')
+            fn_process_RT_Change()
+        })
+    })
+    observer.observe(targetNode, config)
+}
+
+btn_restr_type.addEventListener('click', fn_process_RT_Change_Event)
