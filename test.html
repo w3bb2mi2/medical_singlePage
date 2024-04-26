@@ -1,5 +1,3 @@
-var btn_restr_type = document.getElementById('BLK_MAIN__RESTR_TYPE').nextSibling
-
 function fn_process_RT_Change() {
     const sem_inn = '7707210781'
 	if (document.getElementById("BLK_MAIN__RESTR_TYPE").value == 'BAILIFF') {
@@ -39,19 +37,35 @@ function fn_process_RT_Change() {
 
 	    if (document.getElementById("BLK_MAIN__RESTR_TYPE").value == 'SEM') document.getElementById("BLK_MAIN__INN_INITIATOR").value = sem_inn
 	}
+	observer.disconnect()
 	return true;
 }
+var btn_restr_type
+var targetNode
+var observer = new MutationObserver (function (mutations) {
+    mutations.forEach(function(mutation){
+        fn_process_RT_Change()
+    })
+})
 
 function fn_process_RT_Change_Event () {
-    var config = { childList: true, subtree: true }
-    var targetNode = document.getElementById('Div_ChildWin')
-    var observer = new MutationObserver (function (mutations) {
-        mutations.forEach(function(mutation){
-            console.log('Запуск функции fn_process_RT_Change')
-            fn_process_RT_Change()
-        })
-    })
-    observer.observe(targetNode, config)
+    observer.observe(targetNode, { childList: true, subtree: true })
 }
 
-btn_restr_type.addEventListener('click', fn_process_RT_Change_Event)
+function fnPreNew_CUSTOM () {
+    btn_restr_type = document.getElementById('BLK_MAIN__RESTR_TYPE').nextSibling
+    targetNode = document.getElementById('Div_ChildWin')
+    btn_restr_type.addEventListener('click', fn_process_RT_Change_Event)
+    return true
+}
+
+function fnPreUnlock_CUSTOM () {
+    btn_restr_type = document.getElementById('BLK_MAIN__RESTR_TYPE').nextSibling
+    targetNode = document.getElementById('Div_ChildWin')
+    btn_restr_type.addEventListener('click', fn_process_RT_Change_Event)
+    return true
+}
+
+function fnPostSave_CUSTOM () {
+    btn_restr_type.removeEventListener('click', fn_process_RT_Change_Event)
+}
