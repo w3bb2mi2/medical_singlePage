@@ -1,23 +1,15 @@
-#!/bin/bash
-
 arguments=$(paste -s -d ' ' ./Installers/$BRANCH_NAME/install.txt)
-echo "arguments: ${arguments}"
-text="select dependency from table(fccucb.check_restart_adapters.fn_find_need_reload_obj('$arguments'));"
-echo $text > check.txt
 
 if [[ $arguments =~ RESTART_ADAPTER= ]]; then
-  echo "В файле install.txt указана необходимость перезагрузки адаптеров, дополнительной проверки не требуется"
-  break
+  exit
+fi
+
+export NLS_LANG=AMERICAN_AMERICA.AL32UTF8
+
+if echo "exit" | sqlplus $DB_CREDENTIALS_USR['fcc']/$DB_CREDENTIALS_PSW@$DB_SERVER <<< $text | grep -q "Перезагрузка не требуется"; then
+  echo "Перезагрузка адаптеров не требуется"
 else
-  set -e
-  export NLS_LANG=AMERICAN_AMERICA.AL32UTF8
-  echo exit | sqlplus $DB_CREDENTIALS_USR['fcc']/$DB_CREDENTIALS_PSW@$DB_SERVER @check.txt > result.txt
-  if grep -q "Перезагрузка не требуется" result.txt; then
-    echo "Перезагрузка адаптеров не требуется"
-  else
-    echo "Требуется перезагрузка адаптеров"
-    exit 1
-  fi
+  exit 1
 fi
 
 echo "Проверка завершена"
