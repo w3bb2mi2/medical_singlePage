@@ -1,15 +1,7 @@
-arguments=$(paste -s -d ' ' ./Installers/$BRANCH_NAME/install.txt)
-
-if [[ $arguments =~ RESTART_ADAPTER= ]]; then
-  exit
-fi
-
-export NLS_LANG=AMERICAN_AMERICA.AL32UTF8
-
-if echo "exit" | sqlplus $DB_CREDENTIALS_USR['fcc']/$DB_CREDENTIALS_PSW@$DB_SERVER <<< $text | grep -q "Перезагрузка не требуется"; then
-  echo "Перезагрузка адаптеров не требуется"
-else
-  exit 1
-fi
-
-echo "Проверка завершена"
+SELECT DISTINCT name
+FROM user_dependencies
+WHERE referenced_name IN (
+    SELECT name
+    FROM user_dependencies
+    WHERE referenced_name = 'CATM_AMOUNT_BLOCK'
+);
