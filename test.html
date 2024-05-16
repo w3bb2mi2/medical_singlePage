@@ -7,8 +7,7 @@ function fn_adapters_reboot_needed(p_owner varchar2, p_object_name varchar2) ret
             into v_object_name
             from dba_objects
             where owner = p_owner
---            and object_name = p_object_name
-                and case when 
+            and object_name = p_object_name
                 ;
         exception
             when no_data_found then
@@ -27,9 +26,43 @@ function fn_adapters_reboot_needed(p_owner varchar2, p_object_name varchar2) ret
         connect by prior name = referenced_name
                         and prior owner = referenced_owner
                         and prior type = referenced_type
+                        перепиши код таким образом, что если prior type ='PACKAGE BODY', а referenced_type='PACKAGE' и наоборот если prior type ='PACKAGE', а referenced_type='PACKAGE  BODY' все равно это бы считалось верным
+
             start with referenced_name = p_object_name and referenced_owner = p_owner
         ) where owner in ('FCCBLAMADP', 'FCCADPRO') and TYPE in ('PACKAGE BODY', 'PACKAGE')
             and rownum = 1;
+            return v_res;
+        exception
+            when no_data_found then
+                return null;
+        end;
+    END;
+
+    function fn_adapters_reboot_needed_2(p_owner varchar2, p_object_name varchar2) return varchar2
+    AS
+        v_object_name varchar2(50);
+    BEGIN
+        begin
+            select distinct object_name
+            into v_object_name
+            from dba_objects
+            where owner = p_owner
+            and object_name = p_object_name;
+        exception
+            when no_data_found then
+                raise_application_error(-20101, SQLERRM);
+        end;
+
+        declare
+            v_res varchar2(4000);
+        begin
+            select d_path
+            into v_res
+            from (select level, d.*, p_owner||'.'||p_object_name||SYS_CONNECT_BY_PATH (owner||'.'||name, '<--') d_path
+                  from  table(CHECK_RESTART_ADAPTERS.fn_references_tab(p_owner, p_object_name)) d
+                  connect by prior name = referenced_name and prior owner = referenced_owner
+                  start with referenced_name = p_object_name and referenced_owner = p_owner)
+                  where owner in ('FCCBLAMADP', 'FCCADPRO') and TYPE in ( 'PACKAGE BODY', 'PACKAGE' ) and rownum = 1;
             return v_res;
         exception
             when no_data_found then
