@@ -1,7 +1,38 @@
-SELECT DISTINCT name
-FROM user_dependencies
-WHERE referenced_name IN (
-    SELECT name
-    FROM user_dependencies
-    WHERE referenced_name = 'CATM_AMOUNT_BLOCK'
-);
+function fn_adapters_reboot_needed(p_owner varchar2, p_object_name varchar2) return varchar2
+    AS
+        v_object_name varchar2(50);
+    BEGIN
+        begin
+            select distinct object_name
+            into v_object_name
+            from dba_objects
+            where owner = p_owner
+--            and object_name = p_object_name
+                and case when 
+                ;
+        exception
+            when no_data_found then
+                raise_application_error(-20101, SQLERRM);
+        end;
+
+        declare
+            v_res varchar2(4000);
+        begin
+            -- all_dependencies - not suitable, it sees only object with grants
+            select d_path
+            into v_res
+            from (
+            select level, d.*, p_owner||'.'||p_object_name||SYS_CONNECT_BY_PATH (owner||'.'||name, '<--') d_path
+            from dba_dependencies d
+        connect by prior name = referenced_name
+                        and prior owner = referenced_owner
+                        and prior type = referenced_type
+            start with referenced_name = p_object_name and referenced_owner = p_owner
+        ) where owner in ('FCCBLAMADP', 'FCCADPRO') and TYPE in ('PACKAGE BODY', 'PACKAGE')
+            and rownum = 1;
+            return v_res;
+        exception
+            when no_data_found then
+                return null;
+        end;
+    END;
