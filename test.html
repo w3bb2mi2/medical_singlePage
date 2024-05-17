@@ -1,25 +1,32 @@
-function fn_parse_install_txt(input_string varchar2) return C_TAB PIPELINED as
-        temp_obj C_STR;
-        full_object_name varchar2(100);
-        object_name varchar2(100);
-        object_name_no_ext varchar2(100);
-        schema_name varchar2(100);
-        -- regexp varchar2(300) := '@(\/\w+){0,}\/[^.\s]+\.(SQL|SPC|SEQ|PRC|FNC|DDL|TRG|TYP|VW)'; --убери inc, syn, gr, miki
-        regexp varchar2(300) := '@[A-Za-z0-9_\/]+\.(SQL|SPC|SEQ|PRC|FNC|DDL|TRG|TYP|VW|SYN)'; --убери inc, gr, miki
-        extention varchar2(50);
+
+    PROCEDURE get_reference_objects (ref_name varchar2, dependency_arr IN OUT dependency_arr_type) as
     BEGIN
-        FOR i IN 1..REGEXP_COUNT(UPPER(input_string), regexp)
-        loop
-            full_object_name := regexp_substr(UPPER(input_string), regexp, 1, i);
-            object_name := regexp_substr(full_object_name, '\/[^\/]+\.\w+');
-            object_name_no_ext := trim(regexp_replace(object_name, '\.([A-Z]{2,10})|/|_(\d+)'));
-            extention := regexp_substr(object_name, '\.\w+');
-            schema_name := trim(translate(regexp_substr(full_object_name, '@\s{0,1}\/{0,1}[^\/]+\/'), '_@/', ' '));
-            temp_obj.full_name := full_object_name;
-            temp_obj.object_name := object_name_no_ext;
-            temp_obj.extension := extention;
-            temp_obj.schema_name := schema_name;
-            DBMS_OUTPUT.put_line(i ||')Найден объект ' || object_name_no_ext || ' в схеме ' || schema_name);
-            PIPE ROW(temp_obj);
+        FOR rec IN (SELECT *
+                    from dba_dependencies
+                    WHERE REFERENCED_NAME=ref_name
+                        and owner in ('FCCBA', 'FCCUCB', 'FCCBLAMADP', 'FCCADPRO')
+                        and (REFERENCED_NAME != name and referenced_owner != owner)) loop
+            dependency_arr(dependency_arr.count+1) := rec;
+            get_reference_objects (rec.name, dependency_arr);
         end loop;
+    EXCEPTION
+        WHEN others then
+            dbms_output.put_line('TEXT: '|| SQLERRM);
+            dbms_output.put_line('ERROR HAPPENED in get_reference_object');
+    END;
+чем эта функция отличается от этой:
+PROCEDURE get_reference_objects (ref_name varchar2, dependency_arr IN OUT dependency_arr_type) as
+    BEGIN
+        FOR rec IN (SELECT *
+                    from dba_dependencies
+                    WHERE REFERENCED_NAME=ref_name
+                        and owner in ('FCCBA', 'FCCUCB', 'FCCBLAMADP', 'FCCADPRO')
+                        and REFERENCED_NAME != name and referenced_owner != owner) loop
+            dependency_arr(dependency_arr.count+1) := rec;
+            get_reference_objects (rec.name, dependency_arr);
+        end loop;
+    EXCEPTION
+        WHEN others then
+            dbms_output.put_line('TEXT: '|| SQLERRM);
+            dbms_output.put_line('ERROR HAPPENED in get_reference_object');
     END;
