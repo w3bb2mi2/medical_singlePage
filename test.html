@@ -1,138 +1,39 @@
-
-[2024-05-20T08:42:57.402Z] Warning: A secret was passed to "sh" using Groovy String interpolation, which is insecure.
-
-[2024-05-20T08:42:57.403Z] 		 Affected argument(s) used the following variable(s): [v_PASS, DB_CREDENTIALS_PSW, DB_CREDENTIALS_USR, v_USER, DB_PASSWORD]
-
-[2024-05-20T08:42:57.403Z] 		 See https://****.io/redirect/groovy-string-interpolation for details.
-
-[2024-05-20T08:42:57.914Z] + [[ -f /home/****/agent/workspace/FCJ/Deploy_branch_on_test/PATCH_0/install/install_stop.yml ]]
-
-[2024-05-20T08:42:57.915Z] + cat /home/****/agent/workspace/FCJ/Deploy_branch_on_test/PATCH_0/install/install_stop.yml
-
-[2024-05-20T08:42:57.915Z] - name: Stoping Adapters
-
-[2024-05-20T08:42:57.915Z]   hosts: win
-
-[2024-05-20T08:42:57.915Z]   gather_facts: no
-
-[2024-05-20T08:42:57.915Z]   tasks:
-
-[2024-05-20T08:42:57.915Z]   - name: Check Service existence and Stop Service
-
-[2024-05-20T08:42:57.915Z]     win_shell: |
-
-[2024-05-20T08:42:57.915Z]         $adapters = @('CwFcjAccountArrestAndNotify', 'CwFcjBlockAmount', 'CwFcjMap', 'CwFcjMovementCreate') 
-
-[2024-05-20T08:42:57.915Z]         $adapters_existed = @()
-
-[2024-05-20T08:42:57.915Z]         
-
-[2024-05-20T08:42:57.915Z]         foreach ($adapter in $adapters) {
-
-[2024-05-20T08:42:57.915Z]         
-
-[2024-05-20T08:42:57.915Z]             $adapter_object = Get-Service -Name $adapter
-
-[2024-05-20T08:42:57.915Z]         
-
-[2024-05-20T08:42:57.915Z]             if ($adapter_object) {
-
-[2024-05-20T08:42:57.915Z]                 $adapter_object | Select-Object ServiceName,Status
-
-[2024-05-20T08:42:57.915Z]                 $adapters_existed += $adapter
-
-[2024-05-20T08:42:57.915Z]             }
-
-[2024-05-20T08:42:57.915Z]             elseif ( ($env:COMPUTERNAME -eq 'VS197') -and ($adapter -in @('CwFcjAccountArrestAndNotify2', 'CwFccCustomersInfoAcliqu', 'CwFccCustomersInfoAcopliqu')) ) {
-
-[2024-05-20T08:42:57.915Z]                 echo "Adapter $adapter does not exist, but it is not a problem."
-
-[2024-05-20T08:42:57.915Z]             }
-
-[2024-05-20T08:42:57.915Z]             elseif ( ($env:COMPUTERNAME -eq 'VS1012') -and ($adapter -in @('CwFccAccountsTransfer')) ) {
-
-[2024-05-20T08:42:57.915Z]                 echo "Adapter $adapter does not exist, but it is not a problem."
-
-[2024-05-20T08:42:57.915Z]             }
-
-[2024-05-20T08:42:57.915Z]             else { 
-
-[2024-05-20T08:42:57.915Z]                 echo "Adapter $adapter does not exist"
-
-[2024-05-20T08:42:57.915Z]                 exit 99902
-
-[2024-05-20T08:42:57.915Z]             }
-
-[2024-05-20T08:42:57.915Z]         }
-
-[2024-05-20T08:42:57.915Z]         
-
-[2024-05-20T08:42:57.915Z]         foreach ($adapter in $adapters_existed) {
-
-[2024-05-20T08:42:57.915Z]         
-
-[2024-05-20T08:42:57.915Z]             $adapter_object = Get-Service -Name $adapter
-
-[2024-05-20T08:42:57.915Z]             if ($adapter_object) {
-
-[2024-05-20T08:42:57.915Z]                 Get-Service -Name $adapter | Stop-Service -ErrorAction Stop
-
-[2024-05-20T08:42:57.915Z]                 Get-Service -Name $adapter | Select-Object ServiceName,Status
-
-[2024-05-20T08:42:57.915Z]             }
-
-[2024-05-20T08:42:57.915Z]         }
-
-[2024-05-20T08:42:57.915Z]     register: script_return
-
-[2024-05-20T08:42:57.915Z]   - debug: msg={{script_return.stdout}}+ cat /home/****/agent/workspace/FCJ/Deploy_branch_on_test/****/ansible_inventory/vs97
-
-[2024-05-20T08:42:57.915Z] [win]
-
-[2024-05-20T08:42:57.915Z] vs97.imb.ru
-
-[2024-05-20T08:42:57.915Z] vs197.imb.ru
-
-[2024-05-20T08:42:57.915Z] 
-
-[2024-05-20T08:42:57.915Z] [win:vars]
-
-[2024-05-20T08:42:57.915Z] ansible_connection=winrm
-
-[2024-05-20T08:42:57.915Z] ansible_winrm_transport=kerberos
-
-[2024-05-20T08:42:57.916Z] ansible_winrm_server_cert_validation=ignore+ /usr/bin/ansible-playbook '--extra-vars={'\''ansible_user'\'': ****, '\''ansible_password'\'': ****}' /home/****/agent/workspace/FCJ/Deploy_branch_on_test/PATCH_0/install/install_stop.yml -i /home/****/agent/workspace/FCJ/Deploy_branch_on_test/****/ansible_inventory/vs97
-
-[2024-05-20T08:43:07.910Z] 
-
-[2024-05-20T08:43:07.910Z] PLAY [Stoping Adapters] ********************************************************
-
-[2024-05-20T08:43:07.910Z] 
-
-[2024-05-20T08:43:07.910Z] TASK [Check Service existence and Stop Service] ********************************
-
-[2024-05-20T08:43:12.094Z] fatal: [vs97.imb.ru]: FAILED! => {"changed": true, "cmd": "$adapters = @('CwFcjAccountArrestAndNotify', 'CwFcjBlockAmount', 'CwFcjMap', 'CwFcjMovementCreate') \n$adapters_existed = @()\n\nforeach ($adapter in $adapters) {\n\n    $adapter_object = Get-Service -Name $adapter\n\n    if ($adapter_object) {\n        $adapter_object | Select-Object ServiceName,Status\n        $adapters_existed += $adapter\n    }\n    elseif ( ($env:COMPUTERNAME -eq 'VS197') -and ($adapter -in @('CwFcjAccountArrestAndNotify2', 'CwFccCustomersInfoAcliqu', 'CwFccCustomersInfoAcopliqu')) ) {\n        echo \"Adapter $adapter does not exist, but it is not a problem.\"\n    }\n    elseif ( ($env:COMPUTERNAME -eq 'VS1012') -and ($adapter -in @('CwFccAccountsTransfer')) ) {\n        echo \"Adapter $adapter does not exist, but it is not a problem.\"\n    }\n    else { \n        echo \"Adapter $adapter does not exist\"\n        exit 99902\n    }\n}\n\nforeach ($adapter in $adapters_existed) {\n\n    $adapter_object = Get-Service -Name $adapter\n    if ($adapter_object) {\n        Get-Service -Name $adapter | Stop-Service -ErrorAction Stop\n        Get-Service -Name $adapter | Select-Object ServiceName,Status\n    }\n}", "delta": "0:00:01.050051", "end": "2024-05-20 08:43:02.836905", "msg": "non-zero return code", "rc": 1, "start": "2024-05-20 08:43:01.786853", "stderr": "Stop-Service : Service 'CWConnector FcjAccountArrestAndNotify (CwFcjAccountArre\r\nstAndNotify)' cannot be stopped due to the following error: Cannot stop CwFcjAc\r\ncountArrestAndNotify service on computer '.'.\r\nAt line:28 char:38\r\n+         Get-Service -Name $adapter | Stop-Service -ErrorAction Stop\r\n+                                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : CloseError: (System.ServiceProcess.ServiceContro \r\n   ller:ServiceController) [Stop-Service], ServiceCommandException\r\n    + FullyQualifiedErrorId : CouldNotStopService,Microsoft.PowerShell.Command \r\n   s.StopServiceCommand", "stderr_lines": ["Stop-Service : Service 'CWConnector FcjAccountArrestAndNotify (CwFcjAccountArre", "stAndNotify)' cannot be stopped due to the following error: Cannot stop CwFcjAc", "countArrestAndNotify service on computer '.'.", "At line:28 char:38", "+         Get-Service -Name $adapter | Stop-Service -ErrorAction Stop", "+                                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~", "    + CategoryInfo          : CloseError: (System.ServiceProcess.ServiceContro ", "   ller:ServiceController) [Stop-Service], ServiceCommandException", "    + FullyQualifiedErrorId : CouldNotStopService,Microsoft.PowerShell.Command ", "   s.StopServiceCommand"], "stdout": "\r\n", "stdout_lines": [""]}
-
-[2024-05-20T08:43:13.996Z] changed: [vs197.imb.ru]
-
-[2024-05-20T08:43:13.996Z] 
-
-[2024-05-20T08:43:13.996Z] TASK [debug] *******************************************************************
-
-[2024-05-20T08:43:14.266Z] ok: [vs197.imb.ru] => {
-
-[2024-05-20T08:43:14.266Z]     "msg": "\r\nServiceName                  Status\r\n-----------                  ------\r\nCwFcjAccountArrestAndNotify Running\r\nCwFcjBlockAmount            Running\r\nCwFcjMap                    Running\r\nCwFcjMovementCreate         Running\r\nCwFcjAccountArrestAndNotify Stopped\r\nCwFcjBlockAmount            Stopped\r\nCwFcjMap                    Stopped\r\nCwFcjMovementCreate         Stopped\r\n\r\n\r\n"
-
-[2024-05-20T08:43:14.266Z] }
-
-[2024-05-20T08:43:14.266Z] 
-
-[2024-05-20T08:43:14.266Z] PLAY RECAP *********************************************************************
-
-[2024-05-20T08:43:14.266Z] vs197.imb.ru               : ok=2    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
-
-[2024-05-20T08:43:14.266Z] vs97.imb.ru                : ok=0    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
-
-[2024-05-20T08:43:14.266Z] 
-
-script returned exit code 2
+- name: Stoping Adapters
+  hosts: win
+  gather_facts: no
+  tasks:
+  - name: Check Service existence and Stop Service
+    win_shell: |
+        $adapters = @(<<LIST_OF_ADAPTERS>>) 
+        $adapters_existed = @()
+        
+        foreach ($adapter in $adapters) {
+        
+            $adapter_object = Get-Service -Name $adapter
+        
+            if ($adapter_object) {
+                $adapter_object | Select-Object ServiceName,Status
+                $adapters_existed += $adapter
+            }
+            elseif ( ($env:COMPUTERNAME -eq 'VS197') -and ($adapter -in @('CwFcjAccountArrestAndNotify2', 'CwFccCustomersInfoAcliqu', 'CwFccCustomersInfoAcopliqu')) ) {
+                echo "Adapter $adapter does not exist, but it is not a problem."
+            }
+            elseif ( ($env:COMPUTERNAME -eq 'VS1012') -and ($adapter -in @('CwFccAccountsTransfer')) ) {
+                echo "Adapter $adapter does not exist, but it is not a problem."
+            }
+            else { 
+                echo "Adapter $adapter does not exist"
+                exit 99902
+            }
+        }
+        
+        foreach ($adapter in $adapters_existed) {
+        
+            $adapter_object = Get-Service -Name $adapter
+            if ($adapter_object) {
+                Get-Service -Name $adapter | Stop-Service -ErrorAction Stop
+                Get-Service -Name $adapter | Select-Object ServiceName,Status
+            }
+        }
+    register: script_return
+  - debug: msg={{script_return.stdout}}
