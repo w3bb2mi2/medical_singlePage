@@ -1,39 +1,21 @@
-- name: Stoping Adapters
-  hosts: win
-  gather_facts: no
-  tasks:
-  - name: Check Service existence and Stop Service
-    win_shell: |
-        $adapters = @(<<LIST_OF_ADAPTERS>>) 
-        $adapters_existed = @()
-        
-        foreach ($adapter in $adapters) {
-        
-            $adapter_object = Get-Service -Name $adapter
-        
-            if ($adapter_object) {
-                $adapter_object | Select-Object ServiceName,Status
-                $adapters_existed += $adapter
-            }
-            elseif ( ($env:COMPUTERNAME -eq 'VS197') -and ($adapter -in @('CwFcjAccountArrestAndNotify2', 'CwFccCustomersInfoAcliqu', 'CwFccCustomersInfoAcopliqu')) ) {
-                echo "Adapter $adapter does not exist, but it is not a problem."
-            }
-            elseif ( ($env:COMPUTERNAME -eq 'VS1012') -and ($adapter -in @('CwFccAccountsTransfer')) ) {
-                echo "Adapter $adapter does not exist, but it is not a problem."
-            }
-            else { 
-                echo "Adapter $adapter does not exist"
-                exit 99902
-            }
-        }
-        
-        foreach ($adapter in $adapters_existed) {
-        
-            $adapter_object = Get-Service -Name $adapter
-            if ($adapter_object) {
-                Get-Service -Name $adapter | Stop-Service -ErrorAction Stop
-                Get-Service -Name $adapter | Select-Object ServiceName,Status
-            }
-        }
-    register: script_return
-  - debug: msg={{script_return.stdout}}
+def call(
+	String credName,
+    String ymlFile,
+    String invFile
+) {
+
+	//sh "source ${env.WORK_FOLDER}/jenkins/ansible_inventory/replace_in_file.sh ${invFile}.exception ${ymlFile}"
+    withCredentials([usernamePassword(credentialsId: "${credName}", usernameVariable: 'v_USER', passwordVariable: 'v_PASS')]) {
+	
+		sh """
+            if [[ -f ${ymlFile}.yml ]]
+            then
+				cat ${ymlFile}.yml
+				cat ${invFile}
+                /usr/bin/ansible-playbook --extra-vars="{\'ansible_user\': ${v_USER}, \'ansible_password\': ${v_PASS}}" ${ymlFile}.yml -i "${invFile}"
+            else
+                echo "No Adapter restart required"
+            fi
+        """
+    }
+}
