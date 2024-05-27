@@ -1,21 +1,19 @@
-def call(
-	String credName,
-    String ymlFile,
-    String invFile
-) {
+#!/bin/bash
 
-	//sh "source ${env.WORK_FOLDER}/jenkins/ansible_inventory/replace_in_file.sh ${invFile}.exception ${ymlFile}"
-    withCredentials([usernamePassword(credentialsId: "${credName}", usernameVariable: 'v_USER', passwordVariable: 'v_PASS')]) {
-	
-		sh """
-            if [[ -f ${ymlFile}.yml ]]
-            then
-				cat ${ymlFile}.yml
-				cat ${invFile}
-                /usr/bin/ansible-playbook --extra-vars="{\'ansible_user\': ${v_USER}, \'ansible_password\': ${v_PASS}}" ${ymlFile}.yml -i "${invFile}"
-            else
-                echo "No Adapter restart required"
-            fi
-        """
-    }
-}
+arguments=$(paste -s -d ' ' ./Installers/$BRANCH_NAME/install.txt)
+if [[ $arguments =~ RESTART_ADAPTER= ]]; then
+  echo 'В install.txt указана необходимость перезагрузки адаптеров, дополнительной проверки не требуется'
+  exit
+fi
+
+export NLS_LANG=AMERICAN_AMERICA.AL32UTF8
+text="select dependency from table(fcjucb.check_restart_adapters.fn_find_need_reload_obj('$arguments'));"
+echo exit | sqlplus $DB_CREDENTIALS_USR['fcjucb']/$DB_CREDENTIALS_PSW@$DB_SERVER <<< $text > result.txt
+cat result.txt
+if  cat result.txt | grep -q "Перезагрузка не требуется"; then
+  echo 'Перезагрузка адаптеров не требуется'
+  exit 0
+fi
+
+echo 'Необходима перезагрузка адаптеров'
+exit 1
