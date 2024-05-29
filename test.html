@@ -1,19 +1,10 @@
-#!/bin/bash
-
-arguments=$(paste -s -d ' ' ./Installers/$BRANCH_NAME/install.txt)
-if [[ $arguments =~ RESTART_ADAPTER= ]]; then
-  echo 'В install.txt указана необходимость перезагрузки адаптеров, дополнительной проверки не требуется'
-  exit
-fi
-
-export NLS_LANG=AMERICAN_AMERICA.AL32UTF8
-text="select dependency from table(fcjucb.check_restart_adapters.fn_find_need_reload_obj('$arguments'));"
-echo exit | sqlplus $DB_CREDENTIALS_USR['fcjucb']/$DB_CREDENTIALS_PSW@$DB_SERVER <<< $text > result.txt
-cat result.txt
-if  cat result.txt | grep -q "Перезагрузка не требуется"; then
-  echo 'Перезагрузка адаптеров не требуется'
-  exit 0
-fi
-
-echo 'Необходима перезагрузка адаптеров'
-exit 1
+PS C:\Dev\FCJ-701_new_psk\fcc-fccba> git rebase master
+Auto-merging jenkins/DeployBranchOnTest.Jenkinsfile                         
+CONFLICT (content): Merge conflict in jenkins/DeployBranchOnTest.Jenkinsfile
+error: could not apply 72f32b9... added agent k8s                                      
+hint: Resolve all conflicts manually, mark them as resolved with                       
+hint: "git add/rm <conflicted_files>", then run "git rebase --continue".               
+hint: You can instead skip this commit: run "git rebase --skip".                       
+hint: To abort and get back to the state before "git rebase", run "git rebase --abort".
+Could not apply 72f32b9... added agent k8s
+PS C:\Dev\FCJ-701_new_psk\fcc-fccba> 
