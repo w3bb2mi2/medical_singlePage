@@ -1,7 +1,7 @@
 SELECT * FROM fcjba.batm_initiator_dictionary     
        WHERE auth_stat = 'A' 
        AND record_stat = 'O' 
-       AND case when 'ZSK'='ZSK' THEN initiator='Иной гос орган' 
-                ELSE 1=1
+       AND case when MY_VAR='ZSK' THEN initiator='Иной гос орган' 
+                 А ЕСЛИ MY_VAR НЕ РАВНО MY_VAR ТОГДА ВЫВОДИТЬ ВСЕ СТРОКИ ИЗ ТАБЛИЦЫ КРОМЕ initiator='Иной гос орган' 
        end
 ;
