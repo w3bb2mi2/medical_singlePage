@@ -1,16 +1,7 @@
-Switched to a new branch 'FCJ-701_new_psk'
-branch 'FCJ-701_new_psk' set up to track 'origin/FCJ-701_new_psk'.
-PS C:\Dev\FCJ-701_new_psk\fcc-fccba> git rebase master
-Auto-merging jenkins/DeployBranchOnTest.Jenkinsfile
-CONFLICT (content): Merge conflict in jenkins/DeployBranchOnTest.Jenkinsfile
-error: could not apply 72f32b9... added agent k8s
-hint: Resolve all conflicts manually, mark them as resolved with
-hint: "git add/rm <conflicted_files>", then run "git rebase --continue".
-hint: You can instead skip this commit: run "git rebase --skip".
-hint: To abort and get back to the state before "git rebase", run "git rebase --abort".
-Could not apply 72f32b9... added agent k8s
-PS C:\Dev\FCJ-701_new_psk\fcc-fccba> git branch
-* (no branch, rebasing FCJ-701_new_psk)
-  FCJ-701_new_psk
-  master
-PS C:\Dev\FCJ-701_new_psk\fcc-fccba>     
+SELECT * FROM fcjba.batm_initiator_dictionary     
+       WHERE auth_stat = 'A' 
+       AND record_stat = 'O' 
+       AND case when 'ZSK'='ZSK' THEN initiator='Иной гос орган' 
+                ELSE 1=1
+       end
+;
