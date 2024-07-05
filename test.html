@@ -1,1 +1,18 @@
-'456245~ZSK~P01~00642301~00642301CNYCOTR101~40702156000134654750~CNY~.04~2024-06-17 20:13:08~~~~~~~1~LCY~22.7313~ЗСК Платформа~7702235133~~~~~~~~~~'
+#!/bin/bash
+
+arguments=$(paste -s -d ' ' ./Installers/$BRANCH_NAME/install.txt)
+if [[ $arguments =~ RESTART_ADAPTER= ]]; then
+  echo 'В install.txt указана необходимость перезагрузки адаптеров, дополнительной проверки не требуется'
+  exit
+fi
+
+export NLS_LANG=AMERICAN_AMERICA.AL32UTF8
+text="select dependency from table(fccucb.check_restart_adapters.fn_find_need_reload_obj('$arguments'));"
+echo exit | sqlplus $DB_CREDENTIALS_USR['fccucb']/$DB_CREDENTIALS_PSW@$DB_SERVER <<< $text > result.txt
+cat result.txt
+if  cat result.txt | grep -q "Перезагрузка не требуется"; then
+  exit 0
+fi
+
+echo 'Необходима перезагрузка адаптеров'
+exit 1
