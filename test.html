@@ -10,7 +10,13 @@ export NLS_LANG=AMERICAN_AMERICA.AL32UTF8
 text="select dependency from table(fccucb.check_restart_adapters.fn_find_need_reload_obj('$arguments'));"
 echo exit | sqlplus $DB_CREDENTIALS_USR['fccucb']/$DB_CREDENTIALS_PSW@$DB_SERVER <<< $text > result.txt
 cat result.txt
-if  cat result.txt | grep -q "Перезагрузка не требуется"; then
+
+if grep -q "Перезагрузка не требуется" result.txt && [[ $arguments =~ RESTART_ADAPTER= ]]; then
+  echo 'В файле result.txt указано, что перезагрузка не требуется, но в install.txt также указана необходимость перезагрузки адаптеров'
+  exit 1
+fi
+
+if grep -q "Перезагрузка не требуется" result.txt; then
   exit 0
 fi
 
