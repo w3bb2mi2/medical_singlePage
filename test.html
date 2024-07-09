@@ -1,24 +1,4 @@
-#!/bin/bash
-
-arguments=$(paste -s -d ' ' ./Installers/$BRANCH_NAME/install.txt)
-if [[ $arguments =~ RESTART_ADAPTER= ]]; then
-  echo 'В install.txt указана необходимость перезагрузки адаптеров, дополнительной проверки не требуется'
-  exit
-fi
-
-export NLS_LANG=AMERICAN_AMERICA.AL32UTF8
-text="select dependency from table(fccucb.check_restart_adapters.fn_find_need_reload_obj('$arguments'));"
-echo exit | sqlplus $DB_CREDENTIALS_USR['fccucb']/$DB_CREDENTIALS_PSW@$DB_SERVER <<< $text > result.txt
-cat result.txt
-
-if grep -q "Перезагрузка не требуется" result.txt && [[ $arguments =~ RESTART_ADAPTER= ]]; then
-  echo 'В файле result.txt указано, что перезагрузка не требуется, но в install.txt также указана необходимость перезагрузки адаптеров'
-  exit 1
-fi
-
-if grep -q "Перезагрузка не требуется" result.txt; then
-  exit 0
-fi
-
-echo 'Необходима перезагрузка адаптеров'
-exit 1
+SQL> select dependency from table(fccucb.check_restart_adapters.fn_find_need_reload_obj('TYPE=SQL SCHEMA=FCCUCB @/FCCUCB/SQL/CHECK_RESTART_ADAPTERS.sql SCHEMA=FCC @/pre_install_db_fcc.chk @FCC/DDL/Sttm_ac_stat_change_001.DDL @FCC/DDL/CATM_AMOUNT_BLOCKS_0003.DDL @FCC/DDL/Dim_amount_blocks_001.DDL @FCC/DDL/DIM_ACCT_INFO_HIST_002.DDL @FCC/DDL/DIM_ACCOUNT_INFO_003.DDL @FCC/INC/FLX6-858_INC/Error_Codes.INC @FCC/INC/FLX6-858_INC/Static_Maint.INC @FCC/PRC/pr_ac_closure.prc @FCC/SQL/dxpks_extract_cbr1.sql @FCC/VW/DXVW_DIM_ACCOUNT_INFO_001.VW @/patch_tracker.chlog   '))
+[2024-07-09T06:15:34.300Z]                                     *
+[2024-07-09T06:15:34.300Z] ERROR at line 1:
+[2024-07-09T06:15:34.300Z] ORA-00904: : invalid identifier
