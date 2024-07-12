@@ -1,4 +1,262 @@
-SQL> select dependency from table(fccucb.check_restart_adapters.fn_find_need_reload_obj('TYPE=SQL SCHEMA=FCCUCB @/FCCUCB/SQL/CHECK_RESTART_ADAPTERS.sql SCHEMA=FCC @/pre_install_db_fcc.chk @FCC/DDL/Sttm_ac_stat_change_001.DDL @FCC/DDL/CATM_AMOUNT_BLOCKS_0003.DDL @FCC/DDL/Dim_amount_blocks_001.DDL @FCC/DDL/DIM_ACCT_INFO_HIST_002.DDL @FCC/DDL/DIM_ACCOUNT_INFO_003.DDL @FCC/INC/FLX6-858_INC/Error_Codes.INC @FCC/INC/FLX6-858_INC/Static_Maint.INC @FCC/PRC/pr_ac_closure.prc @FCC/SQL/dxpks_extract_cbr1.sql @FCC/VW/DXVW_DIM_ACCOUNT_INFO_001.VW @/patch_tracker.chlog   '))
-[2024-07-09T06:15:34.300Z]                                     *
-[2024-07-09T06:15:34.300Z] ERROR at line 1:
-[2024-07-09T06:15:34.300Z] ORA-00904: : invalid identifier
+Sub Test(name As String)
+Application.ScreenUpdating = False 'Отключение обновления экрана(для ускорения выполнения макроса)
+Dim str, last, first, col As Integer 'Определение переменных(целые числа)
+Dim d, nameperson As String 'Определение переменных(строки)
+str = count(name) + 3 ' str(строка) - счет имя строки + 3
+first = str ' 1 значение в списке имён Объявление данных
+d = Format(Date - 2, "dd.mm.yyyy") ' объявление данных в папке с файлами d = сегодняшняя дата - 1 день(вчера с числом.месяцем.годом)
+col = sdate(Date - 2) 'объявление данных sdate в графике - сегодняшняя дата -1 день
+Do While Cells(str, 2) <> ""     ' выполнение цикла ячеек(строка,2) не равно пустому месту - последний заполненный(Итого)
+    str = str + 1 'Наращивание счётчика
+Loop
+last = str - 1 'Исключение записи Итого
+For i = first To last Step 1 ' Начальный этап счетчика до последенего счетчика, открытие файлов
+
+On Error GoTo N ' Если ошибка считает дальше
+
+    nameperson = Cells(i, 3) 'Значение этой ячейки
+    Workbooks.Open "C:\" + d + "\" + nameperson + ".xlsx"
+    sAddress = cel(name) 'или одна ячейка - "A1"
+    'получаем значение
+    vData = Sheets("Общий отчет").Range(sAddress).Value
+    ActiveWorkbook.Close False
+    'Записываем данные на активный лист книги,
+    'с которой запустили макрос
+    If IsArray(vData) Then
+        Cells(i, col).Resize(UBound(vData, 1), UBound(vData, 2)).Value = vData
+    Else
+        Cells(i, col) = vData
+    End If
+N:
+Resume N1
+N1:
+Next i
+End Sub
+Function count(name As String) As Integer
+On Error GoTo err
+    Columns("B:B").Select
+    count = Selection.Find(What:=name, After:=ActiveCell, LookIn:=xlFormulas, _
+        LookAt:=xlPart, SearchOrder:=xlByRows, SearchDirection:=xlNext, _
+        MatchCase:=False, SearchFormat:=False).Row
+    Exit Function
+err:
+    count = 0
+End Function
+Function cel(name As String) As String
+    Select Case name
+    Case "Норма в день": cel = "E2"
+    Case "991": cel = "O3"
+    Case "992": cel = "O4"
+    Case "993": cel = "O5"
+    Case "994": cel = "O6"
+    Case "995": cel = "O7"
+    Case "996": cel = "O8"
+    Case "997": cel = "O9"
+    Case "999": cel = "O11"
+    Case "1000": cel = "O12"
+    Case "1001": cel = "O13"
+    Case "1002": cel = "O14"
+    Case "1003": cel = "O15"
+    Case "1004": cel = "O16"
+    Case "1005": cel = "O17"
+    Case "1006": cel = "O18"
+    Case "1008": cel = "O20"
+    Case "1009": cel = "O21"
+    Case "1010": cel = "O22"
+    Case "1011": cel = "O23"
+    Case "1012": cel = "O24"
+    Case "1013": cel = "O25"
+    Case "1014": cel = "O26"
+    Case "1015": cel = "O27"
+    Case "1016": cel = "O28"
+    Case "1017": cel = "O29"
+    End Select
+End Function
+Function sdate(sd As Date) As Integer
+On Error GoTo errdate
+    Rows("5:5").Select
+    sdate = Selection.Find(What:=sd, After:=ActiveCell, LookIn:=xlFormulas _
+        , LookAt:=xlPart, SearchOrder:=xlByRows, SearchDirection:=xlNext, _
+        MatchCase:=False, SearchFormat:=False).Column
+    Exit Function
+errdate:
+    sdate = 0
+End Function
+
+Sub Button1_Click()
+Call Test("Норма в день")
+Call Test("991")
+Call Test("992")
+Call Test("993")
+Call Test("994")
+Call Test("995")
+Call Test("996")
+Call Test("997")
+Call Test("999")
+Call Test("1000")
+Call Test("1001")
+Call Test("1002")
+Call Test("1003")
+Call Test("1004")
+Call Test("1005")
+Call Test("1006")
+Call Test("1008")
+Call Test("1009")
+Call Test("1010")
+Call Test("1011")
+Call Test("1012")
+Call Test("1013")
+Call Test("1014")
+Call Test("1015")
+Call Test("1016")
+Call Test("1017")
+End Sub
+
+
+
+
+
+
+----------------------------------------
+С уважением,
+Даниил Криворучко
+
+АО ЮниКредит Банк
+
+From: KRIVORUCHKO, Daniil V. (UniCredit Bank - RUS) <Daniil.Krivoruchko@unicredit.ru> 
+Sent: Friday, July 12, 2024 11:54 AM
+To: LI, Eduard V. (UniCredit Bank - RUS) <Eduard.Li@unicredit.ru>; KRIVORUCHKO, Daniil V. (UniCredit Bank - RUS) <Daniil.Krivoruchko@unicredit.ru>
+Subject: Missed conversation with LI, Eduard V. (UniCredit Bank - RUS)
+
+KRIVORUCHKO, Daniil V. (UniCredit Bank - RUS) 10:41: 
+ЭДУ
+АРД
+LI, Eduard V. (UniCredit Bank - RUS) 10:41: 
+ДА
+ня
+KRIVORUCHKO, Daniil V. (UniCredit Bank - RUS) 10:41: 
+йо ниггер
+LI, Eduard V. (UniCredit Bank - RUS) 10:45: 
+ё
+ё
+KRIVORUCHKO, Daniil V. (UniCredit Bank - RUS) 11:59: 
+и чо ты расскажешь
+LI, Eduard V. (UniCredit Bank - RUS) 11:59: 
+все достало
+примерно 5 багов ждут фиксы
+от меня
+у тебя что?
+KRIVORUCHKO, Daniil V. (UniCredit Bank - RUS) 12:00: 
+течь сечь и дрочь
+LI, Eduard V. (UniCredit Bank - RUS) 12:00: 
+ну это получше чем у меня
+Даня
+я хочу на волю
+KRIVORUCHKO, Daniil V. (UniCredit Bank - RUS) 12:02: 
+ты наказан
+LI, Eduard V. (UniCredit Bank - RUS) 12:02: 
+забыть о коде
+дышать морским воздухом
+KRIVORUCHKO, Daniil V. (UniCredit Bank - RUS) 12:02: 
+да не 
+LI, Eduard V. (UniCredit Bank - RUS) 12:02: 
+не видеть этих бетонных коробок
+KRIVORUCHKO, Daniil V. (UniCredit Bank - RUS) 12:02: 
+я думаю ты хочешь кодить
+и дышать запахом монитора теплого
+LI, Eduard V. (UniCredit Bank - RUS) 12:02: 
+ладно. я готов кодить но при этом дыша морским воздухом
+и смотреть на море
+KRIVORUCHKO, Daniil V. (UniCredit Bank - RUS) 12:03: 
+ну тогда поехали
+LI, Eduard V. (UniCredit Bank - RUS) 12:03: 
+как
+KRIVORUCHKO, Daniil V. (UniCredit Bank - RUS) 12:03: 
+берешь и едешь
+а не моросишь
+LI, Eduard V. (UniCredit Bank - RUS) 12:03: 
+это черевато катастрофой
+LI, Eduard V. (UniCredit Bank - RUS) 9:56: 
+как ты бро
+KRIVORUCHKO, Daniil V. (UniCredit Bank - RUS) 9:56: 
+йо васап
+LI, Eduard V. (UniCredit Bank - RUS) 9:58: 
+Норм
+ты как
+KRIVORUCHKO, Daniil V. (UniCredit Bank - RUS) 9:59: 
+пойдет
+работу доделал?
+LI, Eduard V. (UniCredit Bank - RUS) 10:00: 
+еман
+это невозможно
+KRIVORUCHKO, Daniil V. (UniCredit Bank - RUS) 14:48: 
+(bike)
+бикукле
+KRIVORUCHKO, Daniil V. (UniCredit Bank - RUS) 17:09: 
+(bike)
+LI, Eduard V. (UniCredit Bank - RUS) 17:11: 
+(bike) 
+KRIVORUCHKO, Daniil V. (UniCredit Bank - RUS) 17:11: 
+бикукле
+LI, Eduard V. (UniCredit Bank - RUS) 17:11: 
+пздц достали 
+я как выжатый лимон
+вообще нет желаения ничего делать
+KRIVORUCHKO, Daniil V. (UniCredit Bank - RUS) 17:14: 
+да я тож сегодня заколебался
+KRIVORUCHKO, Daniil V. (UniCredit Bank - RUS) 10:55: 
+куда ушел
+жулик
+ля вернулся
+LI, Eduard V. (UniCredit Bank - RUS) 11:53: 
+Даня
+я тут
+работы много
+хз 
+когда все это закончится
+KRIVORUCHKO, Daniil V. (UniCredit Bank - RUS) 16:09: 
+ЭДООООООООООООООООООО
+LI, Eduard V. (UniCredit Bank - RUS) 15:49: 
+Даня
+у меня проблемы
+довольно большие
+KRIVORUCHKO, Daniil V. (UniCredit Bank - RUS) 15:50: 
+чего
+LI, Eduard V. (UniCredit Bank - RUS) 15:50: 
+короче у нас корпоратив в всх
+хз как его прогулять
+KRIVORUCHKO, Daniil V. (UniCredit Bank - RUS) 15:51: 
+ой иди в пень
+LI, Eduard V. (UniCredit Bank - RUS) 15:52: 
+Да не
+я серьезно
+KRIVORUCHKO, Daniil V. (UniCredit Bank - RUS) 15:53: 
+иди в пень с такими проблемами я серьезно
+LI, Eduard V. (UniCredit Bank - RUS) 15:53: 
+ну слушай
+я не могу его прогулять
+короче 
+Артем хитро поступил
+сначала спросил когда у меня осн. работа заканчивается
+а потом сказал про корпорат
+KRIVORUCHKO, Daniil V. (UniCredit Bank - RUS) 15:54: 
+давай ещё раз
+идешь в лес
+ищешь пень
+садишься на него
+шлешь мне фотку
+поговорим после 
+KRIVORUCHKO, Daniil V. (UniCredit Bank - RUS) 16:58: 
+слышь Эдик
+ну ка отвлекись
+21
+16:59 Connected to LI, Eduard V. (UniCredit Bank - RUS) (eduard.li@unicredit.ru). 
+17:18 Call with LI, Eduard V. (UniCredit Bank - RUS) (eduard.li@unicredit.ru) has ended. Duration: 0:18:56 
+KRIVORUCHKO, Daniil V. (UniCredit Bank - RUS) 18:29: 
+так бы и сказал типо пошел я нахрен
+а ты 10 минут 10 минут
+LI, Eduard V. (UniCredit Bank - RUS) 11:52: 
+Даня
+ну что там со скриптом
+помочь?
+как раз ща время есть
