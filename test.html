@@ -1,52 +1,25 @@
-BEGIN
-        FOR rec IN (SELECT *
-                    from dba_dependencies
-                    WHERE REFERENCED_NAME=ref_name
-                        and referenced_owner=p_owner
-                        and owner in ('FCCBA', 'FCCUCB', 'FCCBLAMADP', 'FCCADPRO', 'FCCADP', 'FCC2BRSINADP')
-                        and not (REFERENCED_NAME = name and referenced_owner = owner and REFERENCED_TYPE = type)
-                        ) loop
-            v_row_dependency := null;
-            declare
-                is_in boolean := false;
-            begin
-                IF dependency_arr.count > 0 then
-                    FOR i in dependency_arr.FIRST..dependency_arr.LAST LOOP
-                        IF dependency_arr(i).owner = rec.owner
-                            and dependency_arr(i).name = rec.name
-                            and dependency_arr(i).type = rec.type
-                            and dependency_arr(i).referenced_owner = rec.referenced_owner
-                            and dependency_arr(i).referenced_name = rec.referenced_name
-                            and dependency_arr(i).referenced_type = rec.referenced_type
-                         then
-                            is_in := true;
-                        end IF;
-                    END LOOP;
-                    IF is_in = true then
-                        continue;
-                    end if;
-                end IF;
-
-                v_row_dependency.owner := rec.owner;
-                v_row_dependency.name := rec.name;
-                v_row_dependency.type := rec.type;
-                v_row_dependency.referenced_owner := rec.referenced_owner;
-                v_row_dependency.referenced_name := rec.referenced_name;
-                v_row_dependency.referenced_type := rec.referenced_type;
-                v_row_dependency.dependency_type := rec.dependency_type;
-
-                dependency_arr(dependency_arr.count+1) := v_row_dependency;
-            exception
-                when others then
-                    null;
-                    dbms_output.put_line('Ошибка');
-            end;
-
-            get_reference_objects_3(rec.owner, rec.name, dependency_arr);
-
-        end loop;
-    EXCEPTION
-        WHEN others then
-            dbms_output.put_line('TEXT: '|| SQLERRM);
-            dbms_output.put_line('ERROR HAPPENED in get_reference_object');
-    END get_reference_objects_3;
+   	OWNER	NAME	TYPE	REFERENCED_OWNER	REFERENCED_NAME	REFERENCED_TYPE	REFERENCED_LINK_NAME	DEPENDENCY_TYPE	BOUND
+1	FCCUCB	BAPKS_SYSTOR_CUSTOM	PACKAGE BODY	FCCUCB	BAPKS_SYSTOR_CUSTOM	PACKAGE		HARD	
+2	FCCUCB	PMNT_AFTERCHECK	PACKAGE BODY	FCCUCB	BAPKS_SYSTOR_CUSTOM	PACKAGE		HARD	
+3	FCCUCB	PMNT_AFTERCHECK	PACKAGE BODY	FCCUCB	PMNT_AFTERCHECK	PACKAGE		HARD	
+4	FCCUCB	BAPKS_JOB_CUSTOM	PACKAGE BODY	FCCUCB	BAPKS_SYSTOR_CUSTOM	PACKAGE		HARD	
+5	FCCUCB	BAPKS_JOB_CUSTOM	PACKAGE BODY	FCCUCB	BAPKS_JOB_CUSTOM	PACKAGE		HARD	
+6	FCCUCB	BAPKS_DX_PROCESS_CUSTOM	PACKAGE BODY	FCCUCB	BAPKS_JOB_CUSTOM	PACKAGE		HARD	
+7	FCCUCB	BAPKS_DX_PROCESS_CUSTOM	PACKAGE BODY	FCCUCB	BAPKS_DX_PROCESS_CUSTOM	PACKAGE		HARD	
+8	FCCUCB	DXVW_DIM_LOAN_OPS_BRN	VIEW	FCCUCB	BAPKS_DX_PROCESS_CUSTOM	PACKAGE		HARD	
+9	FCCUCB	DXVW_DIM_LOAN_SCHEDULE_BRN	VIEW	FCCUCB	BAPKS_DX_PROCESS_CUSTOM	PACKAGE		HARD	
+10	FCCUCB	DX_F701_INTRA	PACKAGE BODY	FCCUCB	BAPKS_DX_PROCESS_CUSTOM	PACKAGE		HARD	
+11	FCCUCB	DX_F701_INTRA	PACKAGE BODY	FCCUCB	DX_F701_INTRA	PACKAGE		HARD	
+12	FCCUCB	DX_UCB	PACKAGE BODY	FCCUCB	BAPKS_JOB_CUSTOM	PACKAGE		HARD	
+13	FCCUCB	BAPKS_DX_PROCESS_CUSTOM	PACKAGE BODY	FCCUCB	DX_UCB	PACKAGE		HARD	
+14	FCCUCB	DX_UCB	PACKAGE BODY	FCCUCB	DX_UCB	PACKAGE		HARD	
+15	FCCADP	DXS_UCB	SYNONYM	FCCUCB	DX_UCB	PACKAGE		HARD	
+16	FCCADP	FLOW_SWITCH	PACKAGE BODY	FCCADP	DXS_UCB	SYNONYM		HARD	
+17	FCCADP	FLOW_SWITCH	PACKAGE BODY	FCCADP	FLOW_SWITCH	PACKAGE		HARD	
+18	FCCUCB	BATB_DX_JOB_LOG_CUSTOM_AU	TRIGGER	FCCUCB	BAPKS_SYSTOR_CUSTOM	PACKAGE		HARD	
+19	FCCUCB	BAPKS_DX_PROCESS_CUSTOM	PACKAGE BODY	FCCUCB	BAPKS_SYSTOR_CUSTOM	PACKAGE		HARD	
+20	FCCUCB	DX_F701_INTRA	PACKAGE BODY	FCCUCB	BAPKS_SYSTOR_CUSTOM	PACKAGE		HARD	
+21	FCCUCB	DX_UCB	PACKAGE BODY	FCCUCB	BAPKS_SYSTOR_CUSTOM	PACKAGE		HARD	
+22	FCCUCB	BAPKS_NOTIFS_CUSTOM	PACKAGE BODY	FCCUCB	BAPKS_SYSTOR_CUSTOM	PACKAGE		HARD	
+23	FCCUCB	BAPKS_DX_PROCESS_CUSTOM	PACKAGE BODY	FCCUCB	BAPKS_NOTIFS_CUSTOM	PACKAGE		HARD	
+24	FCCUCB	BAPKS_NOTIFS_CUSTOM	PACKAGE BODY	FCCUCB	BAPKS_NOTIFS_CUSTOM	PACKAGE		HARD	
