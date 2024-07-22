@@ -1,13 +1,209 @@
-select d_path
-into v_res
-from (
-    select level, d.*, p_owner || '.' || p_object_name || SYS_CONNECT_BY_PATH(owner || '.' || name, '<--') d_path
-    from table(CHECK_RESTART_ADAPTERS.fn_references_tab(p_owner, p_object_name)) d
-    where owner in ('FCCBLAMADP', 'FCCADPRO', 'FCCADP', 'FCC2BRSINADP') 
-        and TYPE in ('PACKAGE BODY', 'PACKAGE', 'SYNONYM') 
-        and referenced_name = p_object_name 
-        and referenced_owner = p_owner
-    connect by prior name = referenced_name and prior owner = referenced_owner
-)
-where rownum = 1
-and level < 100; -- Ограничение глубины рекурсии, чтобы избежать циклов
+PROCEDURE get_reference_objects_2 (p_owner varchar2, ref_name varchar2, dependency_arr IN OUT dependency_arr_type) as
+    v_row_dependency dependency_row_type;
+
+    BEGIN
+        FOR rec_1 IN (SELECT *
+                    from dba_dependencies
+                    WHERE REFERENCED_NAME=ref_name
+                        and referenced_owner=p_owner
+                        and owner in ('FCCBA', 'FCCUCB', 'FCCBLAMADP', 'FCCADPRO', 'FCCADP', 'FCC2BRSINADP')
+                        and not (REFERENCED_NAME = name and referenced_owner = owner and REFERENCED_TYPE = type)
+                        ) loop
+            v_row_dependency := null;
+            declare
+                is_in boolean := false;
+            begin
+                IF dependency_arr.count > 0 then
+                    FOR i in dependency_arr.FIRST..dependency_arr.LAST LOOP
+                        IF dependency_arr(i).owner = rec_1.owner
+                            and dependency_arr(i).name = rec_1.name
+                            and dependency_arr(i).type = rec_1.type
+                            and dependency_arr(i).referenced_owner = rec_1.referenced_owner
+                            and dependency_arr(i).referenced_name = rec_1.referenced_name
+                            and dependency_arr(i).referenced_type = rec_1.referenced_type
+                         then
+                            dbms_output.put_line('Уже в массиве:'||dependency_arr(i).name);
+                            dbms_output.put_line('Первый уровень');
+                            dbms_output.put_line('-----------------------');
+                            is_in := true;
+                        end IF;
+                    END LOOP;
+                    IF is_in = true then
+                        continue;
+                    end if;
+                end IF;
+
+                v_row_dependency.owner := rec_1.owner;
+                v_row_dependency.name := rec_1.name;
+                v_row_dependency.type := rec_1.type;
+                v_row_dependency.referenced_owner := rec_1.referenced_owner;
+                v_row_dependency.referenced_name := rec_1.referenced_name;
+                v_row_dependency.referenced_type := rec_1.referenced_type;
+                v_row_dependency.referenced_link_name := 'ПЕРВЫЙ УРОВЕНЬ';
+                v_row_dependency.dependency_type := rec_1.dependency_type;
+                -- v_row_dependency.bound := rec_1.owner||'.'||rec_1.name;
+
+                dependency_arr(dependency_arr.count+1) := v_row_dependency;
+            exception
+                when others then
+                    null;
+                    dbms_output.put_line('Ошибка');
+            end;
+
+            FOR rec_2 IN (SELECT *
+                    from dba_dependencies
+                    WHERE REFERENCED_NAME=rec_1.NAME
+                        and referenced_owner=rec_1.OWNER
+                        and owner in ('FCCBA', 'FCCUCB', 'FCCBLAMADP', 'FCCADPRO', 'FCCADP', 'FCC2BRSINADP')
+                        and not (REFERENCED_NAME = name and referenced_owner = owner and REFERENCED_TYPE = type)
+                        ) loop
+
+                    v_row_dependency := null;
+                    declare
+                        is_in boolean;
+                    begin
+                        is_in :=false;
+                        IF dependency_arr.count > 0 then
+                            FOR i in dependency_arr.FIRST..dependency_arr.LAST LOOP
+                                IF dependency_arr(i).owner = rec_2.owner
+                                    and dependency_arr(i).name = rec_2.name
+                                    and dependency_arr(i).type = rec_2.type
+                                    and dependency_arr(i).referenced_owner = rec_2.referenced_owner
+                                    and dependency_arr(i).referenced_name = rec_2.referenced_name
+                                    and dependency_arr(i).referenced_type = rec_2.referenced_type
+                                 then
+                                    dbms_output.put_line('Уже в массиве:'||dependency_arr(i).name);
+                                    dbms_output.put_line('Второй уровень');
+                                    dbms_output.put_line('-----------------------');
+                                    is_in := true;
+                                end IF;
+                            END LOOP;
+                            IF is_in = true then
+                                continue;
+                            end if;
+                            v_row_dependency.owner := rec_2.owner;
+                            v_row_dependency.name := rec_2.name;
+                            v_row_dependency.type := rec_2.type;
+                            v_row_dependency.referenced_owner := rec_2.referenced_owner;
+                            v_row_dependency.referenced_name := rec_2.referenced_name;
+                            v_row_dependency.referenced_type := rec_2.referenced_type;
+                            v_row_dependency.referenced_link_name := 'ВТОРОЙ УРОВЕНЬ';
+                            v_row_dependency.dependency_type := rec_2.dependency_type;
+
+                            dependency_arr(dependency_arr.count+1) := v_row_dependency;
+                        end IF;
+                    exception
+                        when others then
+                            null;
+                            dbms_output.put_line('Ошибка');
+                    end;
+
+                    --ТРЕТИЙ УРОВЕНЬ ВЛОЖЕННОСТИ
+                    FOR rec_3 IN (SELECT *
+                            from dba_dependencies
+                            WHERE REFERENCED_NAME=rec_2.NAME
+                                and referenced_owner=rec_2.OWNER
+                                and owner in ('FCCBA', 'FCCUCB', 'FCCBLAMADP', 'FCCADPRO', 'FCCADP', 'FCC2BRSINADP')
+                                and not (REFERENCED_NAME = name and referenced_owner = owner and REFERENCED_TYPE = type)
+                                ) loop
+
+                            v_row_dependency := null;
+                        declare
+                            is_in boolean;
+                        begin
+                            is_in :=false;
+                            IF dependency_arr.count > 0 then
+                                FOR i in dependency_arr.FIRST..dependency_arr.LAST LOOP
+                                    IF dependency_arr(i).owner = rec_3.owner
+                                        and dependency_arr(i).name = rec_3.name
+                                        and dependency_arr(i).type = rec_3.type
+                                        and dependency_arr(i).referenced_owner = rec_3.referenced_owner
+                                        and dependency_arr(i).referenced_name = rec_3.referenced_name
+                                        and dependency_arr(i).referenced_type = rec_3.referenced_type
+                                     then
+                                        dbms_output.put_line('Уже в массиве:'||dependency_arr(i).name);
+                                        dbms_output.put_line('третий уровень');
+                                        dbms_output.put_line('-----------------------');
+                                        is_in := true;
+                                    end IF;
+                                END LOOP;
+                                IF is_in = true then
+                                    continue;
+                                end if;
+                                v_row_dependency.owner := rec_3.owner;
+                                v_row_dependency.name := rec_3.name;
+                                v_row_dependency.type := rec_3.type;
+                                v_row_dependency.referenced_owner := rec_3.referenced_owner;
+                                v_row_dependency.referenced_name := rec_3.referenced_name;
+                                v_row_dependency.referenced_type := rec_3.referenced_type;
+                                v_row_dependency.referenced_link_name := 'ТРЕТИЙ УРОВЕНЬ';
+                                v_row_dependency.dependency_type := rec_3.dependency_type;
+
+                                dependency_arr(dependency_arr.count+1) := v_row_dependency;
+                            end IF;
+                        exception
+                            when others then
+                                null;
+                                dbms_output.put_line('Ошибка');
+                        end;
+
+                        --ЧЕТВЕРТЫЙ УРОВЕНЬ ВЛОЖЕННОСТИ
+                        FOR rec_4 IN (SELECT *
+                            from dba_dependencies
+                            WHERE REFERENCED_NAME=rec_3.NAME
+                                and referenced_owner=rec_3.OWNER
+                                and owner in ('FCCBA', 'FCCUCB', 'FCCBLAMADP', 'FCCADPRO', 'FCCADP', 'FCC2BRSINADP')
+                                and not (REFERENCED_NAME = name and referenced_owner = owner and REFERENCED_TYPE = type)
+                                ) loop
+
+                            v_row_dependency := null;
+                            declare
+                                is_in boolean;
+                            begin
+                                is_in :=false;
+                                IF dependency_arr.count > 0 then
+                                    FOR i in dependency_arr.FIRST..dependency_arr.LAST LOOP
+                                        IF dependency_arr(i).owner = rec_4.owner
+                                            and dependency_arr(i).name = rec_4.name
+                                            and dependency_arr(i).type = rec_4.type
+                                            and dependency_arr(i).referenced_owner = rec_4.referenced_owner
+                                            and dependency_arr(i).referenced_name = rec_4.referenced_name
+                                            and dependency_arr(i).referenced_type = rec_4.referenced_type
+                                         then
+                                            dbms_output.put_line('Уже в массиве:'||dependency_arr(i).name);
+                                            dbms_output.put_line('третий уровень');
+                                            dbms_output.put_line('-----------------------');
+                                            is_in := true;
+                                        end IF;
+                                    END LOOP;
+                                    IF is_in = true then
+                                        continue;
+                                    end if;
+                                    v_row_dependency.owner := rec_4.owner;
+                                    v_row_dependency.name := rec_4.name;
+                                    v_row_dependency.type := rec_4.type;
+                                    v_row_dependency.referenced_owner := rec_4.referenced_owner;
+                                    v_row_dependency.referenced_name := rec_4.referenced_name;
+                                    v_row_dependency.referenced_type := rec_4.referenced_type;
+                                    v_row_dependency.referenced_link_name := 'ЧЕТВЕРТЫЙ УРОВЕНЬ';
+                                    v_row_dependency.dependency_type := rec_4.dependency_type;
+
+                                    dependency_arr(dependency_arr.count+1) := v_row_dependency;
+                                end IF;
+                            exception
+                                when others then
+                                    null;
+                                    dbms_output.put_line('Ошибка');
+                            end;
+                        end loop;
+                    end loop;
+            end loop;
+
+--            dependency_arr(dependency_arr.count+1) := null;
+
+        end loop;
+    EXCEPTION
+        WHEN others then
+            dbms_output.put_line('TEXT: '|| SQLERRM);
+            dbms_output.put_line('ERROR HAPPENED in get_reference_object');
+    END;
