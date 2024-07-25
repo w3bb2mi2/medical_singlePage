@@ -1,12 +1,4 @@
 #!/bin/bash
-set -e
-sqlplus -l $1/$2@$3 <<EOF
-WHENEVER OSERROR EXIT 9;
-WHENEVER SQLERROR EXIT SQL.SQLCODE;
-select * from dual;
-EOF
-
-#!/bin/bash
 
 if [ -z "${CHANGE_BRANCH}" ]; then
   arguments=$(paste -s -d ' ' ./Installers/$BRANCH_NAME/install.txt)
@@ -16,9 +8,16 @@ fi;
 
 
 export NLS_LANG=AMERICAN_AMERICA.AL32UTF8
+set -e
+
 text="select dependency from table(fccucb.check_restart_adapters.fn_find_need_reload_obj('$arguments'));"
 
-echo exit | sqlplus $1[$DEFAULT_ORA_SCHEMA]/$2@$3 <<< $text > result.txt
+#echo exit | sqlplus $1[$DEFAULT_ORA_SCHEMA]/$2@$3 <<< $text > result.txt
+sqlplus -l $1[$DEFAULT_ORA_SCHEMA]/$2@$3  <<EOF
+WHENEVER OSERROR EXIT 9;
+WHENEVER SQLERROR EXIT SQL.SQLCODE;
+select * from dual;
+EOF
 
 cat result.txt
 
