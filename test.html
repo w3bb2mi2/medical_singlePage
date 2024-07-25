@@ -3,35 +3,31 @@
 current_folder=${CHANGE_BRANCH:-$BRANCH_NAME}
 arguments=$(paste -s -d ' ' ./Installers/$current_folder/install.txt)
 
-export NLS_LANG=AMERICAN_AMERICA.AL32UTF8
-set -e
-
-#echo "select dependency from table(fccucb.check_restart_adapters.fn_find_need_reload_obj('$arguments'));" >query.sql
-
 cat <<EOF >query.sql
-
+  select dependency from table(fccucb.check_restart_adapters.fn_find_need_reload_obj('$arguments'));
+EOF
 
 cat query.sql
 
-echo exit | sqlplus $1[$DEFAULT_ORA_SCHEMA]/$2@$3 <<< $text > result.txt
-echo exit | sqlplus -l $1/$2@$3 <<< $text > result.txt
+export NLS_LANG=AMERICAN_AMERICA.AL32UTF8
+set -e
+
+sqlplus $1[$DEFAULT_ORA_SCHEMA]/$2@$3  <<EOF > result.txt
+WHENEVER OSERROR EXIT 9;
+WHENEVER SQLERROR EXIT SQL.SQLCODE;
+@query.sql
+EOF
 
 cat result.txt
 
-if grep -q 'ERROR at line' result.txt; then
-  echo 'Произошла ошибка в функции , при проверке объектов из install.txt'
-  exit 1
-fi
-
 if  grep -q 'Перезагрузка не требуется' result.txt && [[ $arguments =~ RESTART_ADAPTER= ]]; then
-  echo 'В файле install.txt указана необходимость перезагрузки адаптеров, однако зависимости с адаптерными пакетами не найдены, просьба проверить'
+  echo 'В файле install.txt указана необходимость перезагрузки адаптеров, однако зависимости с адаптерными пакетами не найдены. Просьба проверить'
   exit 1
 elif ! grep -q 'Перезагрузка не требуется' result.txt && [[ ! $arguments =~ RESTART_ADAPTER= ]]; then
-  echo 'В файле install.txt не указана необходимость перезагрузки адаптеров, однако найдена связь с адаптерными пакетами, просьба проверить'
+  echo 'В файле install.txt не указана необходимость перезагрузки адаптеров, однако найдена связь с адаптерными пакетами. Просьба проверить'
   exit 1
 else
   echo 'successfully passed stage "Checking for reload adapters"'
   exit 0
 fi
-
 
