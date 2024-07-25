@@ -1,23 +1,20 @@
 #!/bin/bash
 
-if [ -z "${CHANGE_BRANCH}" ]; then
-  arguments=$(paste -s -d ' ' ./Installers/$BRANCH_NAME/install.txt)
-else
-  arguments=$(paste -s -d ' ' ./Installers/$CHANGE_BRANCH/install.txt)
-fi;
-
+current_folder=${CHANGE_BRANCH:-$BRANCH_NAME}
+arguments=$(paste -s -d ' ' ./Installers/$current_folder/install.txt)
 
 export NLS_LANG=AMERICAN_AMERICA.AL32UTF8
 set -e
 
-text="select dependency from table(fccucb.check_restart_adapters.fn_find_need_reload_obj('$arguments'));"
+#echo "select dependency from table(fccucb.check_restart_adapters.fn_find_need_reload_obj('$arguments'));" >query.sql
 
-#echo exit | sqlplus $1[$DEFAULT_ORA_SCHEMA]/$2@$3 <<< $text > result.txt
-sqlplus -l $1[$DEFAULT_ORA_SCHEMA]/$2@$3  <<EOF
-WHENEVER OSERROR EXIT 9;
-WHENEVER SQLERROR EXIT SQL.SQLCODE;
-select * from dual;
-EOF
+cat <<EOF >query.sql
+
+
+cat query.sql
+
+echo exit | sqlplus $1[$DEFAULT_ORA_SCHEMA]/$2@$3 <<< $text > result.txt
+echo exit | sqlplus -l $1/$2@$3 <<< $text > result.txt
 
 cat result.txt
 
@@ -36,3 +33,5 @@ else
   echo 'successfully passed stage "Checking for reload adapters"'
   exit 0
 fi
+
+
