@@ -1,13 +1,16 @@
 #!/bin/bash
-echo "BRANCH_NAME: ${BRANCH_NAME}"
-echo "CHANGE_BRANCH: ${CHANGE_BRANCH}"
+set -e
+sqlplus -l $1/$2@$3 <<EOF
+WHENEVER OSERROR EXIT 9;
+WHENEVER SQLERROR EXIT SQL.SQLCODE;
+select * from dual;
+EOF
+
+#!/bin/bash
 
 if [ -z "${CHANGE_BRANCH}" ]; then
-  echo 'Переменная CHANGE_BRANCH не определена'
   arguments=$(paste -s -d ' ' ./Installers/$BRANCH_NAME/install.txt)
-else 
-  echo 'Переменная CHANGE_BRANCH определена'
-  echo $CHANGE_BRANCH
+else
   arguments=$(paste -s -d ' ' ./Installers/$CHANGE_BRANCH/install.txt)
 fi;
 
@@ -34,5 +37,3 @@ else
   echo 'successfully passed stage "Checking for reload adapters"'
   exit 0
 fi
-
-
